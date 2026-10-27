@@ -1,0 +1,32 @@
+package com.example.syncmate.data.local
+
+import android.content.Context
+import android.content.SharedPreferences
+
+class AppPreferences(context: Context) {
+    private val prefs: SharedPreferences = context.getSharedPreferences("subletsync_prefs", Context.MODE_PRIVATE)
+
+    var isRememberDevice: Boolean
+        get() = prefs.getBoolean("remember_device", false)
+        set(value) = prefs.edit().putBoolean("remember_device", value).apply()
+
+    var isLoggedIn: Boolean
+        get() = prefs.getBoolean("is_logged_in", false)
+        set(value) = prefs.edit().putBoolean("is_logged_in", value).apply()
+
+    var userEmail: String?
+        get() = prefs.getString("user_email", null)
+        set(value) = prefs.edit().putString("user_email", value).apply()
+
+    var darkModeEnabled: Boolean
+        get() = prefs.getBoolean("dark_mode", true)
+        set(value) = prefs.edit().putBoolean("dark_mode", value).apply()
+
+    var notificationsEnabled: Boolean
+        get() = prefs.getBoolean("notifications_enabled", true)
+        set(value) = prefs.edit().putBoolean("notifications_enabled", value).apply()
+
+    fun clear() {
+        prefs.edit().clear().apply()
+    }
+}
