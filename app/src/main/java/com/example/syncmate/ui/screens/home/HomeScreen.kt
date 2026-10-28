@@ -57,6 +57,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.syncmate.data.model.HousingListing
+import com.example.syncmate.ui.components.AnimatedSaveButton
+import com.example.syncmate.ui.components.GlassCard
 import com.example.syncmate.ui.components.LoadingIndicator
 import com.example.syncmate.ui.components.StatBadge
 import com.example.syncmate.ui.theme.EmeraldSuccess
@@ -407,13 +409,9 @@ fun ListingCardItem(
     onClick: () -> Unit,
     onToggleSave: () -> Unit
 ) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = SlateCard),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .border(1.dp, SlateCardBorder, RoundedCornerShape(16.dp))
+    GlassCard(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -426,13 +424,10 @@ fun ListingCardItem(
                     backgroundColor = EmeraldSuccess
                 )
 
-                IconButton(onClick = onToggleSave) {
-                    Icon(
-                        imageVector = Icons.Default.Bookmark,
-                        contentDescription = "Save",
-                        tint = if (listing.isSaved) IndigoPrimary else TextSecondary
-                    )
-                }
+                AnimatedSaveButton(
+                    isSaved = listing.isSaved,
+                    onToggle = onToggleSave
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))

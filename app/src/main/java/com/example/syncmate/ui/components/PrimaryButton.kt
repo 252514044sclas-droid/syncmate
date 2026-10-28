@@ -13,6 +13,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.syncmate.ui.theme.IndigoPrimary
@@ -27,8 +29,13 @@ fun PrimaryButton(
     isLoading: Boolean = false,
     enabled: Boolean = true
 ) {
+    val haptic = LocalHapticFeedback.current
+
     Button(
-        onClick = onClick,
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            onClick()
+        },
         enabled = enabled && !isLoading,
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(

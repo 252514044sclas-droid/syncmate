@@ -60,6 +60,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.syncmate.data.model.HousingListing
 import com.example.syncmate.data.model.RoommateProfile
+import com.example.syncmate.ui.components.AnimatedSaveButton
+import com.example.syncmate.ui.components.GlassCard
 import com.example.syncmate.ui.components.LoadingIndicator
 import com.example.syncmate.ui.components.PrimaryButton
 import com.example.syncmate.ui.components.StatBadge
@@ -480,13 +482,9 @@ fun DashboardHousingCard(
     onClick: () -> Unit,
     onToggleSave: () -> Unit
 ) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = SlateCard),
-        modifier = Modifier
-            .width(260.dp)
-            .clickable { onClick() }
-            .border(1.dp, SlateCardBorder, RoundedCornerShape(16.dp))
+    GlassCard(
+        onClick = onClick,
+        modifier = Modifier.width(260.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -495,16 +493,10 @@ fun DashboardHousingCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 StatBadge(text = "VERIFIED STUDENT", backgroundColor = EmeraldSuccess)
-                IconButton(
-                    onClick = onToggleSave,
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Bookmark,
-                        contentDescription = "Save",
-                        tint = if (listing.isSaved) IndigoPrimary else TextSecondary
-                    )
-                }
+                AnimatedSaveButton(
+                    isSaved = listing.isSaved,
+                    onToggle = onToggleSave
+                )
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -559,13 +551,9 @@ fun DashboardRoommateCard(
     onClick: () -> Unit,
     onToggleSave: () -> Unit
 ) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = SlateCard),
-        modifier = Modifier
-            .width(240.dp)
-            .clickable { onClick() }
-            .border(1.dp, SlateCardBorder, RoundedCornerShape(16.dp))
+    GlassCard(
+        onClick = onClick,
+        modifier = Modifier.width(240.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -577,16 +565,10 @@ fun DashboardRoommateCard(
                     text = "${roommate.compatibilityPercentage}% MATCH",
                     backgroundColor = IndigoPrimary
                 )
-                IconButton(
-                    onClick = onToggleSave,
-                    modifier = Modifier.size(28.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Bookmark,
-                        contentDescription = "Save",
-                        tint = if (roommate.isSaved) IndigoPrimary else TextSecondary
-                    )
-                }
+                AnimatedSaveButton(
+                    isSaved = roommate.isSaved,
+                    onToggle = onToggleSave
+                )
             }
 
             Spacer(modifier = Modifier.height(10.dp))
