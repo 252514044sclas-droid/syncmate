@@ -49,6 +49,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -57,7 +58,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.syncmate.data.model.HousingListing
@@ -619,92 +623,132 @@ fun DashboardBottomNavigation(
     onNavigateToExplore: () -> Unit,
     onNavigateToSaved: () -> Unit,
     onNavigateToMessages: () -> Unit,
-    onNavigateToProfile: () -> Unit
+    onNavigateToProfile: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    NavigationBar(
-        containerColor = SlateCard,
-        contentColor = TextPrimary
+    val cyanAccent = Color(0xFF00E5FF)
+    val darkBarBg = Color(0xFF0B132B)
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        contentAlignment = Alignment.Center
     ) {
-        NavigationBarItem(
-            selected = selectedItem == 0,
-            onClick = onNavigateToHome,
-            icon = { Icon(imageVector = Icons.Default.Home, contentDescription = "Home") },
-            label = { Text("Home") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = IndigoPrimary,
-                selectedTextColor = IndigoPrimary,
-                unselectedIconColor = TextSecondary,
-                unselectedTextColor = TextSecondary,
-                indicatorColor = IndigoPrimary.copy(alpha = 0.15f)
-            )
-        )
+        Surface(
+            shape = RoundedCornerShape(36.dp),
+            color = darkBarBg,
+            shadowElevation = 8.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(36.dp))
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 6.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                FloatingNavItem(
+                    icon = Icons.Default.Home,
+                    label = "Home",
+                    isSelected = selectedItem == 0,
+                    onClick = onNavigateToHome,
+                    selectedColor = cyanAccent
+                )
 
-        NavigationBarItem(
-            selected = selectedItem == 1,
-            onClick = onNavigateToExplore,
-            icon = { Icon(imageVector = Icons.Default.Explore, contentDescription = "Explore") },
-            label = { Text("Explore") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = IndigoPrimary,
-                selectedTextColor = IndigoPrimary,
-                unselectedIconColor = TextSecondary,
-                unselectedTextColor = TextSecondary,
-                indicatorColor = IndigoPrimary.copy(alpha = 0.15f)
-            )
-        )
+                FloatingNavItem(
+                    icon = Icons.Default.Search,
+                    label = "Explore",
+                    isSelected = selectedItem == 1,
+                    onClick = onNavigateToExplore,
+                    selectedColor = cyanAccent
+                )
 
-        NavigationBarItem(
-            selected = selectedItem == 2,
-            onClick = onNavigateToSaved,
-            icon = { Icon(imageVector = Icons.Default.Bookmark, contentDescription = "Saved") },
-            label = { Text("Saved") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = IndigoPrimary,
-                selectedTextColor = IndigoPrimary,
-                unselectedIconColor = TextSecondary,
-                unselectedTextColor = TextSecondary,
-                indicatorColor = IndigoPrimary.copy(alpha = 0.15f)
-            )
-        )
+                FloatingNavItem(
+                    icon = Icons.Default.Bookmark,
+                    label = "Saved",
+                    isSelected = selectedItem == 2,
+                    onClick = onNavigateToSaved,
+                    selectedColor = cyanAccent
+                )
 
-        NavigationBarItem(
-            selected = selectedItem == 3,
-            onClick = onNavigateToMessages,
-            icon = {
-                BadgedBox(
-                    badge = {
-                        if (unreadMessages > 0) {
-                            Badge(containerColor = IndigoPrimary, contentColor = Color.White) {
-                                Text("$unreadMessages")
-                            }
+                FloatingNavItem(
+                    icon = Icons.AutoMirrored.Filled.Chat,
+                    label = "Messages",
+                    isSelected = selectedItem == 3,
+                    badgeCount = unreadMessages,
+                    onClick = onNavigateToMessages,
+                    selectedColor = cyanAccent
+                )
+
+                FloatingNavItem(
+                    icon = Icons.Default.Person,
+                    label = "Profile",
+                    isSelected = selectedItem == 4,
+                    onClick = onNavigateToProfile,
+                    selectedColor = cyanAccent
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun FloatingNavItem(
+    icon: ImageVector,
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    selectedColor: Color,
+    badgeCount: Int = 0
+) {
+    val haptic = LocalHapticFeedback.current
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .clickable {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onClick()
+            }
+            .padding(horizontal = 4.dp, vertical = 2.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(18.dp))
+                .background(if (isSelected) selectedColor else Color.Transparent)
+                .padding(horizontal = 14.dp, vertical = 6.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            BadgedBox(
+                badge = {
+                    if (badgeCount > 0) {
+                        Badge(containerColor = selectedColor, contentColor = Color.Black) {
+                            Text("$badgeCount", style = MaterialTheme.typography.labelSmall)
                         }
                     }
-                ) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.Chat, contentDescription = "Messages")
                 }
-            },
-            label = { Text("Messages") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = IndigoPrimary,
-                selectedTextColor = IndigoPrimary,
-                unselectedIconColor = TextSecondary,
-                unselectedTextColor = TextSecondary,
-                indicatorColor = IndigoPrimary.copy(alpha = 0.15f)
-            )
-        )
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = if (isSelected) Color(0xFF0F172A) else Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
 
-        NavigationBarItem(
-            selected = selectedItem == 4,
-            onClick = onNavigateToProfile,
-            icon = { Icon(imageVector = Icons.Default.Person, contentDescription = "Profile") },
-            label = { Text("Profile") },
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = IndigoPrimary,
-                selectedTextColor = IndigoPrimary,
-                unselectedIconColor = TextSecondary,
-                unselectedTextColor = TextSecondary,
-                indicatorColor = IndigoPrimary.copy(alpha = 0.15f)
-            )
+        Spacer(modifier = Modifier.height(2.dp))
+
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+            color = if (isSelected) selectedColor else Color(0xFF94A3B8),
+            fontSize = TextUnit.Unspecified
         )
     }
 }
