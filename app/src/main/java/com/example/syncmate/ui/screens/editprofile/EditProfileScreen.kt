@@ -5,7 +5,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +26,7 @@ import com.example.syncmate.ui.components.AppTextField
 import com.example.syncmate.ui.components.PrimaryButton
 import com.example.syncmate.ui.theme.SlateBackground
 import com.example.syncmate.ui.theme.TextPrimary
+import com.example.syncmate.ui.theme.TextSecondary
 import com.example.syncmate.viewmodel.AuthViewModel
 
 @Composable
@@ -31,12 +36,14 @@ fun EditProfileScreen(
 ) {
     val uiState by authViewModel.uiState.collectAsStateWithLifecycle()
     var name by remember { mutableStateOf(uiState.user?.name ?: "Alex Morgan") }
-    var university by remember { mutableStateOf(uiState.user?.university ?: "State University") }
+    var university by remember { mutableStateOf(uiState.user?.university ?: "National Institute of Technology") }
+    var bio by remember { mutableStateOf(uiState.user?.bio ?: "Computer Science student looking for summer sublet.") }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(SlateBackground)
+            .safeDrawingPadding()
     ) {
         AppHeader(
             title = "Edit Profile",
@@ -46,7 +53,9 @@ fun EditProfileScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp)
         ) {
             Text(
                 text = "Update Student Info",
@@ -55,7 +64,12 @@ fun EditProfileScreen(
                 color = TextPrimary
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Text(
+                text = "Update your verified student profile information visible to other subletters.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextSecondary,
+                modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
+            )
 
             AppTextField(
                 value = name,
@@ -68,7 +82,17 @@ fun EditProfileScreen(
             AppTextField(
                 value = university,
                 onValueChange = { university = it },
-                label = "University"
+                label = "University / College"
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            AppTextField(
+                value = bio,
+                onValueChange = { bio = it },
+                label = "Student Bio",
+                singleLine = false,
+                maxLines = 3
             )
 
             Spacer(modifier = Modifier.height(28.dp))
@@ -77,6 +101,8 @@ fun EditProfileScreen(
                 text = "Save Profile",
                 onClick = { onNavigateBack() }
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

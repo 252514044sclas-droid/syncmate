@@ -39,7 +39,7 @@ class PredictionViewModel(
         val leaseDuration = leaseDurationStr.toIntOrNull() ?: 3
 
         val request = RentPredictionRequest(
-            location = location.ifEmpty { "Near Campus" },
+            location = location.ifEmpty { "Adyar, Chennai" },
             squareFeet = sqFt,
             bedrooms = bedrooms,
             bathrooms = bathrooms,

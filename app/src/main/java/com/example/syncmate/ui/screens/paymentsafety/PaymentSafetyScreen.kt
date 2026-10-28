@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -37,6 +38,7 @@ fun PaymentSafetyScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(SlateBackground)
+            .safeDrawingPadding()
     ) {
         AppHeader(
             title = "Payment Safety Guide",
@@ -57,7 +59,7 @@ fun PaymentSafetyScreen(
             )
 
             Text(
-                text = "Avoid housing scams with our verified payment guidelines.",
+                text = "Protect yourself against student rental scams with verified payment practices.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
                 modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)
@@ -71,9 +73,13 @@ fun PaymentSafetyScreen(
                     .border(1.dp, SlateCardBorder, RoundedCornerShape(16.dp))
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    StatBadge(text = "DO NOT WIRE FUNDS", backgroundColor = RoseError)
+                    StatBadge(text = "DO NOT WIRE UNVERIFIED ADVANCES", backgroundColor = RoseError)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "Never send wire transfers, Western Union, crypto, or gift card payments. Real subletters use traceable student payment methods.", color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        text = "Never transfer advance funds via gift cards, crypto, or unverified cash apps before physically touring the apartment. Fraudulent hosts often ask for upfront token money before disappearing.",
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
 
@@ -89,9 +95,15 @@ fun PaymentSafetyScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     StatBadge(text = "RECOMMENDED SAFE PRACTICE", backgroundColor = EmeraldSuccess)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "Always sign an official sublease agreement and verify student credentials before transferring any security deposit.", color = TextPrimary, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        text = "Always sign an official sublease agreement and verify student .edu credentials. Pay security deposits via traceable banking channels (UPI / IMPS / Net Banking) only after receiving signed landlord authorization.",
+                        color = TextPrimary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -33,6 +34,7 @@ import com.example.syncmate.ui.theme.SlateCard
 import com.example.syncmate.ui.theme.SlateCardBorder
 import com.example.syncmate.ui.theme.TextPrimary
 import com.example.syncmate.ui.theme.TextSecondary
+import com.example.syncmate.util.CurrencyFormatter
 import com.example.syncmate.viewmodel.ContractViewModel
 
 @Composable
@@ -47,6 +49,7 @@ fun ContractSummaryScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(SlateBackground)
+            .safeDrawingPadding()
     ) {
         AppHeader(
             title = "Contract Summary",
@@ -98,12 +101,17 @@ fun ContractSummaryScreen(
                             Text(text = summary.leaseTerm, color = TextPrimary, fontWeight = FontWeight.Bold)
                         }
 
-                        Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(text = "Monthly Rent:", color = TextSecondary)
-                            Text(text = "$${summary.monthlyRent.toInt()}", color = TextPrimary, fontWeight = FontWeight.Bold)
+                            Text(text = CurrencyFormatter.formatInr(summary.monthlyRent), color = TextPrimary, fontWeight = FontWeight.Bold)
                         }
 
-                        Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(text = "Security Deposit:", color = TextSecondary)
+                            Text(text = CurrencyFormatter.formatInr(summary.securityDeposit), color = TextPrimary, fontWeight = FontWeight.Bold)
+                        }
+
+                        Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(text = "Notice Period:", color = TextSecondary)
                             Text(text = "${summary.noticePeriodDays} Days", color = TextPrimary, fontWeight = FontWeight.Bold)
                         }
@@ -142,6 +150,8 @@ fun ContractSummaryScreen(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

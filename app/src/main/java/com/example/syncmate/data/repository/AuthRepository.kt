@@ -22,12 +22,12 @@ class DevAuthRepositoryImpl : AuthRepository {
             id = "usr_dev_101",
             name = "Alex Morgan",
             email = "alex.morgan@university.edu",
-            university = "State University",
+            university = "National Institute of Technology",
             isVerified = true,
-            bio = "Computer Science Junior looking for summer sublet near campus.",
+            bio = "Computer Science student looking for summer sublet near campus.",
             preferredLeaseTerm = "May - Aug 2025",
-            maxBudget = 1100.0,
-            preferredLocation = "North Campus"
+            maxBudget = 15000.0,
+            preferredLocation = "Adyar / IIT Campus"
         )
     )
     override val currentUserFlow: Flow<User?> = _currentUser.asStateFlow()
@@ -39,7 +39,7 @@ class DevAuthRepositoryImpl : AuthRepository {
                 id = "usr_" + email.hashCode(),
                 name = email.substringBefore("@").replace(".", " ").capitalize(),
                 email = email,
-                university = "State University",
+                university = "National Institute of Technology",
                 isVerified = email.endsWith(".edu")
             )
             _currentUser.value = user

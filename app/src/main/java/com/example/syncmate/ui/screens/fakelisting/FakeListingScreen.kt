@@ -7,7 +7,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -31,7 +33,6 @@ import com.example.syncmate.ui.components.PrimaryButton
 import com.example.syncmate.ui.components.StatBadge
 import com.example.syncmate.ui.theme.AmberWarning
 import com.example.syncmate.ui.theme.EmeraldSuccess
-import com.example.syncmate.ui.theme.IndigoPrimary
 import com.example.syncmate.ui.theme.RoseError
 import com.example.syncmate.ui.theme.SlateBackground
 import com.example.syncmate.ui.theme.SlateCard
@@ -47,13 +48,14 @@ fun FakeListingScreen(
 ) {
     val uiState by fakeListingViewModel.uiState.collectAsStateWithLifecycle()
 
-    var description by remember { mutableStateOf("Subletting my studio apartment. Asking $300/mo. Must send deposit via wire transfer upfront before viewing.") }
-    var price by remember { mutableStateOf("300") }
+    var description by remember { mutableStateOf("Subletting my studio apartment in Adyar. Asking ₹4,000/mo. Must send deposit via wire transfer upfront before physical viewing.") }
+    var price by remember { mutableStateOf("4000") }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(SlateBackground)
+            .safeDrawingPadding()
     ) {
         AppHeader(
             title = "Fake-Listing Shield",
@@ -63,6 +65,7 @@ fun FakeListingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp)
         ) {
@@ -74,7 +77,7 @@ fun FakeListingScreen(
             )
 
             Text(
-                text = "Paste a listing description or details to analyze for payment scams, price anomalies, and suspicious patterns.",
+                text = "Paste a listing description or details to analyze for payment scams, INR price anomalies, and suspicious host behavior.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
                 modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)
@@ -98,7 +101,7 @@ fun FakeListingScreen(
             AppTextField(
                 value = price,
                 onValueChange = { price = it },
-                label = "Listed Monthly Rent ($)"
+                label = "Listed Monthly Rent (₹)"
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -168,6 +171,8 @@ fun FakeListingScreen(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

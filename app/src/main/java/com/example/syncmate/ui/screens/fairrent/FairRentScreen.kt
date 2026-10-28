@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -37,6 +39,7 @@ import com.example.syncmate.ui.theme.SlateCard
 import com.example.syncmate.ui.theme.SlateCardBorder
 import com.example.syncmate.ui.theme.TextPrimary
 import com.example.syncmate.ui.theme.TextSecondary
+import com.example.syncmate.util.CurrencyFormatter
 import com.example.syncmate.viewmodel.PredictionViewModel
 
 @Composable
@@ -46,8 +49,8 @@ fun FairRentScreen(
 ) {
     val uiState by predictionViewModel.uiState.collectAsStateWithLifecycle()
 
-    var location by remember { mutableStateOf("Near Engineering Campus") }
-    var sqFt by remember { mutableStateOf("700") }
+    var location by remember { mutableStateOf("Adyar, Chennai") }
+    var sqFt by remember { mutableStateOf("650") }
     var bedrooms by remember { mutableStateOf("1") }
     var roomType by remember { mutableStateOf("Private Room") }
     var leaseDuration by remember { mutableStateOf("3") }
@@ -56,6 +59,7 @@ fun FairRentScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(SlateBackground)
+            .safeDrawingPadding()
     ) {
         AppHeader(
             title = "AI Fair-Rent Predictor",
@@ -65,18 +69,19 @@ fun FairRentScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp)
         ) {
             Text(
-                text = "Machine Learning Fair-Price Calculator",
+                text = "ML Fair-Rent Estimator",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary
             )
 
             Text(
-                text = "Predict fair market rent based on location, square footage, room type, and season.",
+                text = "Predict fair market rent in Indian Rupees (INR) based on campus location, square footage, room type, and amenities.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
                 modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)
@@ -89,7 +94,7 @@ fun FairRentScreen(
             AppTextField(
                 value = location,
                 onValueChange = { location = it },
-                label = "Location / Zone"
+                label = "Location / Campus Zone (e.g. Adyar, Koramangala, Kothrud)"
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -98,7 +103,7 @@ fun FairRentScreen(
                 AppTextField(
                     value = sqFt,
                     onValueChange = { sqFt = it },
-                    label = "Square Feet",
+                    label = "Area (Sq Ft)",
                     modifier = Modifier.weight(1f)
                 )
 
@@ -117,7 +122,7 @@ fun FairRentScreen(
             AppTextField(
                 value = roomType,
                 onValueChange = { roomType = it },
-                label = "Room Type (e.g. Private Room, Studio)"
+                label = "Room Type (e.g. Private Room, Studio, 1BHK)"
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -131,7 +136,7 @@ fun FairRentScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             PrimaryButton(
-                text = "Calculate Fair Rent",
+                text = "Calculate Fair Rent (INR)",
                 isLoading = uiState.isLoading,
                 onClick = {
                     predictionViewModel.predictFairRent(
@@ -142,7 +147,7 @@ fun FairRentScreen(
                         roomType = roomType,
                         leaseDurationStr = leaseDuration,
                         season = "Summer",
-                        facilities = listOf("WiFi", "AC")
+                        facilities = listOf("WiFi", "AC", "Power Backup")
                     )
                 }
             )
@@ -171,14 +176,14 @@ fun FairRentScreen(
                         )
 
                         Text(
-                            text = "$${res.predictedFairRent}/month",
+                            text = CurrencyFormatter.formatMonthlyRentFull(res.predictedFairRent),
                             style = MaterialTheme.typography.displayLarge,
                             fontWeight = FontWeight.Bold,
                             color = IndigoPrimary
                         )
 
                         Text(
-                            text = "Estimated Fair Range: $${res.rentRangeLow} - $${res.rentRangeHigh}",
+                            text = "Estimated Fair Range: ${CurrencyFormatter.formatInrRange(res.rentRangeLow, res.rentRangeHigh)}",
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondary,
                             modifier = Modifier.padding(top = 4.dp)
@@ -187,14 +192,34 @@ fun FairRentScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
-                            text = "Estimated Utilities: $${res.estimatedUtilitiesMonthly}/mo",
+                            text = "Estimated Utilities: ${CurrencyFormatter.formatMonthlyRent(res.estimatedUtilitiesMonthly)}",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
                         )
+
+                        if (res.marketInsights.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Market Insights:",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary
+                            )
+                            res.marketInsights.forEach { insight ->
+                                Text(
+                                    text = "• $insight",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextSecondary,
+                                    modifier = Modifier.padding(top = 4.dp)
+                                )
+                            }
+                        }
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

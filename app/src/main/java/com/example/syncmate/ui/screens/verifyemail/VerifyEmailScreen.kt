@@ -5,7 +5,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material.icons.filled.Pin
@@ -45,6 +49,7 @@ fun VerifyEmailScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(SlateBackground)
+            .safeDrawingPadding()
     ) {
         AppHeader(
             title = "Verify Student Email",
@@ -54,7 +59,9 @@ fun VerifyEmailScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp)
         ) {
             Text(
                 text = "Student Verification",
@@ -67,7 +74,7 @@ fun VerifyEmailScreen(
                 text = "Enter the 6-digit verification code sent to your .edu email address.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
-                modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
+                modifier = Modifier.padding(top = 8.dp, bottom = 20.dp)
             )
 
             if (uiState.emailVerificationSuccess) {
@@ -101,14 +108,14 @@ fun VerifyEmailScreen(
             AppTextField(
                 value = code,
                 onValueChange = { if (it.length <= 6) code = it },
-                label = "6-Digit Verification Code",
+                label = "6-Digit Code",
                 placeholder = "123456",
                 leadingIcon = {
                     Icon(imageVector = Icons.Default.Pin, contentDescription = null, tint = TextSecondary)
                 }
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             PrimaryButton(
                 text = "Verify Code",
@@ -120,6 +127,8 @@ fun VerifyEmailScreen(
                     }
                 }
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

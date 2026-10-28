@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -31,15 +32,17 @@ fun HelpCenterScreen(
     onNavigateBack: () -> Unit
 ) {
     val faqs = listOf(
-        "How does SubletSync verify student status?" to "We require a valid .edu university email address and code confirmation.",
-        "How does the AI Fair-Rent Predictor work?" to "Our ML model analyzes historical campus sublet pricing, location data, room type, and season.",
-        "What is Contract Guard?" to "Contract Guard scans lease PDFs for hidden fees, long notice windows, and auto-renewal clauses."
+        "How does SubletSync verify student status?" to "We require a valid .edu or university student email address with real-time OTP confirmation.",
+        "How does the AI Fair-Rent Predictor calculate INR rates?" to "Our machine learning model analyzes historical campus sublet pricing, square footage, amenities, and seasonal demand in Indian Rupees.",
+        "What does Contract Guard scan for in lease agreements?" to "Contract Guard scans uploaded lease PDFs for hidden fees, arbitrary deductions, non-refundable cleaning charges, and notice period traps.",
+        "How do I report a fraudulent listing or scammer?" to "Tap 'Report Listing Concern' on any sublet page or use the Fake-Listing Shield to submit details for safety team review."
     )
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(SlateBackground)
+            .safeDrawingPadding()
     ) {
         AppHeader(
             title = "Help & Support",
@@ -77,6 +80,8 @@ fun HelpCenterScreen(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

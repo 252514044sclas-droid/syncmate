@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.syncmate.ui.components.AppHeader
 import com.example.syncmate.ui.components.AppTextField
@@ -35,7 +36,6 @@ import com.example.syncmate.ui.theme.IndigoPrimary
 import com.example.syncmate.ui.theme.SlateBackground
 import com.example.syncmate.ui.theme.SlateCard
 import com.example.syncmate.ui.theme.TextPrimary
-import com.example.syncmate.ui.theme.TextSecondary
 
 @Composable
 fun ChatScreen(
@@ -45,10 +45,10 @@ fun ChatScreen(
     var messages by remember {
         mutableStateOf(
             listOf(
-                "Hi Sarah, is the summer 1BR sublet on College Ave still available?",
-                "Yes it is! The lease runs from May 15 to Aug 15.",
-                "Great! Does rent include high-speed internet?",
-                "Yes, internet and water are included!"
+                "Hi Sarah, is the 1BHK sublet near campus still available?",
+                "Yes it is! The sublease runs from May 15 to Aug 15.",
+                "Great! Does the monthly rent include high-speed Wi-Fi and power backup?",
+                "Yes, broadband and maintenance are included in the ₹14,500 rent!"
             )
         )
     }
@@ -57,6 +57,7 @@ fun ChatScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(SlateBackground)
+            .safeDrawingPadding()
     ) {
         AppHeader(
             title = "Chat with Subletter",
@@ -66,7 +67,8 @@ fun ChatScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .imePadding()
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
             LazyColumn(
                 modifier = Modifier.weight(1f),
@@ -94,10 +96,13 @@ fun ChatScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 8.dp)
             ) {
                 AppTextField(
                     value = messageText,

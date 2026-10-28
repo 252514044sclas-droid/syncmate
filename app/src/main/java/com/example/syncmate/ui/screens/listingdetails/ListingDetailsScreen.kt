@@ -5,12 +5,15 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -18,11 +21,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.ReportProblem
-import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -48,8 +50,10 @@ import com.example.syncmate.ui.theme.SlateCard
 import com.example.syncmate.ui.theme.SlateCardBorder
 import com.example.syncmate.ui.theme.TextPrimary
 import com.example.syncmate.ui.theme.TextSecondary
+import com.example.syncmate.util.CurrencyFormatter
 import com.example.syncmate.viewmodel.HousingViewModel
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ListingDetailsScreen(
     listingId: String,
@@ -70,6 +74,7 @@ fun ListingDetailsScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(SlateBackground)
+            .safeDrawingPadding()
     ) {
         AppHeader(
             title = "Sublet Details",
@@ -100,20 +105,26 @@ fun ListingDetailsScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
                         .clip(RoundedCornerShape(16.dp))
                         .background(SlateCard)
-                        .border(1.dp, SlateCardBorder, RoundedCornerShape(16.dp)),
+                        .border(1.dp, SlateCardBorder, RoundedCornerShape(16.dp))
+                        .padding(20.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         StatBadge(text = "VERIFIED STUDENT HOUSING", backgroundColor = EmeraldSuccess)
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "$${listing.priceMonthly.toInt()}/mo",
+                            text = CurrencyFormatter.formatMonthlyRent(listing.priceMonthly),
                             style = MaterialTheme.typography.displayLarge,
                             fontWeight = FontWeight.Bold,
                             color = IndigoPrimary
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "${listing.roomType} • ${listing.duration}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextSecondary
                         )
                     }
                 }
@@ -131,10 +142,10 @@ fun ListingDetailsScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.padding(top = 8.dp)
                 ) {
-                    Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = TextSecondary)
+                    Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(18.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "${listing.address} (${listing.distanceToCampus})",
+                        text = "${listing.address} (${listing.distanceToCampus} to Campus)",
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary
                     )
@@ -178,6 +189,47 @@ fun ListingDetailsScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = TextSecondary
                             )
+                            if (listing.ownerPhone.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = listing.ownerPhone,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = IndigoPrimary
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Amenities
+                Text(
+                    text = "Amenities Included",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listing.amenities.forEach { amenity ->
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(SlateCard)
+                                .border(1.dp, SlateCardBorder, RoundedCornerShape(8.dp))
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(
+                                text = amenity,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = TextPrimary
+                            )
                         }
                     }
                 }
@@ -211,6 +263,8 @@ fun ListingDetailsScreen(
                     text = "Report Listing Concern",
                     onClick = { onNavigateToReport(listing.id) }
                 )
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }

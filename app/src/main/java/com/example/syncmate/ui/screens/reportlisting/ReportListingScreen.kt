@@ -5,7 +5,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,13 +38,14 @@ fun ReportListingScreen(
 ) {
     val uiState by housingViewModel.uiState.collectAsStateWithLifecycle()
 
-    var reason by remember { mutableStateOf("Suspected Scam / Fake Price") }
+    var reason by remember { mutableStateOf("Suspected Scam / Fake Rent Price") }
     var comments by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(SlateBackground)
+            .safeDrawingPadding()
     ) {
         AppHeader(
             title = "Report Listing Concern",
@@ -50,7 +55,9 @@ fun ReportListingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp)
         ) {
             Text(
                 text = "Report Sublet #${listingId.takeLast(6)}",
@@ -60,7 +67,7 @@ fun ReportListingScreen(
             )
 
             Text(
-                text = "Help keep SubletSync safe for students by flagging fraudulent or misleading listings.",
+                text = "Help keep SubletSync safe for students by flagging fraudulent, predatory, or misleading INR listings.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
                 modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)
@@ -90,7 +97,7 @@ fun ReportListingScreen(
                 label = "Additional Comments",
                 singleLine = false,
                 maxLines = 4,
-                placeholder = "Describe why this listing seems suspicious..."
+                placeholder = "Describe why this listing seems suspicious or incorrect..."
             )
 
             Spacer(modifier = Modifier.height(28.dp))
@@ -102,6 +109,8 @@ fun ReportListingScreen(
                     housingViewModel.reportListing(listingId, reason, comments)
                 }
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

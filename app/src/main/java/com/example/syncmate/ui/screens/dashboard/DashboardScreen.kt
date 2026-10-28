@@ -36,6 +36,8 @@ import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
@@ -72,6 +74,7 @@ import com.example.syncmate.ui.theme.SlateCard
 import com.example.syncmate.ui.theme.SlateCardBorder
 import com.example.syncmate.ui.theme.TextPrimary
 import com.example.syncmate.ui.theme.TextSecondary
+import com.example.syncmate.util.CurrencyFormatter
 import com.example.syncmate.viewmodel.DashboardViewModel
 
 @Composable
@@ -103,7 +106,8 @@ fun DashboardScreen(
                 onNavigateToProfile = onNavigateToProfile
             )
         },
-        containerColor = SlateBackground
+        containerColor = SlateBackground,
+        contentWindowInsets = WindowInsets.safeDrawing
     ) { innerPadding ->
         if (uiState.isLoading) {
             LoadingIndicator(
@@ -530,7 +534,7 @@ fun DashboardHousingCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "$${listing.priceMonthly.toInt()}/mo",
+                    text = CurrencyFormatter.formatMonthlyRent(listing.priceMonthly),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = IndigoPrimary
@@ -598,7 +602,7 @@ fun DashboardRoommateCard(
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "Budget: $${roommate.maxBudgetMonthly.toInt()}/mo",
+                text = "Budget: ${CurrencyFormatter.formatMonthlyRent(roommate.maxBudgetMonthly)}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = IndigoPrimary

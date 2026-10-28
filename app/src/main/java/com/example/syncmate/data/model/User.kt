@@ -9,6 +9,6 @@ data class User(
     val profilePictureUrl: String? = null,
     val bio: String = "",
     val preferredLeaseTerm: String = "Summer 2025",
-    val maxBudget: Double = 1200.0,
-    val preferredLocation: String = "Near Campus"
+    val maxBudget: Double = 15000.0,
+    val preferredLocation: String = "Near Campus / Metro"
 )

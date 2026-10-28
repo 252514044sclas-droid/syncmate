@@ -4,14 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -40,6 +39,7 @@ import com.example.syncmate.ui.theme.SlateCard
 import com.example.syncmate.ui.theme.SlateCardBorder
 import com.example.syncmate.ui.theme.TextPrimary
 import com.example.syncmate.ui.theme.TextSecondary
+import com.example.syncmate.util.CurrencyFormatter
 import com.example.syncmate.viewmodel.AuthViewModel
 
 @Composable
@@ -57,6 +57,7 @@ fun ProfileScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(SlateBackground)
+            .safeDrawingPadding()
     ) {
         AppHeader(
             title = "Student Profile",
@@ -110,11 +111,13 @@ fun ProfileScreen(
                     .padding(16.dp)
             ) {
                 Column {
-                    Text(text = "University: ${user?.university ?: "State University"}", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(text = "University: ${user?.university ?: "National Institute of Technology"}", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                    Spacer(modifier = Modifier.height(8.dp))
                     Text(text = "Preferred Lease: ${user?.preferredLeaseTerm ?: "Summer 2025"}", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(text = "Max Budget: $${user?.maxBudget?.toInt() ?: 1200}/mo", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = "Max Budget: ${CurrencyFormatter.formatMonthlyRent(user?.maxBudget ?: 15000.0)}", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = "Preferred Area: ${user?.preferredLocation ?: "Adyar / IIT Campus"}", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
                 }
             }
 
@@ -128,7 +131,7 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             SecondaryButton(
-                text = "Housing Preferences",
+                text = "Housing & Roommate Preferences",
                 onClick = onNavigateToPreferences
             )
 
@@ -141,6 +144,8 @@ fun ProfileScreen(
                     onSignOut()
                 }
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

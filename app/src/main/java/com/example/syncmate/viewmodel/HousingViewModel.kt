@@ -15,7 +15,7 @@ data class HousingUiState(
     val selectedListing: HousingListing? = null,
     val savedListings: List<HousingListing> = emptyList(),
     val compareListings: List<HousingListing> = emptyList(),
-    val maxPriceFilter: Double = 2000.0,
+    val maxPriceFilter: Double = 25000.0,
     val selectedRoomType: String = "All",
     val isFurnishedOnly: Boolean = false,
     val reportSubmitted: Boolean = false,
@@ -117,7 +117,9 @@ class HousingViewModel(
                 duration = "Summer 2025",
                 description = description,
                 ownerName = ownerName,
-                ownerEmail = ownerEmail
+                ownerEmail = ownerEmail,
+                distanceToCampus = "0.5 km",
+                predictedFairRent = price
             )
             housingRepository.createListing(newListing)
             _uiState.value = _uiState.value.copy(isLoading = false)

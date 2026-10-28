@@ -17,9 +17,9 @@ data class HousingListing(
     val ownerEmail: String,
     val ownerPhone: String = "",
     val isVerifiedStudent: Boolean = true,
-    val distanceToCampus: String = "0.5 miles",
+    val distanceToCampus: String = "0.5 km",
     val riskScore: Int = 5, // 0-100% risk score
     val predictedFairRent: Double = priceMonthly,
     val isSaved: Boolean = false,
-    val amenities: List<String> = listOf("WiFi", "In-unit Laundry", "AC", "Gym", "Parking")
+    val amenities: List<String> = listOf("WiFi", "Washing Machine", "AC", "Power Backup", "Parking")
 )

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -27,13 +28,12 @@ import com.example.syncmate.ui.components.PrimaryButton
 import com.example.syncmate.ui.components.SecondaryButton
 import com.example.syncmate.ui.components.StatBadge
 import com.example.syncmate.ui.theme.AmberWarning
-import com.example.syncmate.ui.theme.IndigoPrimary
-import com.example.syncmate.ui.theme.RoseError
 import com.example.syncmate.ui.theme.SlateBackground
 import com.example.syncmate.ui.theme.SlateCard
 import com.example.syncmate.ui.theme.SlateCardBorder
 import com.example.syncmate.ui.theme.TextPrimary
 import com.example.syncmate.ui.theme.TextSecondary
+import com.example.syncmate.util.CurrencyFormatter
 import com.example.syncmate.viewmodel.ContractViewModel
 
 @Composable
@@ -49,6 +49,7 @@ fun ContractGuardScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(SlateBackground)
+            .safeDrawingPadding()
     ) {
         AppHeader(
             title = "Contract Guard AI",
@@ -69,7 +70,7 @@ fun ContractGuardScreen(
             )
 
             Text(
-                text = "Upload your sublease contract PDF to detect predatory clauses, hidden fees, and notice period traps.",
+                text = "Upload your sublease contract PDF to detect predatory clauses, hidden charges in INR, and notice period traps.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
                 modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)
@@ -113,12 +114,14 @@ fun ContractGuardScreen(
 
                         Row {
                             Text(text = "Monthly Rent: ", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
-                            Text(text = "$${summary.monthlyRent.toInt()}", style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                            Text(text = CurrencyFormatter.formatInr(summary.monthlyRent), style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
                         }
+
+                        Spacer(modifier = Modifier.height(4.dp))
 
                         Row {
                             Text(text = "Deposit Required: ", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
-                            Text(text = "$${summary.securityDeposit.toInt()}", style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                            Text(text = CurrencyFormatter.formatInr(summary.securityDeposit), style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -130,6 +133,8 @@ fun ContractGuardScreen(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

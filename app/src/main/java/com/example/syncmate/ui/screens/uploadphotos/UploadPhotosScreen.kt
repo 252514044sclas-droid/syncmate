@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -44,6 +46,7 @@ fun UploadPhotosScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(SlateBackground)
+            .safeDrawingPadding()
     ) {
         AppHeader(
             title = "Post Sublet Listing",
@@ -53,8 +56,9 @@ fun UploadPhotosScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp)
+                .padding(20.dp)
         ) {
             Text(
                 text = "Sublet Information",
@@ -64,7 +68,7 @@ fun UploadPhotosScreen(
             )
 
             Text(
-                text = "Fill in details to post your student sublet for verified peers.",
+                text = "Fill in details to post your student sublet for verified peers with transparent INR rent.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
                 modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)
@@ -74,7 +78,7 @@ fun UploadPhotosScreen(
                 value = title,
                 onValueChange = { title = it },
                 label = "Listing Title",
-                placeholder = "e.g. Sunny 1BR Sublet near Engineering Quad"
+                placeholder = "e.g. Sunny 1BHK Sublet Near Campus"
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -83,7 +87,7 @@ fun UploadPhotosScreen(
                 value = address,
                 onValueChange = { address = it },
                 label = "Address / Campus Zone",
-                placeholder = "e.g. 402 College Ave"
+                placeholder = "e.g. Adyar, Chennai / Koramangala, Bengaluru"
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -91,8 +95,8 @@ fun UploadPhotosScreen(
             AppTextField(
                 value = price,
                 onValueChange = { price = it },
-                label = "Monthly Rent ($)",
-                placeholder = "850"
+                label = "Monthly Rent (₹)",
+                placeholder = "15000"
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -100,32 +104,35 @@ fun UploadPhotosScreen(
             AppTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = "Description",
+                label = "Description & Lease Terms",
                 singleLine = false,
                 maxLines = 4,
-                placeholder = "Describe room amenities, lease dates, utilities..."
+                placeholder = "Describe furnished amenities, utilities included, distance to campus..."
             )
 
             Spacer(modifier = Modifier.height(28.dp))
 
             PrimaryButton(
-                text = "Post Sublet",
+                text = "Post Sublet (INR)",
                 isLoading = uiState.isLoading,
                 onClick = {
+                    val priceVal = price.toDoubleOrNull() ?: 15000.0
                     housingViewModel.createListing(
-                        title = title.ifEmpty { "Summer Sublet" },
-                        address = address.ifEmpty { "Near Campus" },
-                        price = price.toDoubleOrNull() ?: 800.0,
+                        title = title.ifBlank { "Student Sublet" },
+                        address = address.ifBlank { "Near Campus" },
+                        price = priceVal,
                         bedrooms = 1,
                         bathrooms = 1.0,
                         roomType = "Private Room",
-                        description = description.ifEmpty { "Student sublet" },
+                        description = description.ifBlank { "Verified student housing sublet." },
                         ownerName = "Alex Morgan",
                         ownerEmail = "alex.morgan@university.edu"
                     )
                     onListingCreated()
                 }
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

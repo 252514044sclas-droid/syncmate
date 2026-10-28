@@ -9,6 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -21,6 +24,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.syncmate.ui.components.AppHeader
+import com.example.syncmate.ui.components.StatBadge
+import com.example.syncmate.ui.theme.EmeraldSuccess
 import com.example.syncmate.ui.theme.IndigoPrimary
 import com.example.syncmate.ui.theme.SlateBackground
 import com.example.syncmate.ui.theme.TextPrimary
@@ -38,6 +43,7 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(SlateBackground)
+            .safeDrawingPadding()
     ) {
         AppHeader(
             title = "App Settings",
@@ -47,7 +53,8 @@ fun SettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(20.dp)
         ) {
             Text(
                 text = "Preferences",
@@ -63,7 +70,7 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(text = "Dark Theme", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
                     Text(text = "SubletSync slate navy palette", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
                 }
@@ -81,7 +88,7 @@ fun SettingsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(text = "Push Notifications", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
                     Text(text = "Receive chat and rent alerts", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
                 }
@@ -91,6 +98,22 @@ fun SettingsScreen(
                     colors = SwitchDefaults.colors(checkedThumbColor = IndigoPrimary)
                 )
             }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = "Currency Standard", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+                    Text(text = "Indian Rupee (INR ₹) active across all screens", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                }
+                StatBadge(text = "INR (₹)", backgroundColor = EmeraldSuccess)
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
         }
     }
 }

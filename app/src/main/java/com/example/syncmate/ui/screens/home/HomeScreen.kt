@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
@@ -57,6 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.syncmate.data.model.HousingListing
+import com.example.syncmate.util.CurrencyFormatter
 import com.example.syncmate.ui.components.AnimatedSaveButton
 import com.example.syncmate.ui.components.GlassCard
 import com.example.syncmate.ui.components.LoadingIndicator
@@ -100,6 +102,7 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(SlateBackground)
+            .safeDrawingPadding()
     ) {
         // Top Header
         Row(
@@ -465,7 +468,7 @@ fun ListingCardItem(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "$${listing.priceMonthly.toInt()}/mo",
+                    text = CurrencyFormatter.formatMonthlyRent(listing.priceMonthly),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = IndigoPrimary

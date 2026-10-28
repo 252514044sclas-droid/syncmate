@@ -42,35 +42,35 @@ class DashboardViewModel(
                 RoommateProfile(
                     id = "rm_1",
                     name = "Maya Lin",
-                    university = "State University '26",
+                    university = "Anna University '26",
                     compatibilityPercentage = 96,
                     matchReason = "Matches your quiet study hours & budget",
                     lifestyleRhythm = "Early Riser • Non-Smoker",
-                    maxBudgetMonthly = 950.0,
-                    preferredLocation = "North Campus",
+                    maxBudgetMonthly = 12000.0,
+                    preferredLocation = "Adyar / Guindy",
                     bio = "CS junior looking for a clean, peaceful sublet room for summer internship."
                 ),
                 RoommateProfile(
                     id = "rm_2",
                     name = "Jordan Patel",
-                    university = "Engineering College '25",
+                    university = "IIT Madras '25",
                     compatibilityPercentage = 91,
                     matchReason = "Similar lease term & campus quadrant",
                     lifestyleRhythm = "Night Owl • Quiet & Organized",
-                    maxBudgetMonthly = 1100.0,
-                    preferredLocation = "Campus Town",
+                    maxBudgetMonthly = 16500.0,
+                    preferredLocation = "Koramangala, Bengaluru",
                     bio = "Grad student in ECE. Friendly, respectful, and loves cooking on weekends."
                 ),
                 RoommateProfile(
                     id = "rm_3",
                     name = "Chloe Bennett",
-                    university = "Business School '25",
+                    university = "Delhi University '25",
                     compatibilityPercentage = 88,
                     matchReason = "Shared campus commute & budget preference",
                     lifestyleRhythm = "Flexible • Social & Clean",
-                    maxBudgetMonthly = 1200.0,
-                    preferredLocation = "Green Street",
-                    bio = "Finance major looking for a sublet roommate near Green St."
+                    maxBudgetMonthly = 14000.0,
+                    preferredLocation = "North Campus, Delhi",
+                    bio = "Commerce major looking for a sublet roommate near North Campus."
                 )
             )
 

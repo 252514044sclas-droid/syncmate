@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -34,6 +36,7 @@ import com.example.syncmate.ui.theme.SlateCard
 import com.example.syncmate.ui.theme.SlateCardBorder
 import com.example.syncmate.ui.theme.TextPrimary
 import com.example.syncmate.ui.theme.TextSecondary
+import com.example.syncmate.util.CurrencyFormatter
 import com.example.syncmate.viewmodel.PredictionViewModel
 
 @Composable
@@ -50,6 +53,7 @@ fun UtilityPredictorScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(SlateBackground)
+            .safeDrawingPadding()
     ) {
         AppHeader(
             title = "Utility Cost Estimator",
@@ -59,6 +63,7 @@ fun UtilityPredictorScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(20.dp)
         ) {
@@ -70,7 +75,7 @@ fun UtilityPredictorScreen(
             )
 
             Text(
-                text = "Calculate estimated electric, water, internet, and gas bills for your sublet.",
+                text = "Calculate estimated electric, water, internet, and maintenance bills in INR for your student flat.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
                 modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)
@@ -87,17 +92,17 @@ fun UtilityPredictorScreen(
             AppTextField(
                 value = season,
                 onValueChange = { season = it },
-                label = "Season (e.g. Summer, Winter)"
+                label = "Season (e.g. Summer, Monsoon, Winter)"
             )
 
             Spacer(modifier = Modifier.height(20.dp))
 
             PrimaryButton(
-                text = "Estimate Utility Bills",
+                text = "Estimate Utility Bills (INR)",
                 isLoading = uiState.isLoading,
                 onClick = {
                     predictionViewModel.predictFairRent(
-                        location = "Campus Area",
+                        location = "Adyar, Chennai",
                         sqFtStr = "800",
                         bedroomsStr = bedrooms,
                         bathroomsStr = "1.0",
@@ -128,7 +133,7 @@ fun UtilityPredictorScreen(
                         )
 
                         Text(
-                            text = "$${res.estimatedUtilitiesMonthly}/mo",
+                            text = CurrencyFormatter.formatMonthlyRent(res.estimatedUtilitiesMonthly),
                             style = MaterialTheme.typography.displayLarge,
                             fontWeight = FontWeight.Bold,
                             color = IndigoPrimary
@@ -137,7 +142,7 @@ fun UtilityPredictorScreen(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Text(
-                            text = "Breakdown Estimate:",
+                            text = "Estimated Breakdown (per flat/month):",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
@@ -150,12 +155,14 @@ fun UtilityPredictorScreen(
                                     .padding(vertical = 4.dp)
                             ) {
                                 Text(text = name, color = TextSecondary, modifier = Modifier.weight(1f))
-                                Text(text = "$${cost.toInt()}", color = TextPrimary, fontWeight = FontWeight.Bold)
+                                Text(text = CurrencyFormatter.formatInr(cost), color = TextPrimary, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }

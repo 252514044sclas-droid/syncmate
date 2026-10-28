@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -59,6 +61,7 @@ fun CreateAccountScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(SlateBackground)
+            .safeDrawingPadding()
     ) {
         AppHeader(
             title = "Create Account",
@@ -68,8 +71,9 @@ fun CreateAccountScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp)
+                .padding(20.dp)
         ) {
             Text(
                 text = "Join SubletSync",
@@ -79,10 +83,10 @@ fun CreateAccountScreen(
             )
 
             Text(
-                text = "Create your account with your university student email to get verified.",
+                text = "Create your account with your university student email to get verified for housing.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
-                modifier = Modifier.padding(top = 8.dp, bottom = 24.dp)
+                modifier = Modifier.padding(top = 8.dp, bottom = 20.dp)
             )
 
             if (uiState.error != null) {
@@ -120,7 +124,7 @@ fun CreateAccountScreen(
                 value = university,
                 onValueChange = { university = it },
                 label = "University / College",
-                placeholder = "State University",
+                placeholder = "e.g. National Institute of Technology",
                 leadingIcon = {
                     Icon(imageVector = Icons.Default.School, contentDescription = null, tint = TextSecondary)
                 }
@@ -139,7 +143,7 @@ fun CreateAccountScreen(
                 }
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             PrimaryButton(
                 text = "Create Account",
@@ -148,6 +152,8 @@ fun CreateAccountScreen(
                     authViewModel.signUp(name, email, password, university)
                 }
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
