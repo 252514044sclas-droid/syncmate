@@ -18,6 +18,10 @@ class AppPreferences(context: Context) {
         get() = prefs.getString("user_email", null)
         set(value) = prefs.edit().putString("user_email", value).apply()
 
+    var authToken: String?
+        get() = prefs.getString("auth_token", null)
+        set(value) = prefs.edit().putString("auth_token", value).apply()
+
     var darkModeEnabled: Boolean
         get() = prefs.getBoolean("dark_mode", true)
         set(value) = prefs.edit().putBoolean("dark_mode", value).apply()

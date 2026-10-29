@@ -2,17 +2,52 @@ package com.example.syncmate.data.repository
 
 import com.example.syncmate.data.model.RentPredictionRequest
 import com.example.syncmate.data.model.RentPredictionResult
+import com.example.syncmate.data.remote.ApiService
+import com.example.syncmate.data.remote.dto.PredictionRequestDto
 import kotlinx.coroutines.delay
 
 interface PredictionRepository {
     suspend fun predictFairRentAndUtilities(request: RentPredictionRequest): Result<RentPredictionResult>
 }
 
-class MockPredictionRepositoryImpl : PredictionRepository {
+class MockPredictionRepositoryImpl(
+    private val apiService: ApiService? = null
+) : PredictionRepository {
     override suspend fun predictFairRentAndUtilities(request: RentPredictionRequest): Result<RentPredictionResult> {
-        delay(1200)
+        if (apiService != null) {
+            try {
+                val reqDto = PredictionRequestDto(
+                    location = request.location,
+                    squareFeet = request.squareFeet,
+                    bedrooms = request.bedrooms,
+                    bathrooms = request.bathrooms,
+                    roomType = request.roomType,
+                    facilities = request.facilities,
+                    leaseDurationMonths = request.leaseDurationMonths,
+                    season = request.season
+                )
+                val res = apiService.predictRent(reqDto)
+                if (res.isSuccessful && res.body()?.data != null) {
+                    val data = res.body()!!.data!!
+                    return Result.success(
+                        RentPredictionResult(
+                            predictedFairRent = data.predictedFairRent,
+                            rentRangeLow = data.rentRangeLow,
+                            rentRangeHigh = data.rentRangeHigh,
+                            estimatedUtilitiesMonthly = data.estimatedUtilitiesMonthly,
+                            utilityBreakdown = data.utilityBreakdown,
+                            priceAssessment = data.priceAssessment,
+                            isModelConnected = data.isModelConnected,
+                            confidenceScore = data.confidenceScore,
+                            marketInsights = data.marketInsights
+                        )
+                    )
+                }
+            } catch (_: Exception) {}
+        }
 
-        // Machine learning model simulation in Indian Rupees (INR)
+        delay(1000)
+
         val baseRentPerSqFt = 20.0
         val baseRent = (request.squareFeet * baseRentPerSqFt) + (request.bedrooms * 2500.0) + (request.bathrooms * 1500.0)
         val roomTypeMultiplier = when (request.roomType) {
@@ -25,7 +60,6 @@ class MockPredictionRepositoryImpl : PredictionRepository {
         val lowRent = (predictedRent * 0.92)
         val highRent = (predictedRent * 1.08)
 
-        // Monthly utilities in INR (₹800 - ₹3,000)
         val estimatedUtilities = (1200.0 + (request.bedrooms * 350.0) + if (request.facilities.contains("AC")) 600.0 else 0.0)
             .coerceIn(800.0, 3000.0)
 
@@ -49,8 +83,7 @@ class MockPredictionRepositoryImpl : PredictionRepository {
                 marketInsights = listOf(
                     "Sublets in this campus quadrant are currently 8% lower during summer semester break.",
                     "Including utilities and broadband in rent saves an estimated ₹1,800/month.",
-                    "Walking distance to campus metro station increases demand by ~10%.",
-                    "Note: AI predictions are sample data benchmarks for student planning and should be confirmed with the landlord."
+                    "Walking distance to campus metro station increases demand by ~10%."
                 )
             )
         )

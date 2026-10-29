@@ -2,18 +2,21 @@ package com.example.syncmate.data.repository
 
 import com.example.syncmate.data.model.ContractSummary
 import com.example.syncmate.data.model.FlaggedClause
+import com.example.syncmate.data.remote.ApiService
 import kotlinx.coroutines.delay
 
 interface ContractRepository {
     suspend fun analyzeContractDocument(fileName: String, fileBytes: ByteArray? = null): Result<ContractSummary>
 }
 
-class MockContractRepositoryImpl : ContractRepository {
+class MockContractRepositoryImpl(
+    private val apiService: ApiService? = null
+) : ContractRepository {
     override suspend fun analyzeContractDocument(
         fileName: String,
         fileBytes: ByteArray?
     ): Result<ContractSummary> {
-        delay(1800)
+        delay(1200)
 
         val flaggedClauses = listOf(
             FlaggedClause(

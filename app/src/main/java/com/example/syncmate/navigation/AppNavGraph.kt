@@ -15,6 +15,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.syncmate.data.local.AppPreferences
+import com.example.syncmate.data.remote.RetrofitClient
 import com.example.syncmate.data.repository.DevAuthRepositoryImpl
 import com.example.syncmate.data.repository.MockContractRepositoryImpl
 import com.example.syncmate.data.repository.MockFakeListingRepositoryImpl
@@ -70,11 +71,12 @@ fun AppNavGraph(
 
     // Persistent Repositories and Local Storage
     val appPreferences = remember { AppPreferences(context) }
-    val authRepository = remember { DevAuthRepositoryImpl() }
-    val housingRepository = remember { MockHousingRepositoryImpl() }
-    val predictionRepository = remember { MockPredictionRepositoryImpl() }
-    val fakeListingRepository = remember { MockFakeListingRepositoryImpl() }
-    val contractRepository = remember { MockContractRepositoryImpl() }
+    val apiService = remember { RetrofitClient.getApiService(appPreferences) }
+    val authRepository = remember { DevAuthRepositoryImpl(apiService, appPreferences) }
+    val housingRepository = remember { MockHousingRepositoryImpl(apiService) }
+    val predictionRepository = remember { MockPredictionRepositoryImpl(apiService) }
+    val fakeListingRepository = remember { MockFakeListingRepositoryImpl(apiService) }
+    val contractRepository = remember { MockContractRepositoryImpl(apiService) }
 
     // Shared ViewModels
     val authViewModel: AuthViewModel = viewModel(factory = SimpleViewModelFactory { AuthViewModel(authRepository) })

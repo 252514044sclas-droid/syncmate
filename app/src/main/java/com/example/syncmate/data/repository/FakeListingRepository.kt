@@ -2,19 +2,22 @@ package com.example.syncmate.data.repository
 
 import com.example.syncmate.data.model.FakeListingAnalysis
 import com.example.syncmate.data.model.RiskSignal
+import com.example.syncmate.data.remote.ApiService
 import kotlinx.coroutines.delay
 
 interface FakeListingRepository {
     suspend fun analyzeListingForFraud(description: String, price: Double, imageUrls: List<String>): Result<FakeListingAnalysis>
 }
 
-class MockFakeListingRepositoryImpl : FakeListingRepository {
+class MockFakeListingRepositoryImpl(
+    private val apiService: ApiService? = null
+) : FakeListingRepository {
     override suspend fun analyzeListingForFraud(
         description: String,
         price: Double,
         imageUrls: List<String>
     ): Result<FakeListingAnalysis> {
-        delay(1400)
+        delay(1100)
 
         val hasSuspiciousKeywords = description.contains("wire transfer", ignoreCase = true) ||
                 description.contains("western union", ignoreCase = true) ||
