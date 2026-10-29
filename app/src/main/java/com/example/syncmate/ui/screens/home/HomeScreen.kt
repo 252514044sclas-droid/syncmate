@@ -60,6 +60,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.syncmate.data.model.HousingListing
 import com.example.syncmate.util.CurrencyFormatter
 import com.example.syncmate.ui.components.AnimatedSaveButton
+import com.example.syncmate.ui.components.AutoFeatureCarousel
 import com.example.syncmate.ui.components.GlassCard
 import com.example.syncmate.ui.components.LoadingIndicator
 import com.example.syncmate.ui.components.StatBadge
@@ -172,6 +173,14 @@ fun HomeScreen(
                         }
                     }
                 }
+
+                // Auto-Sliding Feature Showcase Banner
+                AutoFeatureCarousel(
+                    onNavigateToFairRent = onNavigateToFairRent,
+                    onNavigateToFakeListing = onNavigateToFakeListing,
+                    onNavigateToContractGuard = onNavigateToContractGuard,
+                    onNavigateToPreferences = onNavigateToPreferences
+                )
 
                 Spacer(modifier = Modifier.height(24.dp))
 
