@@ -40,6 +40,7 @@ import com.example.syncmate.ui.screens.listingdetails.ListingDetailsScreen
 import com.example.syncmate.ui.screens.loading.LoadingScreen
 import com.example.syncmate.ui.screens.login.LoginScreen
 import com.example.syncmate.ui.screens.notifications.NotificationsScreen
+import com.example.syncmate.ui.screens.onboarding.OnboardingQuizScreen
 import com.example.syncmate.ui.screens.paymentsafety.PaymentSafetyScreen
 import com.example.syncmate.ui.screens.preferences.PreferencesScreen
 import com.example.syncmate.ui.screens.privacy.PrivacyScreen
@@ -60,6 +61,7 @@ import com.example.syncmate.viewmodel.DashboardViewModel
 import com.example.syncmate.viewmodel.FakeListingViewModel
 import com.example.syncmate.viewmodel.HomeViewModel
 import com.example.syncmate.viewmodel.HousingViewModel
+import com.example.syncmate.viewmodel.OnboardingQuizViewModel
 import com.example.syncmate.viewmodel.PredictionViewModel
 import com.example.syncmate.viewmodel.SettingsViewModel
 
@@ -87,8 +89,10 @@ fun AppNavGraph(
     val contractViewModel: ContractViewModel = viewModel(factory = SimpleViewModelFactory { ContractViewModel(contractRepository) })
     val settingsViewModel: SettingsViewModel = viewModel(factory = SimpleViewModelFactory { SettingsViewModel(appPreferences) })
     val dashboardViewModel: DashboardViewModel = viewModel(factory = SimpleViewModelFactory { DashboardViewModel(authRepository, housingRepository) })
+    val onboardingQuizViewModel: OnboardingQuizViewModel = viewModel(factory = SimpleViewModelFactory { OnboardingQuizViewModel(authRepository) })
 
     val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
+    val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
 
     SyncmateTheme(
         darkTheme = settingsUiState.darkModeEnabled
@@ -101,7 +105,12 @@ fun AppNavGraph(
             composable(Screen.Loading.route) {
                 LoadingScreen(
                     onLoadingComplete = {
-                        navController.navigate(Screen.Welcome.route) {
+                        val destination = if (authUiState.isLoggedIn) {
+                            if (authUiState.user?.hasCompletedQuiz == true) Screen.Dashboard.route else Screen.OnboardingQuiz.route
+                        } else {
+                            Screen.Welcome.route
+                        }
+                        navController.navigate(destination) {
                             popUpTo(Screen.Loading.route) { inclusive = true }
                         }
                     }
@@ -121,7 +130,8 @@ fun AppNavGraph(
                 LoginScreen(
                     authViewModel = authViewModel,
                     onLoginSuccess = {
-                        navController.navigate(Screen.Dashboard.route) {
+                        val destination = if (authUiState.user?.hasCompletedQuiz == true) Screen.Dashboard.route else Screen.OnboardingQuiz.route
+                        navController.navigate(destination) {
                             popUpTo(Screen.Welcome.route) { inclusive = true }
                         }
                     },
@@ -136,7 +146,7 @@ fun AppNavGraph(
                 CreateAccountScreen(
                     authViewModel = authViewModel,
                     onAccountCreated = {
-                        navController.navigate(Screen.Dashboard.route) {
+                        navController.navigate(Screen.OnboardingQuiz.route) {
                             popUpTo(Screen.Welcome.route) { inclusive = true }
                         }
                     },
@@ -144,7 +154,20 @@ fun AppNavGraph(
                 )
             }
 
-            // 5. Dashboard Screen
+            // 5. Onboarding Quiz Screen
+            composable(Screen.OnboardingQuiz.route) {
+                OnboardingQuizScreen(
+                    quizViewModel = onboardingQuizViewModel,
+                    onQuizCompleted = {
+                        navController.navigate(Screen.Dashboard.route) {
+                            popUpTo(Screen.OnboardingQuiz.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // 6. Dashboard Screen
             composable(Screen.Dashboard.route) {
                 DashboardScreen(
                     dashboardViewModel = dashboardViewModel,

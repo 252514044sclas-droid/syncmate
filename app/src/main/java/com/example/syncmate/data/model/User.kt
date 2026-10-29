@@ -10,5 +10,7 @@ data class User(
     val bio: String = "",
     val preferredLeaseTerm: String = "Summer 2025",
     val maxBudget: Double = 15000.0,
-    val preferredLocation: String = "Near Campus / Metro"
+    val preferredLocation: String = "Near Campus / Metro",
+    val hasCompletedQuiz: Boolean = false,
+    val roommatePreferences: RoommatePreferences? = null
 )
