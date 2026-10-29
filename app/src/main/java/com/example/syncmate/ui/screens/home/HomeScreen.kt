@@ -174,6 +174,8 @@ fun HomeScreen(
                     }
                 }
 
+                Spacer(modifier = Modifier.height(18.dp))
+
                 // Auto-Sliding Feature Showcase Banner
                 AutoFeatureCarousel(
                     onNavigateToFairRent = onNavigateToFairRent,
