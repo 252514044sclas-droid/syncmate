@@ -13,6 +13,7 @@ import com.example.syncmate.data.remote.dto.PredictionResponseDto
 import com.example.syncmate.data.remote.dto.RegisterRequestDto
 import com.example.syncmate.data.remote.dto.ReportListingRequestDto
 import com.example.syncmate.data.remote.dto.SaveListingRequestDto
+import com.example.syncmate.data.remote.dto.UpdateProfileRequestDto
 import com.example.syncmate.data.remote.dto.UserDto
 import com.example.syncmate.data.remote.dto.VerifyEmailRequestDto
 import okhttp3.MultipartBody
@@ -39,6 +40,9 @@ interface ApiService {
 
     @GET("user/profile.php")
     suspend fun getUserProfile(): Response<ApiResponse<UserDto>>
+
+    @POST("user/update_profile.php")
+    suspend fun updateUserProfile(@Body request: UpdateProfileRequestDto): Response<ApiResponse<UserDto>>
 
     @GET("listings/featured.php")
     suspend fun getFeaturedListings(): Response<ApiResponse<List<HousingListingDto>>>

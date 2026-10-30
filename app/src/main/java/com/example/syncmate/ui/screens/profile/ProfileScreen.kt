@@ -84,14 +84,14 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = user?.name ?: "Alex Morgan",
+                text = user?.name ?: "Student Profile",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary
             )
 
             Text(
-                text = user?.email ?: "alex.morgan@university.edu",
+                text = user?.email ?: "student@university.edu",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary
             )
@@ -111,13 +111,31 @@ fun ProfileScreen(
                     .padding(16.dp)
             ) {
                 Column {
-                    Text(text = "University: ${user?.university ?: "National Institute of Technology"}", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                    Text(text = "University: ${user?.university ?: "University"}", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(text = "Preferred Lease: ${user?.preferredLeaseTerm ?: "Summer 2025"}", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(text = "Max Budget: ${CurrencyFormatter.formatMonthlyRent(user?.maxBudget ?: 15000.0)}", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "Preferred Area: ${user?.preferredLocation ?: "Adyar / IIT Campus"}", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                    Text(text = "Preferred Area: ${user?.preferredLocation ?: "Near Campus"}", style = MaterialTheme.typography.bodyLarge, color = TextPrimary)
+                }
+            }
+
+            if (!user?.bio.isNullOrEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(SlateCard)
+                        .border(1.dp, SlateCardBorder, RoundedCornerShape(16.dp))
+                        .padding(16.dp)
+                ) {
+                    Column {
+                        Text(text = "Student Bio", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = IndigoPrimary)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(text = user?.bio ?: "", style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
+                    }
                 }
             }
 

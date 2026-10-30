@@ -6,6 +6,7 @@ import com.example.syncmate.data.remote.ApiService
 import com.example.syncmate.data.remote.dto.ForgotPasswordRequestDto
 import com.example.syncmate.data.remote.dto.LoginRequestDto
 import com.example.syncmate.data.remote.dto.RegisterRequestDto
+import com.example.syncmate.data.remote.dto.UpdateProfileRequestDto
 import com.example.syncmate.data.remote.dto.UserDto
 import com.example.syncmate.data.remote.dto.VerifyEmailRequestDto
 import kotlinx.coroutines.delay
@@ -19,6 +20,14 @@ interface AuthRepository {
     suspend fun signUp(name: String, email: String, pass: String, university: String): Result<User>
     suspend fun forgotPassword(email: String): Result<Unit>
     suspend fun verifyEmail(email: String, code: String): Result<Boolean>
+    suspend fun updateProfile(
+        name: String,
+        university: String,
+        bio: String,
+        preferredLeaseTerm: String? = null,
+        maxBudget: Double? = null,
+        preferredLocation: String? = null
+    ): Result<User>
     suspend fun signOut()
     fun isUserLoggedIn(): Boolean
 }
@@ -27,17 +36,18 @@ class DevAuthRepositoryImpl(
     private val apiService: ApiService? = null,
     private val appPreferences: AppPreferences? = null
 ) : AuthRepository {
+
     private val _currentUser = MutableStateFlow<User?>(
         User(
             id = "usr_dev_101",
-            name = "Alex Morgan",
-            email = "alex.morgan@university.edu",
-            university = "National Institute of Technology",
+            name = appPreferences?.savedName ?: "Alex Morgan",
+            email = appPreferences?.userEmail ?: "alex.morgan@university.edu",
+            university = appPreferences?.savedUniversity ?: "National Institute of Technology",
             isVerified = true,
-            bio = "Computer Science student looking for summer sublet near campus.",
-            preferredLeaseTerm = "May - Aug 2025",
-            maxBudget = 15000.0,
-            preferredLocation = "Adyar / IIT Campus"
+            bio = appPreferences?.savedBio ?: "Computer Science student looking for summer sublet near campus.",
+            preferredLeaseTerm = appPreferences?.savedPreferredLease ?: "Summer 2025",
+            maxBudget = appPreferences?.savedMaxBudget ?: 15000.0,
+            preferredLocation = appPreferences?.savedPreferredLocation ?: "Adyar / IIT Campus"
         )
     )
     override val currentUserFlow: Flow<User?> = _currentUser.asStateFlow()
@@ -64,7 +74,7 @@ class DevAuthRepositoryImpl(
                     return Result.success(user)
                 }
             } catch (_: Exception) {
-                // Network unavailable -> fallback to local mock login
+                // Network unavailable -> fallback
             }
         }
 
@@ -72,10 +82,11 @@ class DevAuthRepositoryImpl(
         return if (email.contains("@") && pass.length >= 6) {
             val user = User(
                 id = "usr_" + email.hashCode(),
-                name = email.substringBefore("@").replace(".", " ").capitalize(),
+                name = appPreferences?.savedName ?: email.substringBefore("@").replace(".", " ").capitalize(),
                 email = email,
-                university = "National Institute of Technology",
-                isVerified = email.endsWith(".edu")
+                university = appPreferences?.savedUniversity ?: "National Institute of Technology",
+                isVerified = email.endsWith(".edu"),
+                bio = appPreferences?.savedBio ?: "Computer Science student looking for summer sublet."
             )
             appPreferences?.isLoggedIn = true
             appPreferences?.userEmail = email
@@ -110,9 +121,7 @@ class DevAuthRepositoryImpl(
                     _currentUser.value = user
                     return Result.success(user)
                 }
-            } catch (_: Exception) {
-                // Fallback to local dev registration
-            }
+            } catch (_: Exception) {}
         }
 
         delay(900)
@@ -127,6 +136,8 @@ class DevAuthRepositoryImpl(
             isVerified = email.endsWith(".edu")
         )
         appPreferences?.isLoggedIn = true
+        appPreferences?.savedName = name
+        appPreferences?.savedUniversity = university
         _currentUser.value = newUser
         return Result.success(newUser)
     }
@@ -159,6 +170,63 @@ class DevAuthRepositoryImpl(
         } else {
             Result.failure(IllegalArgumentException("Verification code must be 6 digits"))
         }
+    }
+
+    override suspend fun updateProfile(
+        name: String,
+        university: String,
+        bio: String,
+        preferredLeaseTerm: String?,
+        maxBudget: Double?,
+        preferredLocation: String?
+    ): Result<User> {
+        var updatedUser = _currentUser.value?.copy(
+            name = name,
+            university = university,
+            bio = bio,
+            preferredLeaseTerm = preferredLeaseTerm ?: (_currentUser.value?.preferredLeaseTerm ?: "Summer 2025"),
+            maxBudget = maxBudget ?: (_currentUser.value?.maxBudget ?: 15000.0),
+            preferredLocation = preferredLocation ?: (_currentUser.value?.preferredLocation ?: "Adyar / IIT Campus")
+        ) ?: User(
+            id = "usr_dev_101",
+            name = name,
+            email = appPreferences?.userEmail ?: "alex.morgan@university.edu",
+            university = university,
+            isVerified = true,
+            bio = bio
+        )
+
+        if (apiService != null) {
+            try {
+                val req = UpdateProfileRequestDto(
+                    name = name,
+                    university = university,
+                    bio = bio,
+                    preferredLeaseTerm = preferredLeaseTerm,
+                    maxBudget = maxBudget,
+                    preferredLocation = preferredLocation
+                )
+                val res = apiService.updateUserProfile(req)
+                if (res.isSuccessful && res.body()?.data != null) {
+                    updatedUser = res.body()!!.data!!.toDomain()
+                }
+            } catch (_: Exception) {
+                // Fallback to local persistence
+            }
+        }
+
+        delay(600)
+
+        // Persist locally in AppPreferences
+        appPreferences?.savedName = updatedUser.name
+        appPreferences?.savedUniversity = updatedUser.university
+        appPreferences?.savedBio = updatedUser.bio
+        appPreferences?.savedPreferredLease = updatedUser.preferredLeaseTerm
+        appPreferences?.savedMaxBudget = updatedUser.maxBudget
+        appPreferences?.savedPreferredLocation = updatedUser.preferredLocation
+
+        _currentUser.value = updatedUser
+        return Result.success(updatedUser)
     }
 
     override suspend fun signOut() {

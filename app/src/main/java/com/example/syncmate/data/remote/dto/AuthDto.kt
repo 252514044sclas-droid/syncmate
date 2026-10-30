@@ -23,6 +23,15 @@ data class ForgotPasswordRequestDto(
     @SerializedName("email") val email: String
 )
 
+data class UpdateProfileRequestDto(
+    @SerializedName("name") val name: String,
+    @SerializedName("university") val university: String,
+    @SerializedName("bio") val bio: String,
+    @SerializedName("preferred_lease_term") val preferredLeaseTerm: String? = null,
+    @SerializedName("max_budget") val maxBudget: Double? = null,
+    @SerializedName("preferred_location") val preferredLocation: String? = null
+)
+
 data class UserDto(
     @SerializedName("id") val id: String,
     @SerializedName("name") val name: String,

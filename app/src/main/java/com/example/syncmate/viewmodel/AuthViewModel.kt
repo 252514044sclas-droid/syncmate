@@ -16,7 +16,10 @@ data class AuthUiState(
     val error: String? = null,
     val rememberDevice: Boolean = true,
     val passwordResetSent: Boolean = false,
-    val emailVerificationSuccess: Boolean = false
+    val emailVerificationSuccess: Boolean = false,
+    val isProfileSaving: Boolean = false,
+    val profileSaveSuccess: Boolean = false,
+    val profileSaveError: String? = null
 )
 
 class AuthViewModel(
@@ -83,6 +86,47 @@ class AuthViewModel(
                 _uiState.value = _uiState.value.copy(isLoading = false, error = ex.message ?: "Verification failed")
             }
         }
+    }
+
+    fun updateProfile(
+        name: String,
+        university: String,
+        bio: String,
+        preferredLeaseTerm: String? = null,
+        maxBudget: Double? = null,
+        preferredLocation: String? = null,
+        onSuccess: () -> Unit
+    ) {
+        if (name.isBlank()) {
+            _uiState.value = _uiState.value.copy(profileSaveError = "Full Name cannot be empty.")
+            return
+        }
+        if (university.isBlank()) {
+            _uiState.value = _uiState.value.copy(profileSaveError = "University / College cannot be empty.")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isProfileSaving = true, profileSaveError = null, profileSaveSuccess = false)
+            val result = authRepository.updateProfile(name, university, bio, preferredLeaseTerm, maxBudget, preferredLocation)
+            result.onSuccess { updatedUser ->
+                _uiState.value = _uiState.value.copy(
+                    isProfileSaving = false,
+                    user = updatedUser,
+                    profileSaveSuccess = true
+                )
+                onSuccess()
+            }.onFailure { ex ->
+                _uiState.value = _uiState.value.copy(
+                    isProfileSaving = false,
+                    profileSaveError = ex.message ?: "Failed to save profile."
+                )
+            }
+        }
+    }
+
+    fun clearProfileSaveStatus() {
+        _uiState.value = _uiState.value.copy(profileSaveSuccess = false, profileSaveError = null)
     }
 
     fun toggleRememberDevice(remember: Boolean) {
