@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.example.syncmate.ui.theme.TextPrimary
 
 @Composable
 fun AppHeader(
@@ -24,6 +23,8 @@ fun AppHeader(
     action: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val textColor = MaterialTheme.colorScheme.onBackground
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -35,7 +36,7 @@ fun AppHeader(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = TextPrimary
+                    tint = textColor
                 )
             }
         }
@@ -44,7 +45,7 @@ fun AppHeader(
             text = title,
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = TextPrimary,
+            color = textColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier

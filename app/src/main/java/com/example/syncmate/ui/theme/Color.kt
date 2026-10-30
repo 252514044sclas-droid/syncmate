@@ -16,12 +16,12 @@ val SlateBorderDark = Color(0xFF047857)
 val TextPrimaryDark = Color(0xFFF8FAFC)
 val TextSecondaryDark = Color(0xFFA7F3D0)
 
-// SyncMate Light Green & White Palette
-val LightBackground = Color(0xFFF8FAFC)
-val LightCard = Color(0xFFFFFFFF)
-val LightBorder = Color(0xFFA7F3D0)
-val TextPrimaryLight = Color(0xFF064E3B)
-val TextSecondaryLight = Color(0xFF047857)
+// SyncMate Light Green & Off-White / Light Grey Palette
+val LightBackground = Color(0xFFF1F5F9) // Soft Light Grey / Off-White
+val LightCard = Color(0xFFFFFFFF) // Soft White Card
+val LightBorder = Color(0xFFA7F3D0) // Mint Border
+val TextPrimaryLight = Color(0xFF0F172A) // Dark Charcoal / Slate Primary Text
+val TextSecondaryLight = Color(0xFF047857) // Muted Forest Green Secondary Text
 
 // Accent Colors
 val IndigoPrimary = EmeraldGreenPrimary
@@ -59,12 +59,12 @@ val DarkColorSchemeColors = darkColorScheme(
     onError = Color.White
 )
 
-// Material 3 Light Color Scheme (Green & Pure White)
+// Material 3 Light Color Scheme (Emerald & Off-White / Light Grey)
 val LightColorSchemeColors = lightColorScheme(
     primary = EmeraldGreenPrimary,
     onPrimary = Color.White,
-    primaryContainer = EmeraldGreenLight,
-    onPrimaryContainer = Color.Black,
+    primaryContainer = Color(0xFFD1FAE5),
+    onPrimaryContainer = Color(0xFF065F46),
     secondary = EmeraldGreenVariant,
     onSecondary = Color.White,
     background = LightBackground,
