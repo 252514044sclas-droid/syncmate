@@ -637,8 +637,9 @@ fun DashboardBottomNavigation(
     onNavigateToProfile: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val cyanAccent = Color(0xFF00E5FF)
-    val darkBarBg = Color(0xFF0B132B)
+    val navBarBg = MaterialTheme.colorScheme.surface
+    val navBarBorder = MaterialTheme.colorScheme.surfaceVariant
+    val activeColor = MaterialTheme.colorScheme.primary
 
     Box(
         modifier = modifier
@@ -648,11 +649,11 @@ fun DashboardBottomNavigation(
     ) {
         Surface(
             shape = RoundedCornerShape(36.dp),
-            color = darkBarBg,
+            color = navBarBg,
             shadowElevation = 8.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, Color(0xFF1E293B), RoundedCornerShape(36.dp))
+                .border(1.dp, navBarBorder, RoundedCornerShape(36.dp))
         ) {
             Row(
                 modifier = Modifier
@@ -666,7 +667,7 @@ fun DashboardBottomNavigation(
                     label = "Home",
                     isSelected = selectedItem == 0,
                     onClick = onNavigateToHome,
-                    selectedColor = cyanAccent
+                    selectedColor = activeColor
                 )
 
                 FloatingNavItem(
@@ -674,7 +675,7 @@ fun DashboardBottomNavigation(
                     label = "Explore",
                     isSelected = selectedItem == 1,
                     onClick = onNavigateToExplore,
-                    selectedColor = cyanAccent
+                    selectedColor = activeColor
                 )
 
                 FloatingNavItem(
@@ -682,7 +683,7 @@ fun DashboardBottomNavigation(
                     label = "Saved",
                     isSelected = selectedItem == 2,
                     onClick = onNavigateToSaved,
-                    selectedColor = cyanAccent
+                    selectedColor = activeColor
                 )
 
                 FloatingNavItem(
@@ -691,7 +692,7 @@ fun DashboardBottomNavigation(
                     isSelected = selectedItem == 3,
                     badgeCount = unreadMessages,
                     onClick = onNavigateToMessages,
-                    selectedColor = cyanAccent
+                    selectedColor = activeColor
                 )
 
                 FloatingNavItem(
@@ -699,7 +700,7 @@ fun DashboardBottomNavigation(
                     label = "Profile",
                     isSelected = selectedItem == 4,
                     onClick = onNavigateToProfile,
-                    selectedColor = cyanAccent
+                    selectedColor = activeColor
                 )
             }
         }
@@ -716,6 +717,10 @@ fun FloatingNavItem(
     badgeCount: Int = 0
 ) {
     val haptic = LocalHapticFeedback.current
+    val inactiveIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val activeIconColor = MaterialTheme.colorScheme.onPrimary
+    val activeTextColor = MaterialTheme.colorScheme.primary
+    val inactiveTextColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -737,7 +742,7 @@ fun FloatingNavItem(
             BadgedBox(
                 badge = {
                     if (badgeCount > 0) {
-                        Badge(containerColor = selectedColor, contentColor = Color.Black) {
+                        Badge(containerColor = selectedColor, contentColor = activeIconColor) {
                             Text("$badgeCount", style = MaterialTheme.typography.labelSmall)
                         }
                     }
@@ -746,7 +751,7 @@ fun FloatingNavItem(
                 Icon(
                     imageVector = icon,
                     contentDescription = label,
-                    tint = if (isSelected) Color(0xFF0F172A) else Color.White,
+                    tint = if (isSelected) activeIconColor else inactiveIconColor,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -758,7 +763,7 @@ fun FloatingNavItem(
             text = label,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-            color = if (isSelected) selectedColor else Color(0xFF94A3B8),
+            color = if (isSelected) activeTextColor else inactiveTextColor,
             fontSize = TextUnit.Unspecified
         )
     }
