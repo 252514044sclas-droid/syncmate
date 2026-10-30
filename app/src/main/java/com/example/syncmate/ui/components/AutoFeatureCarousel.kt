@@ -51,7 +51,6 @@ import androidx.compose.ui.unit.dp
 import com.example.syncmate.ui.theme.AmberWarning
 import com.example.syncmate.ui.theme.EmeraldSuccess
 import com.example.syncmate.ui.theme.RoseError
-import com.example.syncmate.ui.theme.SlateCard
 import com.example.syncmate.ui.theme.SlateCardBorder
 import com.example.syncmate.ui.theme.TextPrimary
 import com.example.syncmate.ui.theme.TextSecondary
@@ -73,6 +72,7 @@ data class FeatureSlide(
     val badgeColor: Color,
     val icon: ImageVector,
     val category: SlideCategory,
+    val gradientColors: List<Color>,
     val onClick: () -> Unit
 )
 
@@ -92,6 +92,7 @@ fun AutoFeatureCarousel(
             badgeColor = Color(0xFF00E5FF),
             icon = Icons.Default.Analytics,
             category = SlideCategory.ML_ANALYTICS,
+            gradientColors = listOf(Color(0xFF064E3B), Color(0xFF0F172A), Color(0xFF065F46)),
             onClick = onNavigateToFairRent
         ),
         FeatureSlide(
@@ -101,6 +102,7 @@ fun AutoFeatureCarousel(
             badgeColor = RoseError,
             icon = Icons.Default.Security,
             category = SlideCategory.SCAM_SHIELD,
+            gradientColors = listOf(Color(0xFF4C0519), Color(0xFF0F172A), Color(0xFF881337)),
             onClick = onNavigateToFakeListing
         ),
         FeatureSlide(
@@ -110,6 +112,7 @@ fun AutoFeatureCarousel(
             badgeColor = AmberWarning,
             icon = Icons.Default.Description,
             category = SlideCategory.LEGAL_SCANNER,
+            gradientColors = listOf(Color(0xFF451A03), Color(0xFF0F172A), Color(0xFF78350F)),
             onClick = onNavigateToContractGuard
         ),
         FeatureSlide(
@@ -119,6 +122,7 @@ fun AutoFeatureCarousel(
             badgeColor = EmeraldSuccess,
             icon = Icons.Default.Verified,
             category = SlideCategory.VERIFIED_NETWORK,
+            gradientColors = listOf(Color(0xFF022C22), Color(0xFF0F172A), Color(0xFF065F46)),
             onClick = onNavigateToPreferences
         )
     )
@@ -168,7 +172,7 @@ fun AutoFeatureCarousel(
                         )
                         .clip(CircleShape)
                         .background(
-                            if (isSelected) Color(0xFF00E5FF) else TextSecondary.copy(alpha = 0.3f)
+                            if (isSelected) slides[index].badgeColor else TextSecondary.copy(alpha = 0.3f)
                         )
                 )
             }
@@ -185,13 +189,17 @@ fun CarouselSlideCard(
             .fillMaxWidth()
             .height(160.dp)
             .clip(RoundedCornerShape(18.dp))
-            .background(SlateCard)
+            .background(
+                Brush.linearGradient(
+                    colors = slide.gradientColors
+                )
+            )
             .border(
-                width = 1.dp,
+                width = 1.5.dp,
                 brush = Brush.linearGradient(
                     colors = listOf(
-                        slide.badgeColor.copy(alpha = 0.5f),
-                        SlateCardBorder.copy(alpha = 0.2f)
+                        slide.badgeColor.copy(alpha = 0.6f),
+                        SlateCardBorder.copy(alpha = 0.3f)
                     )
                 ),
                 shape = RoundedCornerShape(18.dp)
@@ -221,7 +229,7 @@ fun CarouselSlideCard(
                     modifier = Modifier
                         .size(36.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(slide.badgeColor.copy(alpha = 0.15f)),
+                        .background(slide.badgeColor.copy(alpha = 0.25f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -264,7 +272,7 @@ fun AnimatedCategoryBackground(
         initialValue = 0f,
         targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3000, easing = LinearEasing),
+            animation = tween(durationMillis = 2500, easing = LinearEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "anim_progress"
@@ -276,29 +284,38 @@ fun AnimatedCategoryBackground(
 
         when (category) {
             SlideCategory.ML_ANALYTICS -> {
-                // Animated Sine Wave & Bar Chart Graphic
-                val path = Path()
-                path.moveTo(width * 0.4f, height * 0.8f)
-
-                for (x in (width * 0.4f).toInt()..(width.toInt()) step 10) {
-                    val y = height * 0.6f + sin((x + animProgress * 100) * 0.03f) * 18f
-                    path.lineTo(x.toFloat(), y.toFloat())
-                }
-
-                drawPath(
-                    path = path,
-                    color = accentColor.copy(alpha = 0.18f),
-                    style = Stroke(width = 4f)
+                // Glowing radial background light
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(accentColor.copy(alpha = 0.25f), Color.Transparent),
+                        center = Offset(width * 0.8f, height * 0.3f),
+                        radius = 140f
+                    ),
+                    radius = 140f,
+                    center = Offset(width * 0.8f, height * 0.3f)
                 )
 
-                // Animated bar chart columns
-                val barWidth = 14f
-                val spacing = 22f
-                val startX = width * 0.65f
+                // Animated Sine Wave
+                val path = Path()
+                path.moveTo(width * 0.3f, height * 0.8f)
+                for (x in (width * 0.3f).toInt()..(width.toInt()) step 8) {
+                    val y = height * 0.55f + sin((x + animProgress * 120) * 0.04f) * 22f
+                    path.lineTo(x.toFloat(), y)
+                }
+                drawPath(
+                    path = path,
+                    color = accentColor.copy(alpha = 0.35f),
+                    style = Stroke(width = 5f)
+                )
+
+                // Animated Bar Chart Columns
+                val barWidth = 12f
+                val spacing = 20f
+                val startX = width * 0.7f
                 for (i in 0..4) {
-                    val barHeight = (30f + i * 15f + sin(animProgress * 3.14f + i) * 12f).coerceAtLeast(10f)
+                    val barHeight = (25f + i * 14f + sin(animProgress * 6.28f + i) * 15f).coerceAtLeast(10f)
                     drawRect(
-                        color = accentColor.copy(alpha = 0.12f),
+                        color = accentColor.copy(alpha = 0.25f),
                         topLeft = Offset(startX + i * spacing, height * 0.85f - barHeight),
                         size = Size(barWidth, barHeight)
                     )
@@ -306,61 +323,92 @@ fun AnimatedCategoryBackground(
             }
 
             SlideCategory.SCAM_SHIELD -> {
+                // Glowing radial danger light
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(accentColor.copy(alpha = 0.3f), Color.Transparent),
+                        center = Offset(width * 0.85f, height * 0.5f),
+                        radius = 160f
+                    ),
+                    radius = 160f,
+                    center = Offset(width * 0.85f, height * 0.5f)
+                )
+
                 // Animated Radar Sonar Pulsing Circles
                 val center = Offset(width * 0.85f, height * 0.5f)
-                val maxRadius = 110f
+                val maxRadius = 120f
                 val radius1 = (maxRadius * animProgress)
                 val radius2 = (maxRadius * ((animProgress + 0.5f) % 1f))
 
                 drawCircle(
-                    color = accentColor.copy(alpha = (1f - animProgress / 1f) * 0.18f),
+                    color = accentColor.copy(alpha = (1f - animProgress) * 0.4f),
                     radius = radius1,
                     center = center,
-                    style = Stroke(width = 3f)
+                    style = Stroke(width = 4f)
                 )
-
                 drawCircle(
-                    color = accentColor.copy(alpha = (1f - ((animProgress + 0.5f) % 1f)) * 0.18f),
+                    color = accentColor.copy(alpha = (1f - ((animProgress + 0.5f) % 1f)) * 0.4f),
                     radius = radius2,
                     center = center,
-                    style = Stroke(width = 3f)
+                    style = Stroke(width = 4f)
                 )
             }
 
             SlideCategory.LEGAL_SCANNER -> {
-                // Animated Scanning Beam Line Moving Up & Down
-                val scanLineY = height * 0.2f + (height * 0.6f * animProgress)
-
-                drawLine(
-                    color = accentColor.copy(alpha = 0.22f),
-                    start = Offset(width * 0.35f, scanLineY),
-                    end = Offset(width * 0.95f, scanLineY),
-                    strokeWidth = 3f
+                // Glowing radial amber light
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(accentColor.copy(alpha = 0.25f), Color.Transparent),
+                        center = Offset(width * 0.75f, height * 0.4f),
+                        radius = 150f
+                    ),
+                    radius = 150f,
+                    center = Offset(width * 0.75f, height * 0.4f)
                 )
 
-                // Document outline lines
-                val startX = width * 0.55f
+                // Animated Scanning Beam Line
+                val scanLineY = height * 0.15f + (height * 0.7f * animProgress)
+                drawLine(
+                    color = accentColor.copy(alpha = 0.5f),
+                    start = Offset(width * 0.3f, scanLineY),
+                    end = Offset(width * 0.95f, scanLineY),
+                    strokeWidth = 4f
+                )
+
+                // Document Line Outlines
+                val startX = width * 0.5f
                 for (i in 0..3) {
-                    val lineY = height * 0.3f + i * 18f
+                    val lineY = height * 0.25f + i * 20f
                     drawLine(
-                        color = accentColor.copy(alpha = 0.08f),
+                        color = accentColor.copy(alpha = 0.15f),
                         start = Offset(startX, lineY),
-                        end = Offset(startX + 120f, lineY),
+                        end = Offset(startX + 130f, lineY),
                         strokeWidth = 6f
                     )
                 }
             }
 
             SlideCategory.VERIFIED_NETWORK -> {
-                // Animated Constellation Network Nodes & Orbiting Particles
+                // Glowing radial emerald light
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(accentColor.copy(alpha = 0.3f), Color.Transparent),
+                        center = Offset(width * 0.8f, height * 0.45f),
+                        radius = 160f
+                    ),
+                    radius = 160f,
+                    center = Offset(width * 0.8f, height * 0.45f)
+                )
+
+                // Constellation Network Orbit
                 val center = Offset(width * 0.8f, height * 0.45f)
-                val orbitRadius = 45f
+                val orbitRadius = 50f
 
                 drawCircle(
-                    color = accentColor.copy(alpha = 0.12f),
+                    color = accentColor.copy(alpha = 0.25f),
                     radius = orbitRadius,
                     center = center,
-                    style = Stroke(width = 2f)
+                    style = Stroke(width = 2.5f)
                 )
 
                 val angle1 = (animProgress * 6.28f)
@@ -369,12 +417,12 @@ fun AnimatedCategoryBackground(
                 val node1 = Offset(center.x + (orbitRadius * cos(angle1)).toFloat(), center.y + (orbitRadius * sin(angle1)).toFloat())
                 val node2 = Offset(center.x + (orbitRadius * cos(angle2)).toFloat(), center.y + (orbitRadius * sin(angle2)).toFloat())
 
-                drawLine(color = accentColor.copy(alpha = 0.15f), start = center, end = node1, strokeWidth = 2f)
-                drawLine(color = accentColor.copy(alpha = 0.15f), start = center, end = node2, strokeWidth = 2f)
+                drawLine(color = accentColor.copy(alpha = 0.3f), start = center, end = node1, strokeWidth = 2.5f)
+                drawLine(color = accentColor.copy(alpha = 0.3f), start = center, end = node2, strokeWidth = 2.5f)
 
-                drawCircle(color = accentColor.copy(alpha = 0.4f), radius = 6f, center = node1)
-                drawCircle(color = accentColor.copy(alpha = 0.4f), radius = 6f, center = node2)
-                drawCircle(color = accentColor.copy(alpha = 0.5f), radius = 8f, center = center)
+                drawCircle(color = accentColor.copy(alpha = 0.8f), radius = 7f, center = node1)
+                drawCircle(color = accentColor.copy(alpha = 0.8f), radius = 7f, center = node2)
+                drawCircle(color = accentColor.copy(alpha = 0.9f), radius = 10f, center = center)
             }
         }
     }
