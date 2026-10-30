@@ -1,7 +1,9 @@
 package com.example.syncmate.ui.theme
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 // SyncMate Green Palette - Primary Accent
@@ -34,12 +36,26 @@ val AmberWarning = Color(0xFFF59E0B)
 val RoseError = Color(0xFFEF4444)
 val CyanInfo = Color(0xFF06B6D4)
 
-// Legacy alias definitions for backward compatibility
-val SlateBackground = SlateBackgroundDark
-val SlateCard = SlateCardDark
-val SlateCardBorder = SlateBorderDark
-val TextPrimary = TextPrimaryDark
-val TextSecondary = TextSecondaryDark
+// Dynamic Composable Color Getters for Automatic Dark/Light Theme Switching
+val SlateBackground: Color
+    @Composable
+    get() = MaterialTheme.colorScheme.background
+
+val SlateCard: Color
+    @Composable
+    get() = MaterialTheme.colorScheme.surface
+
+val SlateCardBorder: Color
+    @Composable
+    get() = MaterialTheme.colorScheme.surfaceVariant
+
+val TextPrimary: Color
+    @Composable
+    get() = MaterialTheme.colorScheme.onBackground
+
+val TextSecondary: Color
+    @Composable
+    get() = MaterialTheme.colorScheme.onSurfaceVariant
 
 // Material 3 Dark Color Scheme (Emerald & Dark Slate)
 val DarkColorSchemeColors = darkColorScheme(
