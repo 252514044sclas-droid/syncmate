@@ -37,19 +37,24 @@ class DevAuthRepositoryImpl(
     private val appPreferences: AppPreferences? = null
 ) : AuthRepository {
 
-    private val _currentUser = MutableStateFlow<User?>(
+    private val initialUser = if (appPreferences?.isLoggedIn == true) {
         User(
             id = "usr_dev_101",
-            name = appPreferences?.savedName ?: "Alex Morgan",
-            email = appPreferences?.userEmail ?: "alex.morgan@university.edu",
-            university = appPreferences?.savedUniversity ?: "National Institute of Technology",
+            name = appPreferences.savedName ?: "Alex Morgan",
+            email = appPreferences.userEmail ?: "alex.morgan@university.edu",
+            university = appPreferences.savedUniversity ?: "National Institute of Technology",
             isVerified = true,
-            bio = appPreferences?.savedBio ?: "Computer Science student looking for summer sublet near campus.",
-            preferredLeaseTerm = appPreferences?.savedPreferredLease ?: "Summer 2025",
-            maxBudget = appPreferences?.savedMaxBudget ?: 15000.0,
-            preferredLocation = appPreferences?.savedPreferredLocation ?: "Adyar / IIT Campus"
+            bio = appPreferences.savedBio ?: "Computer Science student looking for summer sublet near campus.",
+            preferredLeaseTerm = appPreferences.savedPreferredLease ?: "Summer 2025",
+            maxBudget = appPreferences.savedMaxBudget,
+            preferredLocation = appPreferences.savedPreferredLocation ?: "Adyar / IIT Campus",
+            hasCompletedQuiz = true
         )
-    )
+    } else {
+        null
+    }
+
+    private val _currentUser = MutableStateFlow<User?>(initialUser)
     override val currentUserFlow: Flow<User?> = _currentUser.asStateFlow()
 
     override suspend fun login(email: String, pass: String): Result<User> {
@@ -68,7 +73,8 @@ class DevAuthRepositoryImpl(
                         name = email.substringBefore("@").replace(".", " ").capitalize(),
                         email = email,
                         university = "National Institute of Technology",
-                        isVerified = true
+                        isVerified = true,
+                        hasCompletedQuiz = false
                     )
                     _currentUser.value = user
                     return Result.success(user)
@@ -86,7 +92,8 @@ class DevAuthRepositoryImpl(
                 email = email,
                 university = appPreferences?.savedUniversity ?: "National Institute of Technology",
                 isVerified = email.endsWith(".edu"),
-                bio = appPreferences?.savedBio ?: "Computer Science student looking for summer sublet."
+                bio = appPreferences?.savedBio ?: "Computer Science student looking for summer sublet.",
+                hasCompletedQuiz = false
             )
             appPreferences?.isLoggedIn = true
             appPreferences?.userEmail = email
@@ -116,7 +123,8 @@ class DevAuthRepositoryImpl(
                         name = name,
                         email = email,
                         university = university,
-                        isVerified = email.endsWith(".edu")
+                        isVerified = email.endsWith(".edu"),
+                        hasCompletedQuiz = false
                     )
                     _currentUser.value = user
                     return Result.success(user)
@@ -133,7 +141,8 @@ class DevAuthRepositoryImpl(
             name = name,
             email = email,
             university = university,
-            isVerified = email.endsWith(".edu")
+            isVerified = email.endsWith(".edu"),
+            hasCompletedQuiz = false
         )
         appPreferences?.isLoggedIn = true
         appPreferences?.savedName = name
@@ -186,14 +195,16 @@ class DevAuthRepositoryImpl(
             bio = bio,
             preferredLeaseTerm = preferredLeaseTerm ?: (_currentUser.value?.preferredLeaseTerm ?: "Summer 2025"),
             maxBudget = maxBudget ?: (_currentUser.value?.maxBudget ?: 15000.0),
-            preferredLocation = preferredLocation ?: (_currentUser.value?.preferredLocation ?: "Adyar / IIT Campus")
+            preferredLocation = preferredLocation ?: (_currentUser.value?.preferredLocation ?: "Adyar / IIT Campus"),
+            hasCompletedQuiz = true
         ) ?: User(
             id = "usr_dev_101",
             name = name,
             email = appPreferences?.userEmail ?: "alex.morgan@university.edu",
             university = university,
             isVerified = true,
-            bio = bio
+            bio = bio,
+            hasCompletedQuiz = true
         )
 
         if (apiService != null) {
@@ -210,14 +221,11 @@ class DevAuthRepositoryImpl(
                 if (res.isSuccessful && res.body()?.data != null) {
                     updatedUser = res.body()!!.data!!.toDomain()
                 }
-            } catch (_: Exception) {
-                // Fallback to local persistence
-            }
+            } catch (_: Exception) {}
         }
 
         delay(600)
 
-        // Persist locally in AppPreferences
         appPreferences?.savedName = updatedUser.name
         appPreferences?.savedUniversity = updatedUser.university
         appPreferences?.savedBio = updatedUser.bio
@@ -248,6 +256,7 @@ class DevAuthRepositoryImpl(
         bio = bio,
         preferredLeaseTerm = preferredLeaseTerm,
         maxBudget = maxBudget,
-        preferredLocation = preferredLocation
+        preferredLocation = preferredLocation,
+        hasCompletedQuiz = true
     )
 }
