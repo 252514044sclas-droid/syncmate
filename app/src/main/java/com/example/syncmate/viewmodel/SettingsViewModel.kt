@@ -9,7 +9,11 @@ import kotlinx.coroutines.flow.asStateFlow
 data class SettingsUiState(
     val darkModeEnabled: Boolean = true,
     val notificationsEnabled: Boolean = true,
+    val priceDropAlertsEnabled: Boolean = true,
+    val chatAlertsEnabled: Boolean = true,
+    val contractScanAlertsEnabled: Boolean = true,
     val rememberDevice: Boolean = true,
+    val cacheCleared: Boolean = false,
     val feedbackSubmitted: Boolean = false
 )
 
@@ -36,9 +40,25 @@ class SettingsViewModel(
         _uiState.value = _uiState.value.copy(notificationsEnabled = enabled)
     }
 
+    fun togglePriceDropAlerts(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(priceDropAlertsEnabled = enabled)
+    }
+
+    fun toggleChatAlerts(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(chatAlertsEnabled = enabled)
+    }
+
+    fun toggleContractScanAlerts(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(contractScanAlertsEnabled = enabled)
+    }
+
     fun toggleRememberDevice(enabled: Boolean) {
         appPreferences.isRememberDevice = enabled
         _uiState.value = _uiState.value.copy(rememberDevice = enabled)
+    }
+
+    fun clearCache() {
+        _uiState.value = _uiState.value.copy(cacheCleared = true)
     }
 
     fun submitFeedback(feedbackText: String, rating: Int) {

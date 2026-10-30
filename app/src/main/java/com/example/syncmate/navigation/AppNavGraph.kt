@@ -425,6 +425,10 @@ fun AppNavGraph(
             composable(Screen.Settings.route) {
                 SettingsScreen(
                     settingsViewModel = settingsViewModel,
+                    onNavigateToHelpCenter = { navController.navigate(Screen.HelpCenter.route) },
+                    onNavigateToPrivacy = { navController.navigate(Screen.Privacy.route) },
+                    onNavigateToFeedback = { navController.navigate(Screen.Feedback.route) },
+                    onNavigateToForgotPassword = { navController.navigate(Screen.ForgotPassword.route) },
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
