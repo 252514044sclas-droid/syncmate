@@ -53,6 +53,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -512,10 +514,19 @@ fun DashboardHousingCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 StatBadge(text = "VERIFIED STUDENT", backgroundColor = EmeraldSuccess)
-                AnimatedSaveButton(
-                    isSaved = listing.isSaved,
-                    onToggle = onToggleSave
-                )
+                Box(
+                    modifier = Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        onToggleSave()
+                    }
+                ) {
+                    AnimatedSaveButton(
+                        isSaved = listing.isSaved,
+                        onToggle = onToggleSave
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -584,10 +595,19 @@ fun DashboardRoommateCard(
                     text = "${roommate.compatibilityPercentage}% MATCH",
                     backgroundColor = IndigoPrimary
                 )
-                AnimatedSaveButton(
-                    isSaved = roommate.isSaved,
-                    onToggle = onToggleSave
-                )
+                Box(
+                    modifier = Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        onToggleSave()
+                    }
+                ) {
+                    AnimatedSaveButton(
+                        isSaved = roommate.isSaved,
+                        onToggle = onToggleSave
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
