@@ -74,13 +74,17 @@ class DashboardViewModel(
                 )
             )
 
-            housingRepository.getListings().collect { listings ->
-                val currentUser = (authRepository.currentUserFlow as? StateFlow)?.value
-                val firstName = currentUser?.name?.substringBefore(" ") ?: "Alex"
+            // Reactively collect current user updates (such as name changes)
+            viewModelScope.launch {
+                authRepository.currentUserFlow.collect { user ->
+                    val firstName = user?.name?.substringBefore(" ") ?: "Student"
+                    _uiState.value = _uiState.value.copy(userName = firstName)
+                }
+            }
 
+            housingRepository.getListings().collect { listings ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    userName = firstName,
                     recommendedListings = listings,
                     roommateMatches = sampleRoommates
                 )
