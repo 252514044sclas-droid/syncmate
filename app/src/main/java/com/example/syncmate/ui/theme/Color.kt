@@ -4,24 +4,29 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
-// SyncMate Dark Palette
+// SyncMate Green Palette - Primary Accent
+val EmeraldGreenPrimary = Color(0xFF059669)
+val EmeraldGreenVariant = Color(0xFF047857)
+val EmeraldGreenLight = Color(0xFF34D399)
+
+// SyncMate Dark Emerald Palette
 val SlateBackgroundDark = Color(0xFF0F172A)
 val SlateCardDark = Color(0xFF1E293B)
-val SlateBorderDark = Color(0xFF334155)
+val SlateBorderDark = Color(0xFF047857)
 val TextPrimaryDark = Color(0xFFF8FAFC)
-val TextSecondaryDark = Color(0xFF94A3B8)
+val TextSecondaryDark = Color(0xFFA7F3D0)
 
-// SyncMate Light Palette
+// SyncMate Light Green & White Palette
 val LightBackground = Color(0xFFF8FAFC)
 val LightCard = Color(0xFFFFFFFF)
-val LightBorder = Color(0xFFE2E8F0)
-val TextPrimaryLight = Color(0xFF0F172A)
-val TextSecondaryLight = Color(0xFF475569)
+val LightBorder = Color(0xFFA7F3D0)
+val TextPrimaryLight = Color(0xFF064E3B)
+val TextSecondaryLight = Color(0xFF047857)
 
 // Accent Colors
-val IndigoPrimary = Color(0xFF6366F1)
-val IndigoVariant = Color(0xFF4F46E5)
-val IndigoLight = Color(0xFF818CF8)
+val IndigoPrimary = EmeraldGreenPrimary
+val IndigoVariant = EmeraldGreenVariant
+val IndigoLight = EmeraldGreenLight
 
 val TextMuted = Color(0xFF64748B)
 val EmeraldSuccess = Color(0xFF10B981)
@@ -36,13 +41,13 @@ val SlateCardBorder = SlateBorderDark
 val TextPrimary = TextPrimaryDark
 val TextSecondary = TextSecondaryDark
 
-// Material 3 Dark Color Scheme
+// Material 3 Dark Color Scheme (Emerald & Dark Slate)
 val DarkColorSchemeColors = darkColorScheme(
-    primary = IndigoPrimary,
+    primary = EmeraldGreenPrimary,
     onPrimary = Color.White,
-    primaryContainer = IndigoVariant,
+    primaryContainer = EmeraldGreenVariant,
     onPrimaryContainer = Color.White,
-    secondary = IndigoLight,
+    secondary = EmeraldGreenLight,
     onSecondary = Color.Black,
     background = SlateBackgroundDark,
     onBackground = TextPrimaryDark,
@@ -54,13 +59,13 @@ val DarkColorSchemeColors = darkColorScheme(
     onError = Color.White
 )
 
-// Material 3 Light Color Scheme
+// Material 3 Light Color Scheme (Green & Pure White)
 val LightColorSchemeColors = lightColorScheme(
-    primary = IndigoVariant,
+    primary = EmeraldGreenPrimary,
     onPrimary = Color.White,
-    primaryContainer = IndigoLight,
-    onPrimaryContainer = Color.White,
-    secondary = IndigoPrimary,
+    primaryContainer = EmeraldGreenLight,
+    onPrimaryContainer = Color.Black,
+    secondary = EmeraldGreenVariant,
     onSecondary = Color.White,
     background = LightBackground,
     onBackground = TextPrimaryLight,
