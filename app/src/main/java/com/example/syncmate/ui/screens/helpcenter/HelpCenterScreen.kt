@@ -32,7 +32,7 @@ fun HelpCenterScreen(
     onNavigateBack: () -> Unit
 ) {
     val faqs = listOf(
-        "How does SubletSync verify student status?" to "We require a valid .edu or university student email address with real-time OTP confirmation.",
+        "How does SyncMate verify student status?" to "We require a valid .edu or university student email address with real-time OTP confirmation.",
         "How does the AI Fair-Rent Predictor calculate INR rates?" to "Our machine learning model analyzes historical campus sublet pricing, square footage, amenities, and seasonal demand in Indian Rupees.",
         "What does Contract Guard scan for in lease agreements?" to "Contract Guard scans uploaded lease PDFs for hidden fees, arbitrary deductions, non-refundable cleaning charges, and notice period traps.",
         "How do I report a fraudulent listing or scammer?" to "Tap 'Report Listing Concern' on any sublet page or use the Fake-Listing Shield to submit details for safety team review."

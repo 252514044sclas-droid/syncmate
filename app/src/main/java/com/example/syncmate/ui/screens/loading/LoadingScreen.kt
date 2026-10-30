@@ -65,7 +65,7 @@ fun LoadingScreen(
             ) {
                 Icon(
                     imageVector = Icons.Default.HomeWork,
-                    contentDescription = "SubletSync Logo",
+                    contentDescription = "SyncMate Logo",
                     tint = IndigoPrimary,
                     modifier = Modifier.size(54.dp)
                 )
@@ -74,7 +74,7 @@ fun LoadingScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "SubletSync",
+                text = "SyncMate",
                 style = MaterialTheme.typography.displayLarge,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary,

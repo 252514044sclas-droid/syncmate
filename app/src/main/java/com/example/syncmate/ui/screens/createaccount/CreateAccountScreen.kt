@@ -76,7 +76,7 @@ fun CreateAccountScreen(
                 .padding(20.dp)
         ) {
             Text(
-                text = "Join SubletSync",
+                text = "Join SyncMate",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary

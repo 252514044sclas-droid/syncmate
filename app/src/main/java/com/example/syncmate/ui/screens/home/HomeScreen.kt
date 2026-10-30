@@ -115,7 +115,7 @@ fun HomeScreen(
         ) {
             Column {
                 Text(
-                    text = "SubletSync",
+                    text = "SyncMate",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary
@@ -278,7 +278,7 @@ fun HomeScreen(
 
                 // Additional Navigation Shortcuts Matrix
                 Text(
-                    text = "All SubletSync Features",
+                    text = "All SyncMate Features",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary,

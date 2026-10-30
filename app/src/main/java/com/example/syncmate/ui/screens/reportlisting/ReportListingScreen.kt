@@ -67,7 +67,7 @@ fun ReportListingScreen(
             )
 
             Text(
-                text = "Help keep SubletSync safe for students by flagging fraudulent, predatory, or misleading INR listings.",
+                text = "Help keep SyncMate safe for students by flagging fraudulent, predatory, or misleading INR listings.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
                 modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)

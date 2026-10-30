@@ -4,14 +4,14 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
-// SubletSync Dark Palette
+// SyncMate Dark Palette
 val SlateBackgroundDark = Color(0xFF0F172A)
 val SlateCardDark = Color(0xFF1E293B)
 val SlateBorderDark = Color(0xFF334155)
 val TextPrimaryDark = Color(0xFFF8FAFC)
 val TextSecondaryDark = Color(0xFF94A3B8)
 
-// SubletSync Light Palette
+// SyncMate Light Palette
 val LightBackground = Color(0xFFF8FAFC)
 val LightCard = Color(0xFFFFFFFF)
 val LightBorder = Color(0xFFE2E8F0)

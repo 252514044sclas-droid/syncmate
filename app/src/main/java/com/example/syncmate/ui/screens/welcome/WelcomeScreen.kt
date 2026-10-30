@@ -72,7 +72,7 @@ fun WelcomeScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Welcome to SubletSync",
+                text = "Welcome to SyncMate",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary,

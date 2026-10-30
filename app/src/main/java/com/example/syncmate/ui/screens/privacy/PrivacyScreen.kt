@@ -49,7 +49,7 @@ fun PrivacyScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "SubletSync prioritizes student data privacy. Contract Guard documents uploaded for AI analysis are processed securely and never shared with third-party advertisers or unverified users.",
+                text = "SyncMate prioritizes student data privacy. Contract Guard documents uploaded for AI analysis are processed securely and never shared with third-party advertisers or unverified users.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = TextSecondary
             )

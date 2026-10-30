@@ -57,7 +57,7 @@ fun FeedbackScreen(
             )
 
             Text(
-                text = "Help us improve SubletSync for students.",
+                text = "Help us improve SyncMate for students.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
                 modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)

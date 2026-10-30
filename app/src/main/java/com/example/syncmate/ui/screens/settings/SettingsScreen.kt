@@ -72,7 +72,7 @@ fun SettingsScreen(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(text = "Dark Theme", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
-                    Text(text = "SubletSync slate navy palette", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                    Text(text = "SyncMate slate navy palette", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
                 }
                 Switch(
                     checked = uiState.darkModeEnabled,

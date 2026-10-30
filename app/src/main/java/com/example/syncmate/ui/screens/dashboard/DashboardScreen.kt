@@ -145,14 +145,14 @@ fun DashboardScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.HomeWork,
-                                contentDescription = "SubletSync Logo",
+                                contentDescription = "SyncMate Logo",
                                 tint = Color.White,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "SubletSync",
+                            text = "SyncMate",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = TextPrimary
