@@ -11,7 +11,6 @@ data class SettingsUiState(
     val notificationsEnabled: Boolean = true,
     val priceDropAlertsEnabled: Boolean = true,
     val chatAlertsEnabled: Boolean = true,
-    val contractScanAlertsEnabled: Boolean = true,
     val rememberDevice: Boolean = true,
     val cacheCleared: Boolean = false,
     val feedbackSubmitted: Boolean = false
@@ -25,6 +24,8 @@ class SettingsViewModel(
         SettingsUiState(
             darkModeEnabled = appPreferences.darkModeEnabled,
             notificationsEnabled = appPreferences.notificationsEnabled,
+            priceDropAlertsEnabled = appPreferences.priceDropAlertsEnabled,
+            chatAlertsEnabled = appPreferences.chatAlertsEnabled,
             rememberDevice = appPreferences.isRememberDevice
         )
     )
@@ -41,15 +42,13 @@ class SettingsViewModel(
     }
 
     fun togglePriceDropAlerts(enabled: Boolean) {
+        appPreferences.priceDropAlertsEnabled = enabled
         _uiState.value = _uiState.value.copy(priceDropAlertsEnabled = enabled)
     }
 
     fun toggleChatAlerts(enabled: Boolean) {
+        appPreferences.chatAlertsEnabled = enabled
         _uiState.value = _uiState.value.copy(chatAlertsEnabled = enabled)
-    }
-
-    fun toggleContractScanAlerts(enabled: Boolean) {
-        _uiState.value = _uiState.value.copy(contractScanAlertsEnabled = enabled)
     }
 
     fun toggleRememberDevice(enabled: Boolean) {

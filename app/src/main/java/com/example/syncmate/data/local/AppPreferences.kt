@@ -54,6 +54,14 @@ class AppPreferences(context: Context) {
         get() = prefs.getBoolean("notifications_enabled", true)
         set(value) = prefs.edit().putBoolean("notifications_enabled", value).apply()
 
+    var priceDropAlertsEnabled: Boolean
+        get() = prefs.getBoolean("price_drop_alerts", true)
+        set(value) = prefs.edit().putBoolean("price_drop_alerts", value).apply()
+
+    var chatAlertsEnabled: Boolean
+        get() = prefs.getBoolean("chat_alerts", true)
+        set(value) = prefs.edit().putBoolean("chat_alerts", value).apply()
+
     fun clear() {
         prefs.edit().clear().apply()
     }
