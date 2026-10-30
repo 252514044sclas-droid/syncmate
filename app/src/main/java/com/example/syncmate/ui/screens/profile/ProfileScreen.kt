@@ -17,7 +17,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,6 +49,7 @@ fun ProfileScreen(
     authViewModel: AuthViewModel,
     onNavigateToEditProfile: () -> Unit,
     onNavigateToPreferences: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     onSignOut: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
@@ -61,7 +64,16 @@ fun ProfileScreen(
     ) {
         AppHeader(
             title = "Student Profile",
-            onBackClick = onNavigateBack
+            onBackClick = onNavigateBack,
+            action = {
+                IconButton(onClick = onNavigateToSettings) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Settings",
+                        tint = TextPrimary
+                    )
+                }
+            }
         )
 
         Column(

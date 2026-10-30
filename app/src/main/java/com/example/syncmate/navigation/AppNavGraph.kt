@@ -376,6 +376,7 @@ fun AppNavGraph(
                     authViewModel = authViewModel,
                     onNavigateToEditProfile = { navController.navigate(Screen.EditProfile.route) },
                     onNavigateToPreferences = { navController.navigate(Screen.Preferences.route) },
+                    onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                     onSignOut = {
                         navController.navigate(Screen.Welcome.route) {
                             popUpTo(Screen.Dashboard.route) { inclusive = true }
