@@ -1,0 +1,181 @@
+{
+  "info": {
+    "name": "SubletSync PHP REST API Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"alex.morgan@university.edu\",\n  \"password\": \"student123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/auth/login.php",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["auth", "login.php"]
+            }
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tuff Student\",\n  \"email\": \"tuff@university.edu\",\n  \"password\": \"student123\",\n  \"university\": \"National Institute of Technology\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/auth/register.php",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["auth", "register.php"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Listings",
+      "item": [
+        {
+          "name": "Get Featured Listings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/listings/featured.php",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["listings", "featured.php"]
+            }
+          }
+        },
+        {
+          "name": "Search Listings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8000/listings/search.php?q=Adyar&max_price=20000",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["listings", "search.php"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "Adyar"
+                },
+                {
+                  "key": "max_price",
+                  "value": "20000"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI & ML Services",
+      "item": [
+        {
+          "name": "Predict Fair Rent (INR)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"location\": \"Adyar, Chennai\",\n  \"square_feet\": 750,\n  \"bedrooms\": 1,\n  \"bathrooms\": 1.0,\n  \"room_type\": \"Private Room\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/ai/predict_rent.php",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["ai", "predict_rent.php"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "User Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer token_subletsync_bearer_sample"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8000/user/profile.php",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["user", "profile.php"]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer token_subletsync_bearer_sample"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Tuff\",\n  \"university\": \"National Institute of Technology\",\n  \"bio\": \"Computer Science student seeking summer sublet.\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8000/user/update_profile.php",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8000",
+              "path": ["user", "update_profile.php"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
