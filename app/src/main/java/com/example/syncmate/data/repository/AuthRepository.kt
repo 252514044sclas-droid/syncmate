@@ -61,7 +61,7 @@ class DevAuthRepositoryImpl(
         if (apiService != null) {
             try {
                 val res = apiService.login(LoginRequestDto(email, pass))
-                if (res.isSuccessful && res.body()?.data != null) {
+                if (res.isSuccessful && res.body()?.status == "success" && res.body()?.data != null) {
                     val authData = res.body()!!.data!!
                     val token = authData.token ?: "token_dev_sample"
                     appPreferences?.authToken = token
@@ -76,11 +76,15 @@ class DevAuthRepositoryImpl(
                         isVerified = true,
                         hasCompletedQuiz = false
                     )
+                    appPreferences?.savedName = user.name
+                    appPreferences?.savedUniversity = user.university
                     _currentUser.value = user
                     return Result.success(user)
+                } else if (res.body()?.message != null) {
+                    return Result.failure(Exception(res.body()!!.message))
                 }
-            } catch (_: Exception) {
-                // Network unavailable -> fallback
+            } catch (ex: Exception) {
+                return Result.failure(Exception("Backend server connection error: ${ex.localizedMessage}"))
             }
         }
 
@@ -113,10 +117,11 @@ class DevAuthRepositoryImpl(
         if (apiService != null) {
             try {
                 val res = apiService.register(RegisterRequestDto(name, email, pass, university))
-                if (res.isSuccessful && res.body()?.data != null) {
+                if (res.isSuccessful && res.body()?.status == "success" && res.body()?.data != null) {
                     val authData = res.body()!!.data!!
                     appPreferences?.authToken = authData.token
                     appPreferences?.isLoggedIn = true
+                    appPreferences?.userEmail = email
 
                     val user = authData.user?.toDomain() ?: User(
                         id = "usr_" + System.currentTimeMillis(),
@@ -126,10 +131,16 @@ class DevAuthRepositoryImpl(
                         isVerified = email.endsWith(".edu"),
                         hasCompletedQuiz = false
                     )
+                    appPreferences?.savedName = user.name
+                    appPreferences?.savedUniversity = user.university
                     _currentUser.value = user
                     return Result.success(user)
+                } else if (res.body()?.message != null) {
+                    return Result.failure(Exception(res.body()!!.message))
                 }
-            } catch (_: Exception) {}
+            } catch (ex: Exception) {
+                return Result.failure(Exception("Backend server connection error: ${ex.localizedMessage}"))
+            }
         }
 
         delay(900)
