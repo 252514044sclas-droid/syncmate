@@ -8,8 +8,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-    // Centralized Base URL for Android Emulator -> local PHP server
-    var baseUrl: String = "http://10.0.2.2:8000/api/"
+    // Centralized Base URL for Android Emulator -> local PHP server running with `-t api`
+    var baseUrl: String = "http://10.0.2.2:8000/"
 
     private var apiServiceInstance: ApiService? = null
 
