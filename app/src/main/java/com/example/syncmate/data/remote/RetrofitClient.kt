@@ -11,30 +11,24 @@ object RetrofitClient {
     // Centralized Base URL for Android Emulator -> XAMPP Apache server
     var baseUrl: String = "http://10.0.2.2/backend/api/"
 
-    private var apiServiceInstance: ApiService? = null
-
     fun getApiService(appPreferences: AppPreferences): ApiService {
-        if (apiServiceInstance == null) {
-            val logging = HttpLoggingInterceptor().apply {
-                level = HttpLoggingInterceptor.Level.BODY
-            }
-
-            val okHttpClient = OkHttpClient.Builder()
-                .addInterceptor(AuthInterceptor(appPreferences))
-                .addInterceptor(logging)
-                .connectTimeout(15, TimeUnit.SECONDS)
-                .readTimeout(15, TimeUnit.SECONDS)
-                .writeTimeout(15, TimeUnit.SECONDS)
-                .build()
-
-            val retrofit = Retrofit.Builder()
-                .baseUrl(baseUrl)
-                .client(okHttpClient)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build()
-
-            apiServiceInstance = retrofit.create(ApiService::class.java)
+        val logging = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
         }
-        return apiServiceInstance!!
+
+        val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor(AuthInterceptor(appPreferences))
+            .addInterceptor(logging)
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .writeTimeout(15, TimeUnit.SECONDS)
+            .build()
+
+        return Retrofit.Builder()
+            .baseUrl(baseUrl)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ApiService::class.java)
     }
 }
