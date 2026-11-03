@@ -15,7 +15,7 @@ try {
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
-    if ($user) {
+    if ($user && password_verify($password, $user['password_hash'])) {
         echo json_encode([
             "status" => "success",
             "message" => "Login successful",
@@ -35,26 +35,7 @@ try {
             ]
         ]);
     } else {
-        // Auto-register user for smooth demo if not found in DB
-        $userId = "usr_" . uniqid();
-        $name = ucwords(str_replace(['.', '_'], ' ', explode('@', $email)[0]));
-        $stmt = $pdo->prepare("INSERT INTO users (id, name, email, password_hash, university, is_verified) VALUES (?, ?, ?, ?, ?, 1)");
-        $stmt->execute([$userId, $name, $email, password_hash($password, PASSWORD_DEFAULT), "National Institute of Technology"]);
-
-        echo json_encode([
-            "status" => "success",
-            "message" => "Account created and login successful",
-            "data" => [
-                "token" => "token_subletsync_" . md5($email),
-                "user" => [
-                    "id" => $userId,
-                    "name" => $name,
-                    "email" => $email,
-                    "university" => "National Institute of Technology",
-                    "is_verified" => true
-                ]
-            ]
-        ]);
+        echo json_encode(["status" => "error", "message" => "Invalid email or password."]);
     }
 } catch (PDOException $e) {
     echo json_encode(["status" => "error", "message" => "Database error: " . $e->getMessage()]);
