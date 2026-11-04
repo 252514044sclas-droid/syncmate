@@ -8,8 +8,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-    // Centralized Base URL for Android Emulator -> XAMPP Apache server
-    var baseUrl: String = "http://10.0.2.2/backend/api/"
+    // Host PC Network IP (Direct bridge bypassing virtual NAT firewall blocks)
+    var baseUrl: String = "http://172.23.176.202/backend/api/"
 
     fun getApiService(appPreferences: AppPreferences): ApiService {
         val logging = HttpLoggingInterceptor().apply {
@@ -19,7 +19,7 @@ object RetrofitClient {
         val okHttpClient = OkHttpClient.Builder()
             .addInterceptor(AuthInterceptor(appPreferences))
             .addInterceptor(logging)
-            .connectTimeout(5, TimeUnit.SECONDS)
+            .connectTimeout(10, TimeUnit.SECONDS)
             .readTimeout(10, TimeUnit.SECONDS)
             .writeTimeout(10, TimeUnit.SECONDS)
             .build()
