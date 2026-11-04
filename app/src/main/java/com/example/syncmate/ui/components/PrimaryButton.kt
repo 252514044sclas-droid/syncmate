@@ -2,9 +2,9 @@ package com.example.syncmate.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -43,7 +43,9 @@ fun PrimaryButton(
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = IndigoPrimary,
-            contentColor = Color.White
+            contentColor = Color.White,
+            disabledContainerColor = IndigoPrimary,
+            disabledContentColor = Color.White
         ),
         modifier = modifier
             .fillMaxWidth()
@@ -52,8 +54,8 @@ fun PrimaryButton(
         if (isLoading) {
             CircularProgressIndicator(
                 color = Color.White,
-                strokeWidth = 2.dp,
-                modifier = Modifier.height(24.dp)
+                strokeWidth = 3.dp,
+                modifier = Modifier.size(24.dp)
             )
         } else {
             Text(
