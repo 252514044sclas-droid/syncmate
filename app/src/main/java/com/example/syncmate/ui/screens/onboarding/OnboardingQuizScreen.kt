@@ -227,7 +227,11 @@ fun OnboardingQuizScreen(
                         title = "What is your smoking policy?",
                         subtitle = "Are you tolerant of smoking/vaping near living areas?",
                         options = listOf("Non-Smoking Only", "Tolerant"),
-                        selectedOption = if (prefs.smokingOption) "Tolerant" else "Non-Smoking Only",
+                        selectedOption = when (prefs.smokingOption) {
+                            true -> "Tolerant"
+                            false -> "Non-Smoking Only"
+                            null -> ""
+                        },
                         onOptionSelected = {
                             quizViewModel.updateSmokingOption(it == "Tolerant")
                             quizViewModel.nextQuestion()
@@ -323,7 +327,7 @@ fun QuizQuestionOptionGrid(
         )
 
         options.forEach { option ->
-            val isSelected = option == selectedOption
+            val isSelected = option == selectedOption && selectedOption.isNotBlank()
 
             Box(
                 modifier = Modifier
@@ -447,7 +451,7 @@ fun QuizBudgetInputQuestion(
     currentBudget: Double,
     onBudgetChanged: (Double) -> Unit
 ) {
-    var budgetText by remember { mutableStateOf(currentBudget.toInt().toString()) }
+    var budgetText by remember { mutableStateOf(if (currentBudget > 0) currentBudget.toInt().toString() else "") }
 
     Column {
         Text(
@@ -474,10 +478,14 @@ fun QuizBudgetInputQuestion(
         ) {
             Column {
                 Text(
-                    text = "Selected Budget: ${CurrencyFormatter.formatMonthlyRent(budgetText.toDoubleOrNull() ?: currentBudget)}",
+                    text = if (budgetText.isNotBlank() && (budgetText.toDoubleOrNull() ?: 0.0) > 0) {
+                        "Selected Budget: ${CurrencyFormatter.formatMonthlyRent(budgetText.toDoubleOrNull() ?: currentBudget)}"
+                    } else {
+                        "Enter your target monthly rent budget"
+                    },
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
-                    color = EmeraldSuccess,
+                    color = if (budgetText.isNotBlank()) EmeraldSuccess else TextSecondary,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
                 )
@@ -487,10 +495,8 @@ fun QuizBudgetInputQuestion(
                     onValueChange = { text ->
                         if (text.length <= 6 && text.all { it.isDigit() }) {
                             budgetText = text
-                            val parsed = text.toDoubleOrNull()
-                            if (parsed != null) {
-                                onBudgetChanged(parsed)
-                            }
+                            val parsed = text.toDoubleOrNull() ?: 0.0
+                            onBudgetChanged(parsed)
                         }
                     },
                     label = "Max Monthly Rent in INR (₹)",
