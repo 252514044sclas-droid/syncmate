@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.syncmate.ui.components.AppHeader
@@ -42,12 +44,14 @@ fun EditProfileScreen(
     var name by remember { mutableStateOf(user?.name ?: "") }
     var university by remember { mutableStateOf(user?.university ?: "") }
     var bio by remember { mutableStateOf(user?.bio ?: "") }
+    var maxBudgetStr by remember { mutableStateOf(user?.maxBudget?.toInt()?.toString() ?: "15000") }
 
     LaunchedEffect(user) {
         if (user != null) {
             name = user.name
             university = user.university
             bio = user.bio
+            maxBudgetStr = user.maxBudget.toInt().toString()
         }
     }
 
@@ -109,6 +113,20 @@ fun EditProfileScreen(
             Spacer(modifier = Modifier.height(14.dp))
 
             AppTextField(
+                value = maxBudgetStr,
+                onValueChange = { text ->
+                    if (text.length <= 6 && text.all { char -> char.isDigit() }) {
+                        maxBudgetStr = text
+                    }
+                },
+                label = "Max Monthly Budget in INR (₹)",
+                placeholder = "15000",
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            )
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            AppTextField(
                 value = bio,
                 onValueChange = { bio = it },
                 label = "Student Bio",
@@ -123,10 +141,12 @@ fun EditProfileScreen(
                 text = "Save Profile",
                 isLoading = uiState.isProfileSaving,
                 onClick = {
+                    val parsedBudget = maxBudgetStr.toDoubleOrNull() ?: (user?.maxBudget ?: 15000.0)
                     authViewModel.updateProfile(
                         name = name,
                         university = university,
                         bio = bio,
+                        maxBudget = parsedBudget,
                         onSuccess = {
                             onNavigateBack()
                         }

@@ -7,6 +7,7 @@ import com.example.syncmate.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 data class QuizUiState(
@@ -104,6 +105,20 @@ class OnboardingQuizViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             val currentPrefs = _uiState.value.preferences
+            val targetBudget = if (currentPrefs.maxBudgetINR > 0) currentPrefs.maxBudgetINR else 15000.0
+
+            val currentUser = authRepository.currentUserFlow.firstOrNull()
+            val currentName = currentUser?.name ?: "Student"
+            val currentUni = currentUser?.university ?: "University"
+            val currentBio = currentUser?.bio ?: ""
+
+            authRepository.updateProfile(
+                name = currentName,
+                university = currentUni,
+                bio = currentBio,
+                maxBudget = targetBudget
+            )
+
             _uiState.value = _uiState.value.copy(isLoading = false, isCompleted = true)
         }
     }
