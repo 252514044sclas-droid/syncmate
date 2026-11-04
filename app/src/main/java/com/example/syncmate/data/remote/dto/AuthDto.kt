@@ -33,16 +33,16 @@ data class UpdateProfileRequestDto(
 )
 
 data class UserDto(
-    @SerializedName("id") val id: String,
-    @SerializedName("name") val name: String,
-    @SerializedName("email") val email: String,
-    @SerializedName("university") val university: String,
-    @SerializedName("is_verified") val isVerified: Boolean = false,
+    @SerializedName("id") val id: String? = null,
+    @SerializedName("name") val name: String? = null,
+    @SerializedName("email") val email: String? = null,
+    @SerializedName("university") val university: String? = null,
+    @SerializedName("is_verified") val isVerified: Boolean? = false,
     @SerializedName("profile_picture_url") val profilePictureUrl: String? = null,
-    @SerializedName("bio") val bio: String = "",
-    @SerializedName("preferred_lease_term") val preferredLeaseTerm: String = "Summer 2025",
-    @SerializedName("max_budget") val maxBudget: Double = 15000.0,
-    @SerializedName("preferred_location") val preferredLocation: String = "Adyar / IIT Campus"
+    @SerializedName("bio") val bio: String? = "",
+    @SerializedName("preferred_lease_term") val preferredLeaseTerm: String? = "Summer 2025",
+    @SerializedName("max_budget") val maxBudget: Double? = 15000.0,
+    @SerializedName("preferred_location") val preferredLocation: String? = "Near Campus / Metro"
 )
 
 data class AuthResponseDto(

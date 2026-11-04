@@ -258,16 +258,16 @@ class DevAuthRepositoryImpl(
     }
 
     private fun UserDto.toDomain() = User(
-        id = id,
-        name = name,
-        email = email,
-        university = university,
-        isVerified = isVerified,
+        id = id ?: ("usr_" + System.currentTimeMillis()),
+        name = name ?: "Student",
+        email = email ?: "student@university.edu",
+        university = university ?: "University",
+        isVerified = isVerified ?: false,
         profilePictureUrl = profilePictureUrl,
-        bio = bio,
-        preferredLeaseTerm = preferredLeaseTerm,
-        maxBudget = maxBudget,
-        preferredLocation = preferredLocation,
-        hasCompletedQuiz = true
+        bio = bio ?: "",
+        preferredLeaseTerm = preferredLeaseTerm ?: "Summer 2025",
+        maxBudget = maxBudget ?: 15000.0,
+        preferredLocation = preferredLocation ?: "Near Campus / Metro",
+        hasCompletedQuiz = false
     )
 }

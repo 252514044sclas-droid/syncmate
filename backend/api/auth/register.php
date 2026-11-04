@@ -30,7 +30,11 @@ try {
                 "name" => $name,
                 "email" => $email,
                 "university" => $university,
-                "is_verified" => (bool)$isVerified
+                "is_verified" => (bool)$isVerified,
+                "bio" => "",
+                "preferred_lease_term" => "Summer 2025",
+                "max_budget" => 15000.0,
+                "preferred_location" => "Near Campus / Metro"
             ]
         ]
     ]);
