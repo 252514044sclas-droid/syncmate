@@ -4,11 +4,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
@@ -26,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -100,7 +103,7 @@ fun CreateAccountScreen(
                 value = name,
                 onValueChange = { name = it },
                 label = "Full Name",
-                placeholder = "Alex Morgan",
+                placeholder = "",
                 leadingIcon = {
                     Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = TextSecondary)
                 }
@@ -112,7 +115,8 @@ fun CreateAccountScreen(
                 value = email,
                 onValueChange = { email = it },
                 label = "Student Email (.edu)",
-                placeholder = "alex.m@university.edu",
+                placeholder = "",
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 leadingIcon = {
                     Icon(imageVector = Icons.Default.Email, contentDescription = null, tint = TextSecondary)
                 }
@@ -124,7 +128,7 @@ fun CreateAccountScreen(
                 value = university,
                 onValueChange = { university = it },
                 label = "University / College",
-                placeholder = "e.g. National Institute of Technology",
+                placeholder = "",
                 leadingIcon = {
                     Icon(imageVector = Icons.Default.School, contentDescription = null, tint = TextSecondary)
                 }
@@ -136,7 +140,7 @@ fun CreateAccountScreen(
                 value = password,
                 onValueChange = { password = it },
                 label = "Password",
-                placeholder = "At least 6 characters",
+                placeholder = "",
                 visualTransformation = PasswordVisualTransformation(),
                 leadingIcon = {
                     Icon(imageVector = Icons.Default.Lock, contentDescription = null, tint = TextSecondary)

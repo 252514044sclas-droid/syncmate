@@ -55,8 +55,8 @@ fun LoginScreen(
 ) {
     val uiState by authViewModel.uiState.collectAsStateWithLifecycle()
 
-    var email by remember { mutableStateOf("alex.morgan@university.edu") }
-    var password by remember { mutableStateOf("student123") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
 
     LaunchedEffect(uiState.isLoggedIn) {
         if (uiState.isLoggedIn) {
@@ -109,7 +109,7 @@ fun LoginScreen(
                     value = email,
                     onValueChange = { email = it },
                     label = "Student Email (.edu)",
-                    placeholder = "student@university.edu",
+                    placeholder = "",
                     leadingIcon = {
                         Icon(imageVector = Icons.Default.Email, contentDescription = null, tint = TextSecondary)
                     }
@@ -121,7 +121,7 @@ fun LoginScreen(
                     value = password,
                     onValueChange = { password = it },
                     label = "Password",
-                    placeholder = "••••••••",
+                    placeholder = "",
                     visualTransformation = PasswordVisualTransformation(),
                     leadingIcon = {
                         Icon(imageVector = Icons.Default.Lock, contentDescription = null, tint = TextSecondary)
