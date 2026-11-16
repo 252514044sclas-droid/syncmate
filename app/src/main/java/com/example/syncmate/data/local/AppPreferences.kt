@@ -46,6 +46,10 @@ class AppPreferences(context: Context) {
         get() = prefs.getString("saved_preferred_location", null)
         set(value) = prefs.edit().putString("saved_preferred_location", value).apply()
 
+    var savedChatMessagesJson: String?
+        get() = prefs.getString("saved_chat_messages_json", null)
+        set(value) = prefs.edit().putString("saved_chat_messages_json", value).apply()
+
     var darkModeEnabled: Boolean
         get() = prefs.getBoolean("dark_mode", true)
         set(value) = prefs.edit().putBoolean("dark_mode", value).apply()

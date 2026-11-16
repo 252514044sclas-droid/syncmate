@@ -32,8 +32,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.syncmate.data.local.AppPreferences
 import com.example.syncmate.ui.components.AppHeader
 import com.example.syncmate.ui.components.AppTextField
 import com.example.syncmate.ui.theme.EmeraldSuccess
@@ -42,6 +44,8 @@ import com.example.syncmate.ui.theme.SlateBackground
 import com.example.syncmate.ui.theme.SlateCard
 import com.example.syncmate.ui.theme.TextPrimary
 import com.example.syncmate.ui.theme.TextSecondary
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -59,25 +63,48 @@ data class ChatMessage(
 fun ChatScreen(
     onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    val appPreferences = remember { AppPreferences(context) }
+    val gson = remember { Gson() }
+
     var messageText by remember { mutableStateOf("") }
     var isSubletterTyping by remember { mutableStateOf(false) }
 
-    val initialMessages = remember {
-        mutableStateOf(
-            listOf(
-                ChatMessage("1", "Hi Sarah, is the 1BHK sublet near campus still available?", true, "10:15 AM"),
-                ChatMessage("2", "Yes it is! The sublease runs from May 15 to Aug 15, 2025.", false, "10:16 AM"),
-                ChatMessage("3", "Great! Does the monthly rent include high-speed Wi-Fi and power backup?", true, "10:18 AM"),
-                ChatMessage("4", "Yes, 200Mbps broadband and maintenance are included in the ₹14,500 rent!", false, "10:19 AM")
-            )
-        )
+    val defaultMessages = listOf(
+        ChatMessage("1", "Hi Sarah, is the 1BHK sublet near campus still available?", true, "10:15 AM"),
+        ChatMessage("2", "Yes it is! The sublease runs from May 15 to Aug 15, 2025.", false, "10:16 AM"),
+        ChatMessage("3", "Great! Does the monthly rent include high-speed Wi-Fi and power backup?", true, "10:18 AM"),
+        ChatMessage("4", "Yes, 200Mbps broadband and maintenance are included in the ₹14,500 rent!", false, "10:19 AM")
+    )
+
+    val savedJson = appPreferences.savedChatMessagesJson
+    val initialList: List<ChatMessage> = remember(savedJson) {
+        if (!savedJson.isNullOrEmpty()) {
+            try {
+                val type = object : TypeToken<List<ChatMessage>>() {}.type
+                val parsed: List<ChatMessage>? = gson.fromJson(savedJson, type)
+                if (!parsed.isNullOrEmpty()) parsed else defaultMessages
+            } catch (_: Exception) {
+                defaultMessages
+            }
+        } else {
+            defaultMessages
+        }
     }
 
+    var messagesList by remember { mutableStateOf(initialList) }
     val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
 
     fun getTimeString(): String {
         return SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date())
+    }
+
+    fun persistMessages(updatedList: List<ChatMessage>) {
+        messagesList = updatedList
+        try {
+            appPreferences.savedChatMessagesJson = gson.toJson(updatedList)
+        } catch (_: Exception) {}
     }
 
     fun generateSubletterResponse(userPrompt: String): String {
@@ -128,12 +155,13 @@ fun ChatScreen(
                 timestamp = getTimeString()
             )
 
-            initialMessages.value = initialMessages.value + newMsg
+            val updatedListWithUser = messagesList + newMsg
+            persistMessages(updatedListWithUser)
 
             // Auto-scroll to latest message
             coroutineScope.launch {
                 delay(100)
-                listState.animateScrollToItem(initialMessages.value.size - 1)
+                listState.animateScrollToItem(updatedListWithUser.size - 1)
             }
 
             // Simulate intelligent subletter response delay
@@ -150,10 +178,11 @@ fun ChatScreen(
                     timestamp = getTimeString()
                 )
 
-                initialMessages.value = initialMessages.value + replyMsg
+                val updatedListWithReply = messagesList + replyMsg
+                persistMessages(updatedListWithReply)
 
                 delay(100)
-                listState.animateScrollToItem(initialMessages.value.size - 1)
+                listState.animateScrollToItem(updatedListWithReply.size - 1)
             }
         }
     }
@@ -180,7 +209,7 @@ fun ChatScreen(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(initialMessages.value) { msg ->
+                items(messagesList) { msg ->
                     Box(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = if (msg.isMe) Alignment.CenterEnd else Alignment.CenterStart
