@@ -8,8 +8,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
-    // Host PC Network IP (Direct bridge bypassing virtual NAT firewall blocks)
-    var baseUrl: String = "http://so /backend/api/"
+    // Centralized Base URL for Android Emulator -> local PHP server
+    var baseUrl: String = "http://10.0.2.2:8000/api/"
 
     fun getApiService(appPreferences: AppPreferences): ApiService {
         val logging = HttpLoggingInterceptor().apply {
