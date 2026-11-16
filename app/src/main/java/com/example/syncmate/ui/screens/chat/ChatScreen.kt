@@ -25,6 +25,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -81,8 +82,17 @@ fun ChatScreen(
                 val type = object : TypeToken<List<ChatMessage>>() {}.type
                 val parsed: List<ChatMessage>? = gson.fromJson(savedJson, type)
                 if (!parsed.isNullOrEmpty()) {
-                    // Filter out legacy sample messages
-                    parsed.filterNot { it.id in listOf("1", "2", "3", "4") || it.text.contains("1BHK", ignoreCase = true) || it.text.contains("200Mbps", ignoreCase = true) }
+                    // Purge legacy sample test messages
+                    val filtered = parsed.filterNot { msg ->
+                        msg.id in listOf("1", "2", "3", "4") ||
+                        msg.text.contains("1BHK", ignoreCase = true) ||
+                        msg.text.contains("200Mbps", ignoreCase = true) ||
+                        msg.text.contains("hiii", ignoreCase = true) ||
+                        msg.text.contains("whats an basic amount", ignoreCase = true) ||
+                        msg.text.contains("The rent is fixed at", ignoreCase = true) ||
+                        msg.text.contains("Hey there!", ignoreCase = true)
+                    }
+                    filtered
                 } else {
                     defaultMessages
                 }
@@ -111,6 +121,14 @@ fun ChatScreen(
                 appPreferences.savedChatMessagesJson = gson.toJson(updatedList)
             }
         } catch (_: Exception) {}
+    }
+
+    // Force clear old test data on composition launch if needed
+    LaunchedEffect(Unit) {
+        if (savedJson != null && (savedJson.contains("hiii") || savedJson.contains("whats an basic amount"))) {
+            appPreferences.savedChatMessagesJson = null
+            messagesList = emptyList()
+        }
     }
 
     fun generateSubletterResponse(userPrompt: String): String {
