@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
@@ -27,6 +28,8 @@ import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -45,12 +48,12 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.example.syncmate.data.local.AppPreferences
 import com.example.syncmate.ui.components.AppHeader
-import com.example.syncmate.ui.components.AppTextField
 import com.example.syncmate.ui.components.EmptyStateView
 import com.example.syncmate.ui.theme.EmeraldSuccess
 import com.example.syncmate.ui.theme.IndigoPrimary
 import com.example.syncmate.ui.theme.SlateBackground
 import com.example.syncmate.ui.theme.SlateCard
+import com.example.syncmate.ui.theme.SlateCardBorder
 import com.example.syncmate.ui.theme.TextPrimary
 import com.example.syncmate.ui.theme.TextSecondary
 import com.google.gson.Gson
@@ -332,13 +335,23 @@ fun ChatScreen(
                     .fillMaxWidth()
                     .padding(bottom = 8.dp)
             ) {
-                AppTextField(
+                OutlinedTextField(
                     value = messageText,
                     onValueChange = { messageText = it },
-                    label = "",
-                    placeholder = "Type message...",
+                    placeholder = { Text("Type message...", color = TextSecondary) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(onSend = { sendMessage() }),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = SlateCard,
+                        unfocusedContainerColor = SlateCard,
+                        focusedBorderColor = IndigoPrimary,
+                        unfocusedBorderColor = SlateCardBorder,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        cursorColor = IndigoPrimary
+                    ),
                     modifier = Modifier.weight(1f)
                 )
 
@@ -346,7 +359,7 @@ fun ChatScreen(
 
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(50.dp)
                         .clip(CircleShape)
                         .background(if (messageText.isNotBlank()) IndigoPrimary else IndigoPrimary.copy(alpha = 0.4f))
                         .clickable(enabled = messageText.isNotBlank()) { sendMessage() },
