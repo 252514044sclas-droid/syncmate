@@ -2,7 +2,6 @@ package com.example.syncmate.data.remote
 
 import com.example.syncmate.data.remote.dto.ApiResponse
 import com.example.syncmate.data.remote.dto.AuthResponseDto
-import com.example.syncmate.data.remote.dto.ContractSummaryDto
 import com.example.syncmate.data.remote.dto.CreateListingRequestDto
 import com.example.syncmate.data.remote.dto.DashboardSummaryDto
 import com.example.syncmate.data.remote.dto.ForgotPasswordRequestDto
@@ -12,17 +11,15 @@ import com.example.syncmate.data.remote.dto.PredictionRequestDto
 import com.example.syncmate.data.remote.dto.PredictionResponseDto
 import com.example.syncmate.data.remote.dto.RegisterRequestDto
 import com.example.syncmate.data.remote.dto.ReportListingRequestDto
+import com.example.syncmate.data.remote.dto.RoommateProfileDto
 import com.example.syncmate.data.remote.dto.SaveListingRequestDto
 import com.example.syncmate.data.remote.dto.UpdateProfileRequestDto
 import com.example.syncmate.data.remote.dto.UserDto
 import com.example.syncmate.data.remote.dto.VerifyEmailRequestDto
-import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
-import retrofit2.http.Multipart
 import retrofit2.http.POST
-import retrofit2.http.Part
 import retrofit2.http.Query
 
 interface ApiService {
@@ -69,14 +66,13 @@ interface ApiService {
     @POST("listings/report.php")
     suspend fun reportListing(@Body request: ReportListingRequestDto): Response<ApiResponse<Boolean>>
 
+    // AI Module 1: Fair-Rent & Utility Regressor
     @POST("ai/predict_rent.php")
     suspend fun predictRent(@Body request: PredictionRequestDto): Response<ApiResponse<PredictionResponseDto>>
 
-    @Multipart
-    @POST("ai/analyze_contract.php")
-    suspend fun analyzeContract(
-        @Part file: MultipartBody.Part
-    ): Response<ApiResponse<ContractSummaryDto>>
+    // AI Module 4: Roommate Compatibility Matcher
+    @GET("roommates/matches.php")
+    suspend fun getRoommateMatches(): Response<ApiResponse<List<RoommateProfileDto>>>
 
     @GET("dashboard/summary.php")
     suspend fun getDashboardSummary(): Response<ApiResponse<DashboardSummaryDto>>

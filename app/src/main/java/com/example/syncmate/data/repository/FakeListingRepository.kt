@@ -17,7 +17,7 @@ class MockFakeListingRepositoryImpl(
         price: Double,
         imageUrls: List<String>
     ): Result<FakeListingAnalysis> {
-        delay(1100)
+        delay(800)
 
         val hasSuspiciousKeywords = description.contains("wire transfer", ignoreCase = true) ||
                 description.contains("western union", ignoreCase = true) ||
@@ -26,7 +26,7 @@ class MockFakeListingRepositoryImpl(
                 description.contains("advance before viewing", ignoreCase = true) ||
                 description.contains("crypto", ignoreCase = true)
 
-        val isUnusuallyLowPrice = price < 5000.0
+        val isUnusuallyLowPrice = price < 5000.0 && price > 0
 
         val warningSignals = mutableListOf<RiskSignal>()
         var riskScore = 8
@@ -47,7 +47,7 @@ class MockFakeListingRepositoryImpl(
             warningSignals.add(
                 RiskSignal(
                     type = "Unusual Price Anomaly",
-                    description = "Price is significantly below average market rate for this student zone (₹4,000/mo vs ₹15,000/mo avg).",
+                    description = "Price is significantly below average market rate for this student zone (₹4,000/mo vs ₹14,500/mo avg).",
                     severity = "HIGH"
                 )
             )

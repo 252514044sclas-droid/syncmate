@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
     // Host PC Network IP (Direct bridge bypassing virtual NAT firewall blocks)
-    var baseUrl: String = "http://172.23.176.202/backend/api/"
+    var baseUrl: String = "http://so /backend/api/"
 
     fun getApiService(appPreferences: AppPreferences): ApiService {
         val logging = HttpLoggingInterceptor().apply {
