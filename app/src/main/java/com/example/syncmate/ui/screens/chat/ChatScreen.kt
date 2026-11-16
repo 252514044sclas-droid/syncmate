@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -80,8 +81,8 @@ fun ChatScreen(
                 val type = object : TypeToken<List<ChatMessage>>() {}.type
                 val parsed: List<ChatMessage>? = gson.fromJson(savedJson, type)
                 if (!parsed.isNullOrEmpty()) {
-                    // Filter out legacy hardcoded sample starter messages if present
-                    parsed.filterNot { it.id in listOf("1", "2", "3", "4") }
+                    // Filter out legacy sample messages
+                    parsed.filterNot { it.id in listOf("1", "2", "3", "4") || it.text.contains("1BHK", ignoreCase = true) || it.text.contains("200Mbps", ignoreCase = true) }
                 } else {
                     defaultMessages
                 }
@@ -104,7 +105,11 @@ fun ChatScreen(
     fun persistMessages(updatedList: List<ChatMessage>) {
         messagesList = updatedList
         try {
-            appPreferences.savedChatMessagesJson = gson.toJson(updatedList)
+            if (updatedList.isEmpty()) {
+                appPreferences.savedChatMessagesJson = null
+            } else {
+                appPreferences.savedChatMessagesJson = gson.toJson(updatedList)
+            }
         } catch (_: Exception) {}
     }
 
@@ -196,7 +201,18 @@ fun ChatScreen(
     ) {
         AppHeader(
             title = "Chat with Subletter (Sarah)",
-            onBackClick = onNavigateBack
+            onBackClick = onNavigateBack,
+            action = {
+                if (messagesList.isNotEmpty()) {
+                    IconButton(onClick = { persistMessages(emptyList()) }) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteSweep,
+                            contentDescription = "Clear Chat",
+                            tint = TextPrimary
+                        )
+                    }
+                }
+            }
         )
 
         Column(
