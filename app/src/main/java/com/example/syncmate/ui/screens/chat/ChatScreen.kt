@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.example.syncmate.data.local.AppPreferences
 import com.example.syncmate.ui.components.AppHeader
 import com.example.syncmate.ui.components.AppTextField
+import com.example.syncmate.ui.components.EmptyStateView
 import com.example.syncmate.ui.theme.EmeraldSuccess
 import com.example.syncmate.ui.theme.IndigoPrimary
 import com.example.syncmate.ui.theme.SlateBackground
@@ -70,12 +71,7 @@ fun ChatScreen(
     var messageText by remember { mutableStateOf("") }
     var isSubletterTyping by remember { mutableStateOf(false) }
 
-    val defaultMessages = listOf(
-        ChatMessage("1", "Hi Sarah, is the 1BHK sublet near campus still available?", true, "10:15 AM"),
-        ChatMessage("2", "Yes it is! The sublease runs from May 15 to Aug 15, 2025.", false, "10:16 AM"),
-        ChatMessage("3", "Great! Does the monthly rent include high-speed Wi-Fi and power backup?", true, "10:18 AM"),
-        ChatMessage("4", "Yes, 200Mbps broadband and maintenance are included in the ₹14,500 rent!", false, "10:19 AM")
-    )
+    val defaultMessages = emptyList<ChatMessage>()
 
     val savedJson = appPreferences.savedChatMessagesJson
     val initialList: List<ChatMessage> = remember(savedJson) {
@@ -83,7 +79,12 @@ fun ChatScreen(
             try {
                 val type = object : TypeToken<List<ChatMessage>>() {}.type
                 val parsed: List<ChatMessage>? = gson.fromJson(savedJson, type)
-                if (!parsed.isNullOrEmpty()) parsed else defaultMessages
+                if (!parsed.isNullOrEmpty()) {
+                    // Filter out legacy hardcoded sample starter messages if present
+                    parsed.filterNot { it.id in listOf("1", "2", "3", "4") }
+                } else {
+                    defaultMessages
+                }
             } catch (_: Exception) {
                 defaultMessages
             }
@@ -204,67 +205,79 @@ fun ChatScreen(
                 .imePadding()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            LazyColumn(
-                state = listState,
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                items(messagesList) { msg ->
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = if (msg.isMe) Alignment.CenterEnd else Alignment.CenterStart
-                    ) {
-                        Column(
-                            horizontalAlignment = if (msg.isMe) Alignment.End else Alignment.Start
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(
-                                        RoundedCornerShape(
-                                            topStart = 16.dp,
-                                            topEnd = 16.dp,
-                                            bottomStart = if (msg.isMe) 16.dp else 4.dp,
-                                            bottomEnd = if (msg.isMe) 4.dp else 16.dp
-                                        )
-                                    )
-                                    .background(if (msg.isMe) IndigoPrimary else SlateCard)
-                                    .padding(horizontal = 14.dp, vertical = 10.dp)
-                            ) {
-                                Text(
-                                    text = msg.text,
-                                    color = TextPrimary,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-
-                            Text(
-                                text = msg.timestamp,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = TextSecondary,
-                                modifier = Modifier.padding(top = 2.dp, start = 4.dp, end = 4.dp)
-                            )
-                        }
-                    }
+            if (messagesList.isEmpty() && !isSubletterTyping) {
+                Box(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    EmptyStateView(
+                        title = "Start a Conversation",
+                        description = "Type your message below to inquire about the sublet, rent, or schedule a tour."
+                    )
                 }
-
-                if (isSubletterTyping) {
-                    item {
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(messagesList) { msg ->
                         Box(
                             modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.CenterStart
+                            contentAlignment = if (msg.isMe) Alignment.CenterEnd else Alignment.CenterStart
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(SlateCard)
-                                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                            Column(
+                                horizontalAlignment = if (msg.isMe) Alignment.End else Alignment.Start
                             ) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(
+                                            RoundedCornerShape(
+                                                topStart = 16.dp,
+                                                topEnd = 16.dp,
+                                                bottomStart = if (msg.isMe) 16.dp else 4.dp,
+                                                bottomEnd = if (msg.isMe) 4.dp else 16.dp
+                                            )
+                                        )
+                                        .background(if (msg.isMe) IndigoPrimary else SlateCard)
+                                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                                ) {
+                                    Text(
+                                        text = msg.text,
+                                        color = TextPrimary,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
+
                                 Text(
-                                    text = "Sarah is typing...",
+                                    text = msg.timestamp,
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = EmeraldSuccess,
-                                    fontWeight = FontWeight.Medium
+                                    color = TextSecondary,
+                                    modifier = Modifier.padding(top = 2.dp, start = 4.dp, end = 4.dp)
                                 )
+                            }
+                        }
+                    }
+
+                    if (isSubletterTyping) {
+                        item {
+                            Box(
+                                modifier = Modifier.fillMaxWidth(),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(SlateCard)
+                                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                                ) {
+                                    Text(
+                                        text = "Sarah is typing...",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = EmeraldSuccess,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
                             }
                         }
                     }
