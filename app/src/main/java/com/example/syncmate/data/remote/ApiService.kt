@@ -2,6 +2,8 @@ package com.example.syncmate.data.remote
 
 import com.example.syncmate.data.remote.dto.ApiResponse
 import com.example.syncmate.data.remote.dto.AuthResponseDto
+import com.example.syncmate.data.remote.dto.ChatRequestDto
+import com.example.syncmate.data.remote.dto.ChatResponseDto
 import com.example.syncmate.data.remote.dto.CreateListingRequestDto
 import com.example.syncmate.data.remote.dto.DashboardSummaryDto
 import com.example.syncmate.data.remote.dto.ForgotPasswordRequestDto
@@ -73,6 +75,10 @@ interface ApiService {
     // AI Module 4: Roommate Compatibility Matcher
     @GET("roommates/matches.php")
     suspend fun getRoommateMatches(): Response<ApiResponse<List<RoommateProfileDto>>>
+
+    // AI Chatbot Assistant: Dynamic Conversational AI Integration
+    @POST("ai/chat.php")
+    suspend fun sendChatMessage(@Body request: ChatRequestDto): Response<ApiResponse<ChatResponseDto>>
 
     @GET("dashboard/summary.php")
     suspend fun getDashboardSummary(): Response<ApiResponse<DashboardSummaryDto>>

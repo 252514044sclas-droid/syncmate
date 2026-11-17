@@ -50,6 +50,10 @@ class AppPreferences(context: Context) {
         get() = prefs.getString("saved_chat_messages_json", null)
         set(value) = prefs.edit().putString("saved_chat_messages_json", value).apply()
 
+    var geminiApiKey: String?
+        get() = prefs.getString("gemini_api_key", null)
+        set(value) = prefs.edit().putString("gemini_api_key", value).apply()
+
     var darkModeEnabled: Boolean
         get() = prefs.getBoolean("dark_mode", true)
         set(value) = prefs.edit().putBoolean("dark_mode", value).apply()

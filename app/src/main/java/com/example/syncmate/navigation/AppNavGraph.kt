@@ -21,6 +21,7 @@ import com.example.syncmate.data.repository.MockContractRepositoryImpl
 import com.example.syncmate.data.repository.MockFakeListingRepositoryImpl
 import com.example.syncmate.data.repository.MockHousingRepositoryImpl
 import com.example.syncmate.data.repository.MockPredictionRepositoryImpl
+import com.example.syncmate.data.repository.NetworkChatRepositoryImpl
 import com.example.syncmate.ui.screens.chat.ChatScreen
 import com.example.syncmate.ui.screens.comparelistings.CompareListingsScreen
 import com.example.syncmate.ui.screens.contractguard.ContractGuardScreen
@@ -56,6 +57,7 @@ import com.example.syncmate.ui.screens.verifyemail.VerifyEmailScreen
 import com.example.syncmate.ui.screens.welcome.WelcomeScreen
 import com.example.syncmate.ui.theme.SyncmateTheme
 import com.example.syncmate.viewmodel.AuthViewModel
+import com.example.syncmate.viewmodel.ChatViewModel
 import com.example.syncmate.viewmodel.ContractViewModel
 import com.example.syncmate.viewmodel.DashboardViewModel
 import com.example.syncmate.viewmodel.FakeListingViewModel
@@ -79,6 +81,7 @@ fun AppNavGraph(
     val predictionRepository = remember { MockPredictionRepositoryImpl(apiService) }
     val fakeListingRepository = remember { MockFakeListingRepositoryImpl(apiService) }
     val contractRepository = remember { MockContractRepositoryImpl(apiService) }
+    val chatRepository = remember { NetworkChatRepositoryImpl(apiService, appPreferences) }
 
     // Shared ViewModels
     val authViewModel: AuthViewModel = viewModel(factory = SimpleViewModelFactory { AuthViewModel(authRepository) })
@@ -87,6 +90,7 @@ fun AppNavGraph(
     val predictionViewModel: PredictionViewModel = viewModel(factory = SimpleViewModelFactory { PredictionViewModel(predictionRepository) })
     val fakeListingViewModel: FakeListingViewModel = viewModel(factory = SimpleViewModelFactory { FakeListingViewModel(fakeListingRepository) })
     val contractViewModel: ContractViewModel = viewModel(factory = SimpleViewModelFactory { ContractViewModel(contractRepository) })
+    val chatViewModel: ChatViewModel = viewModel(factory = SimpleViewModelFactory { ChatViewModel(chatRepository) })
     val settingsViewModel: SettingsViewModel = viewModel(factory = SimpleViewModelFactory { SettingsViewModel(appPreferences) })
     val dashboardViewModel: DashboardViewModel = viewModel(factory = SimpleViewModelFactory { DashboardViewModel(authRepository, housingRepository) })
     val onboardingQuizViewModel: OnboardingQuizViewModel = viewModel(factory = SimpleViewModelFactory { OnboardingQuizViewModel(authRepository) })
@@ -359,6 +363,7 @@ fun AppNavGraph(
             // 22. Chat Screen
             composable(Screen.Chat.route) {
                 ChatScreen(
+                    chatViewModel = chatViewModel,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

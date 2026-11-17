@@ -42,11 +42,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import com.example.syncmate.data.local.AppPreferences
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.syncmate.ui.components.AppHeader
 import com.example.syncmate.ui.components.EmptyStateView
 import com.example.syncmate.ui.theme.EmeraldSuccess
@@ -56,166 +55,38 @@ import com.example.syncmate.ui.theme.SlateCard
 import com.example.syncmate.ui.theme.SlateCardBorder
 import com.example.syncmate.ui.theme.TextPrimary
 import com.example.syncmate.ui.theme.TextSecondary
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
+import com.example.syncmate.viewmodel.ChatViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-
-data class ChatMessage(
-    val id: String,
-    val text: String,
-    val isMe: Boolean,
-    val timestamp: String
-)
 
 @Composable
 fun ChatScreen(
+    chatViewModel: ChatViewModel,
     onNavigateBack: () -> Unit
 ) {
-    val context = LocalContext.current
-    val appPreferences = remember { AppPreferences(context) }
-    val gson = remember { Gson() }
-
+    val uiState by chatViewModel.uiState.collectAsStateWithLifecycle()
     var messageText by remember { mutableStateOf("") }
-    var isSubletterTyping by remember { mutableStateOf(false) }
-
-    val defaultMessages = emptyList<ChatMessage>()
-
-    val savedJson = appPreferences.savedChatMessagesJson
-    val initialList: List<ChatMessage> = remember(savedJson) {
-        if (!savedJson.isNullOrEmpty()) {
-            try {
-                val type = object : TypeToken<List<ChatMessage>>() {}.type
-                val parsed: List<ChatMessage>? = gson.fromJson(savedJson, type)
-                if (!parsed.isNullOrEmpty()) {
-                    // Purge legacy sample test messages
-                    val filtered = parsed.filterNot { msg ->
-                        msg.id in listOf("1", "2", "3", "4") ||
-                        msg.text.contains("1BHK", ignoreCase = true) ||
-                        msg.text.contains("200Mbps", ignoreCase = true) ||
-                        msg.text.contains("hiii", ignoreCase = true) ||
-                        msg.text.contains("whats an basic amount", ignoreCase = true) ||
-                        msg.text.contains("The rent is fixed at", ignoreCase = true) ||
-                        msg.text.contains("Hey there!", ignoreCase = true)
-                    }
-                    filtered
-                } else {
-                    defaultMessages
-                }
-            } catch (_: Exception) {
-                defaultMessages
-            }
-        } else {
-            defaultMessages
-        }
-    }
-
-    var messagesList by remember { mutableStateOf(initialList) }
-    val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
 
-    fun getTimeString(): String {
-        return SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date())
-    }
-
-    fun persistMessages(updatedList: List<ChatMessage>) {
-        messagesList = updatedList
-        try {
-            if (updatedList.isEmpty()) {
-                appPreferences.savedChatMessagesJson = null
-            } else {
-                appPreferences.savedChatMessagesJson = gson.toJson(updatedList)
-            }
-        } catch (_: Exception) {}
-    }
-
-    // Force clear old test data on composition launch if needed
-    LaunchedEffect(Unit) {
-        if (savedJson != null && (savedJson.contains("hiii") || savedJson.contains("whats an basic amount"))) {
-            appPreferences.savedChatMessagesJson = null
-            messagesList = emptyList()
+    // Auto-scroll to bottom whenever messages or typing state updates
+    LaunchedEffect(uiState.messages.size, uiState.isTyping) {
+        if (uiState.messages.isNotEmpty()) {
+            delay(50)
+            listState.animateScrollToItem(uiState.messages.size - 1)
         }
     }
 
-    fun generateSubletterResponse(userPrompt: String): String {
-        val query = userPrompt.lowercase(Locale.getDefault())
-
-        return when {
-            query.contains("hi") || query.contains("hello") || query.contains("hey") ->
-                "Hey there! 👋 Excited to chat! How can I help you regarding the sublet property or lease details?"
-
-            query.contains("available") || query.contains("dates") || query.contains("duration") || query.contains("when") ->
-                "Yes, the sublet is available from May 15 to August 15! The move-in date can also be slightly flexible if your exams finish early."
-
-            query.contains("rent") || query.contains("price") || query.contains("cost") || query.contains("inr") || query.contains("rupees") || query.contains("how much") ->
-                "The rent is fixed at ₹14,500/month. We verified this rate with the SyncMate ML Fair-Rent Engine to make sure it's fair for students."
-
-            query.contains("wifi") || query.contains("utility") || query.contains("utilities") || query.contains("electricity") || query.contains("ac") || query.contains("water") ->
-                "High-speed WiFi, water, and society maintenance are included! Electricity & AC are metered separately based on consumption."
-
-            query.contains("location") || query.contains("where") || query.contains("address") || query.contains("distance") || query.contains("metro") || query.contains("campus") ->
-                "It's located in Adyar, just 0.4 km (a 5-minute walk) from the main university gate and close to the metro station!"
-
-            query.contains("deposit") || query.contains("security") || query.contains("advance") ->
-                "The security deposit is ₹15,000. It is fully refundable upon move-out after inspecting the room condition."
-
-            query.contains("visit") || query.contains("tour") || query.contains("see") || query.contains("viewing") || query.contains("show") ->
-                "I'd be happy to show you around! We can set up an in-person campus visit or a live video tour. What time works for you?"
-
-            query.contains("furnish") || query.contains("bed") || query.contains("desk") || query.contains("kitchen") || query.contains("fridge") ->
-                "The room is fully furnished! It includes a study desk, ergonomic chair, queen bed, spacious wardrobe, refrigerator, and microwave."
-
-            query.contains("pet") || query.contains("smoking") || query.contains("roommate") || query.contains("guest") ->
-                "Pets are welcome! The apartment environment is quiet, clean, non-smoking, and very student-friendly."
-
-            else ->
-                "Thanks for asking! I'm happy to help. Would you like to schedule a virtual tour or discuss the sublease terms further?"
-        }
-    }
-
-    fun sendMessage() {
+    fun handleSend() {
         if (messageText.isNotBlank()) {
-            val userMsg = messageText.trim()
+            val textToSend = messageText
             messageText = ""
-
-            val newMsg = ChatMessage(
-                id = System.currentTimeMillis().toString(),
-                text = userMsg,
-                isMe = true,
-                timestamp = getTimeString()
-            )
-
-            val updatedListWithUser = messagesList + newMsg
-            persistMessages(updatedListWithUser)
-
-            // Auto-scroll to latest message
+            chatViewModel.sendMessage(textToSend)
             coroutineScope.launch {
                 delay(100)
-                listState.animateScrollToItem(updatedListWithUser.size - 1)
-            }
-
-            // Simulate intelligent subletter response delay
-            isSubletterTyping = true
-            coroutineScope.launch {
-                delay(1200)
-                isSubletterTyping = false
-
-                val responseText = generateSubletterResponse(userMsg)
-                val replyMsg = ChatMessage(
-                    id = (System.currentTimeMillis() + 1).toString(),
-                    text = responseText,
-                    isMe = false,
-                    timestamp = getTimeString()
-                )
-
-                val updatedListWithReply = messagesList + replyMsg
-                persistMessages(updatedListWithReply)
-
-                delay(100)
-                listState.animateScrollToItem(updatedListWithReply.size - 1)
+                if (uiState.messages.isNotEmpty()) {
+                    listState.animateScrollToItem(uiState.messages.size - 1)
+                }
             }
         }
     }
@@ -227,11 +98,11 @@ fun ChatScreen(
             .safeDrawingPadding()
     ) {
         AppHeader(
-            title = "Chat with Subletter (Sarah)",
+            title = "SyncMate AI Housing Assistant",
             onBackClick = onNavigateBack,
             action = {
-                if (messagesList.isNotEmpty()) {
-                    IconButton(onClick = { persistMessages(emptyList()) }) {
+                if (uiState.messages.isNotEmpty()) {
+                    IconButton(onClick = { chatViewModel.clearChat() }) {
                         Icon(
                             imageVector = Icons.Default.DeleteSweep,
                             contentDescription = "Clear Chat",
@@ -248,14 +119,14 @@ fun ChatScreen(
                 .imePadding()
                 .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            if (messagesList.isEmpty() && !isSubletterTyping) {
+            if (uiState.messages.isEmpty() && !uiState.isTyping) {
                 Box(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) {
                     EmptyStateView(
-                        title = "Start a Conversation",
-                        description = "Type your message below to inquire about the sublet, rent, or schedule a tour."
+                        title = "Ask SyncMate AI",
+                        description = "Inquire about fair rents in INR (₹), student sublet availability, roommate matching, or campus housing safety tips."
                     )
                 }
             } else {
@@ -264,7 +135,7 @@ fun ChatScreen(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(messagesList) { msg ->
+                    items(uiState.messages) { msg ->
                         Box(
                             modifier = Modifier.fillMaxWidth(),
                             contentAlignment = if (msg.isMe) Alignment.CenterEnd else Alignment.CenterStart
@@ -302,7 +173,7 @@ fun ChatScreen(
                         }
                     }
 
-                    if (isSubletterTyping) {
+                    if (uiState.isTyping) {
                         item {
                             Box(
                                 modifier = Modifier.fillMaxWidth(),
@@ -315,7 +186,7 @@ fun ChatScreen(
                                         .padding(horizontal = 12.dp, vertical = 8.dp)
                                 ) {
                                     Text(
-                                        text = "Sarah is typing...",
+                                        text = "SyncMate AI is thinking...",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = EmeraldSuccess,
                                         fontWeight = FontWeight.Medium
@@ -338,10 +209,10 @@ fun ChatScreen(
                 OutlinedTextField(
                     value = messageText,
                     onValueChange = { messageText = it },
-                    placeholder = { Text("Type message...", color = TextSecondary) },
+                    placeholder = { Text("Ask about rent, roommates, sublets...", color = TextSecondary) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions(onSend = { sendMessage() }),
+                    keyboardActions = KeyboardActions(onSend = { handleSend() }),
                     shape = RoundedCornerShape(24.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedContainerColor = SlateCard,
@@ -362,7 +233,7 @@ fun ChatScreen(
                         .size(50.dp)
                         .clip(CircleShape)
                         .background(if (messageText.isNotBlank()) IndigoPrimary else IndigoPrimary.copy(alpha = 0.4f))
-                        .clickable(enabled = messageText.isNotBlank()) { sendMessage() },
+                        .clickable(enabled = messageText.isNotBlank()) { handleSend() },
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
