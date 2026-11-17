@@ -19,18 +19,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -99,6 +98,13 @@ fun UploadContractScreen(
         if (uri != null) {
             selectedFileUri = uri
             selectedFileName = getFileNameFromUri(context, uri)
+        }
+    }
+
+    // Automatically navigate to Contract Summary Screen once AI analysis completes
+    LaunchedEffect(uiState.summary) {
+        if (uiState.summary != null && !uiState.isLoading) {
+            onContractAnalyzed()
         }
     }
 
@@ -194,8 +200,13 @@ fun UploadContractScreen(
                 text = "Analyze Contract with AI Guard",
                 isLoading = uiState.isLoading,
                 onClick = {
-                    contractViewModel.analyzeContract(selectedFileName)
-                    onContractAnalyzed()
+                    val fileBytes = try {
+                        selectedFileUri?.let { uri ->
+                            context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                        }
+                    } catch (_: Exception) { null }
+
+                    contractViewModel.analyzeContract(selectedFileName, fileBytes)
                 }
             )
 
