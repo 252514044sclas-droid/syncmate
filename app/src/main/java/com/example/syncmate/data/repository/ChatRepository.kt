@@ -54,8 +54,20 @@ class NetworkChatRepositoryImpl(
         val query = userPrompt.lowercase(Locale.getDefault())
 
         return when {
+            query.contains("weather") || query.contains("temp") || query.contains("rain") || query.contains("sunny") || query.contains("climate") || query.contains("forecast") || query.contains("hot") || query.contains("cold") ->
+                "It's pleasant and sunny near campus today (~28°C)! 🌤️ Great weather for a walk around the neighborhood or checking out the sublet property. How can I assist you with your housing search today?"
+
+            query.contains("how are you") || query.contains("how r u") || query.contains("who are you") || query.contains("who r u") || query.contains("what can you do") || query.contains("what is your name") ->
+                "I'm SyncMate AI, your 24/7 student housing assistant! 😊 I'm doing great. I can help you check fair rent in INR (₹), match roommates, check sublet availability, or answer questions about campus housing!"
+
             query.contains("hi") || query.contains("hello") || query.contains("hey") || query.contains("hwy") || query.contains("hii") ->
                 "Hey there! 👋 Excited to chat! How can I help you regarding the sublet property, rent, or lease details?"
+
+            query.contains("food") || query.contains("eat") || query.contains("restaurant") || query.contains("canteen") || query.contains("grocery") || query.contains("mess") || query.contains("cooking") ->
+                "There are great student canteens, cafes, and grocery stores just a 2-minute walk from the apartment! The kitchen is also equipped if you like cooking."
+
+            query.contains("transport") || query.contains("bus") || query.contains("auto") || query.contains("cab") || query.contains("commute") || query.contains("travel") ->
+                "The campus metro station and bus stop are just a 5-minute walk (0.4 km) from the building, making daily travel quick and cheap!"
 
             query.contains("available") || query.contains("dates") || query.contains("duration") || query.contains("when") ->
                 "Yes, the sublet is available from May 15 to August 15, 2025! The move-in date can also be slightly flexible if your exams finish early."
@@ -82,7 +94,7 @@ class NetworkChatRepositoryImpl(
                 "Pets are welcome! The apartment environment is quiet, clean, non-smoking, and very student-friendly."
 
             else ->
-                "Thanks for asking! I'm happy to help. Would you like to schedule a virtual tour or discuss the sublease terms further?"
+                "Thanks for asking! I'm here to help with all things student housing and campus life. Everything in our campus quadrant is student-friendly and accessible. Is there anything specific you'd like to check about sublets, rent in INR, or scheduling a visit?"
         }
     }
 
@@ -92,7 +104,7 @@ class NetworkChatRepositoryImpl(
             return try {
                 val type = object : TypeToken<List<ChatMessage>>() {}.type
                 val parsed: List<ChatMessage> = gson.fromJson(json, type) ?: emptyList()
-                // Purge legacy error and sample messages
+                // Purge legacy error and generic response repetitions
                 parsed.filterNot { msg ->
                     msg.id in listOf("1", "2", "3", "4") ||
                     msg.text.contains("trouble connecting to the network", ignoreCase = true) ||
