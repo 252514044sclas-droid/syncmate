@@ -1,6 +1,7 @@
 package com.example.syncmate.ui.screens.uploadcontract
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -25,6 +26,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -44,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.syncmate.ui.components.AppHeader
 import com.example.syncmate.ui.components.PrimaryButton
+import com.example.syncmate.ui.components.SecondaryButton
 import com.example.syncmate.ui.components.StatBadge
 import com.example.syncmate.ui.theme.EmeraldSuccess
 import com.example.syncmate.ui.theme.IndigoPrimary
@@ -92,12 +95,37 @@ fun UploadContractScreen(
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
     var selectedFileName by remember { mutableStateOf("Sublease_Agreement_2025.pdf") }
 
-    val filePickerLauncher = rememberLauncherForActivityResult(
+    // Use OpenDocument SAF launcher to allow picking any file format across all Android versions
+    val documentPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            try {
+                context.contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION
+                )
+            } catch (_: Exception) {}
+            selectedFileUri = uri
+            selectedFileName = getFileNameFromUri(context, uri)
+        }
+    }
+
+    // Fallback getContent launcher if needed
+    val fallbackContentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
             selectedFileUri = uri
             selectedFileName = getFileNameFromUri(context, uri)
+        }
+    }
+
+    fun launchPicker() {
+        try {
+            documentPickerLauncher.launch(arrayOf("*/*"))
+        } catch (_: Exception) {
+            fallbackContentLauncher.launch("*/*")
         }
     }
 
@@ -145,7 +173,7 @@ fun UploadContractScreen(
                     .clip(RoundedCornerShape(16.dp))
                     .background(SlateCard)
                     .border(1.dp, SlateCardBorder, RoundedCornerShape(16.dp))
-                    .clickable { filePickerLauncher.launch("*/*") }
+                    .clickable { launchPicker() }
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -194,7 +222,14 @@ fun UploadContractScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            SecondaryButton(
+                text = "Browse Device Documents",
+                onClick = { launchPicker() }
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             PrimaryButton(
                 text = "Analyze Contract with AI Guard",
