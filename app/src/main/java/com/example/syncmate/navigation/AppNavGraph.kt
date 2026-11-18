@@ -47,6 +47,7 @@ import com.example.syncmate.ui.screens.preferences.PreferencesScreen
 import com.example.syncmate.ui.screens.privacy.PrivacyScreen
 import com.example.syncmate.ui.screens.profile.ProfileScreen
 import com.example.syncmate.ui.screens.reportlisting.ReportListingScreen
+import com.example.syncmate.ui.screens.roommates.RoommatesScreen
 import com.example.syncmate.ui.screens.savedlistings.SavedListingsScreen
 import com.example.syncmate.ui.screens.search.SearchScreen
 import com.example.syncmate.ui.screens.settings.SettingsScreen
@@ -184,8 +185,17 @@ fun AppNavGraph(
                     onNavigateToChat = { navController.navigate(Screen.Chat.route) },
                     onNavigateToNotifications = { navController.navigate(Screen.Notifications.route) },
                     onNavigateToProfile = { navController.navigate(Screen.Profile.route) },
-                    onNavigateToPreferences = { navController.navigate(Screen.Preferences.route) },
+                    onNavigateToPreferences = { navController.navigate(Screen.Roommates.route) },
                     onNavigateToSafety = { navController.navigate(Screen.PaymentSafety.route) }
+                )
+            }
+
+            // Roommates Screen
+            composable(Screen.Roommates.route) {
+                RoommatesScreen(
+                    onNavigateToChat = { navController.navigate(Screen.Chat.route) },
+                    onNavigateToQuiz = { navController.navigate(Screen.OnboardingQuiz.route) },
+                    onNavigateBack = { navController.popBackStack() }
                 )
             }
 
