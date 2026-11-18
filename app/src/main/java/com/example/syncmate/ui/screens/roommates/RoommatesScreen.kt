@@ -22,8 +22,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -37,11 +35,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.syncmate.data.local.AppPreferences
+import com.example.syncmate.data.model.RoommatePreferences
 import com.example.syncmate.data.model.RoommateProfile
-import com.example.syncmate.ui.components.AnimatedSaveButton
 import com.example.syncmate.ui.components.AppHeader
 import com.example.syncmate.ui.components.GlassCard
 import com.example.syncmate.ui.components.PrimaryButton
@@ -55,6 +55,40 @@ import com.example.syncmate.ui.theme.SlateCardBorder
 import com.example.syncmate.ui.theme.TextPrimary
 import com.example.syncmate.ui.theme.TextSecondary
 import com.example.syncmate.util.CurrencyFormatter
+import kotlin.math.abs
+
+fun calculateQuizSynergy(userPrefs: RoommatePreferences?, roommate: RoommateProfile): Int {
+    if (userPrefs == null) return roommate.compatibilityPercentage
+
+    var score = 78
+
+    // 1. Sleep Schedule match
+    if (userPrefs.sleepSchedule.isNotBlank()) {
+        if (userPrefs.sleepSchedule.contains("Early", ignoreCase = true) && roommate.lifestyleRhythm.contains("Early", ignoreCase = true)) {
+            score += 8
+        } else if (userPrefs.sleepSchedule.contains("Night", ignoreCase = true) && roommate.lifestyleRhythm.contains("Night", ignoreCase = true)) {
+            score += 8
+        }
+    }
+
+    // 2. Smoking policy match
+    if (userPrefs.smokingOption == false && roommate.lifestyleRhythm.contains("Non-Smoker", ignoreCase = true)) {
+        score += 7
+    }
+
+    // 3. Noise & Study match
+    if (userPrefs.noiseTolerance.isNotBlank() && roommate.lifestyleRhythm.contains("Quiet", ignoreCase = true)) {
+        score += 6
+    }
+
+    // 4. Budget proximity
+    if (userPrefs.maxBudgetINR > 0) {
+        val diff = abs(userPrefs.maxBudgetINR - roommate.maxBudgetMonthly)
+        if (diff <= 3000) score += 5
+    }
+
+    return score.coerceIn(75, 98)
+}
 
 @Composable
 fun RoommatesScreen(
@@ -62,9 +96,20 @@ fun RoommatesScreen(
     onNavigateToQuiz: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
+    val context = LocalContext.current
+    val appPreferences = remember { AppPreferences(context) }
     val haptic = LocalHapticFeedback.current
+
     var selectedFilter by remember { mutableStateOf("All Matches") }
     var selectedRoommateIds by remember { mutableStateOf(setOf<String>()) }
+
+    // Retrieve Quiz preferences saved by the student
+    val userQuizPreferences = remember {
+        RoommatePreferences(
+            sleepSchedule = appPreferences.savedPreferredLease ?: "",
+            maxBudgetINR = appPreferences.savedMaxBudget
+        )
+    }
 
     val sampleRoommates = remember {
         listOf(
@@ -126,14 +171,21 @@ fun RoommatesScreen(
         )
     }
 
+    val evaluatedRoommates = remember(userQuizPreferences, sampleRoommates) {
+        sampleRoommates.map { roommate ->
+            val dynamicScore = calculateQuizSynergy(userQuizPreferences, roommate)
+            roommate.copy(compatibilityPercentage = dynamicScore)
+        }.sortedByDescending { it.compatibilityPercentage }
+    }
+
     val filterOptions = listOf("All Matches", "90%+ Synergy", "Early Riser", "Quiet Study")
 
-    val filteredList = remember(selectedFilter, sampleRoommates) {
+    val filteredList = remember(selectedFilter, evaluatedRoommates) {
         when (selectedFilter) {
-            "90%+ Synergy" -> sampleRoommates.filter { it.compatibilityPercentage >= 90 }
-            "Early Riser" -> sampleRoommates.filter { it.lifestyleRhythm.contains("Early Riser", ignoreCase = true) }
-            "Quiet Study" -> sampleRoommates.filter { it.lifestyleRhythm.contains("Quiet", ignoreCase = true) }
-            else -> sampleRoommates
+            "90%+ Synergy" -> evaluatedRoommates.filter { it.compatibilityPercentage >= 90 }
+            "Early Riser" -> evaluatedRoommates.filter { it.lifestyleRhythm.contains("Early Riser", ignoreCase = true) }
+            "Quiet Study" -> evaluatedRoommates.filter { it.lifestyleRhythm.contains("Quiet", ignoreCase = true) }
+            else -> evaluatedRoommates
         }
     }
 
@@ -153,19 +205,39 @@ fun RoommatesScreen(
                 .fillMaxSize()
                 .padding(horizontal = 20.dp)
         ) {
-            Text(
-                text = "Select Student Roommates",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Select Student Roommates",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
 
-            Text(
-                text = "Matched using your 10-question Onboarding Quiz preferences and Neural Network AI.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
-                modifier = Modifier.padding(top = 4.dp, bottom = 16.dp)
-            )
+                    Text(
+                        text = "Matched using your 10-question Onboarding Quiz answers.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+
+                Text(
+                    text = "Retake Quiz",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = IndigoPrimary,
+                    modifier = Modifier
+                        .clickable { onNavigateToQuiz() }
+                        .padding(start = 8.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Filter Chips
             LazyRow(
