@@ -111,7 +111,11 @@ print("----------------------------------------------------------")
 model_artifact = {
     "model": mlp_model,
     "feature_columns": feature_cols,
-    "version": "2.0.0-deep-neural-roommate-matcher"
+    "version": "2.0.0-deep-neural-roommate-matcher",
+    "metrics": {
+        "r2_score": float(r2),
+        "mae_score": float(mae)
+    }
 }
 
 model_save_path = os.path.join(os.path.dirname(__file__), 'roommate_matcher.pkl')

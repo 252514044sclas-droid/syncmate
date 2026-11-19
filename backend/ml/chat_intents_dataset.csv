@@ -1,0 +1,262 @@
+text,intent
+what is the fair rent in chennai,rent_inquiry
+how much does a private room cost in adyar,rent_inquiry
+fair rent for a studio apartment in koramangala bengaluru,rent_inquiry
+what is the average rent for 2bhk in delhi north campus,rent_inquiry
+how much should i pay for shared room in pune,rent_inquiry
+calculate rent for 500 sqft flat in hyderabad hitec city,rent_inquiry
+is 15000 inr good rent for a 1bhk in chennai,rent_inquiry
+what is the price of single room near campus,rent_inquiry
+how much rent for unfurnished studio in bengaluru,rent_inquiry
+fair price range for sublet flat in adyar,rent_inquiry
+how much is student accommodation in delhi,rent_inquiry
+what are the rental rates in kothrud pune,rent_inquiry
+rent estimate for furnished room with ac in hyderabad,rent_inquiry
+can you calculate monthly rent in indian rupees,rent_inquiry
+what is the fair market value of this room,rent_inquiry
+how much for 2-sharing room near anna university,rent_inquiry
+rent pricing benchmark for college students,rent_inquiry
+is 25000 rupees too expensive for 2bhk sublet,rent_inquiry
+give me rent estimate for 600 sqft apartment,rent_inquiry
+what is the cost of renting near iit madras,rent_inquiry
+how much are monthly utility bills,utility_estimation
+what is the cost of electricity and ac in summer,utility_estimation
+estimate monthly water and maintenance charges,utility_estimation
+how much for high speed wifi broadband per month,utility_estimation
+breakdown of utility costs for 2 roommates,utility_estimation
+are utilities included in the monthly rent,utility_estimation
+how much does power backup and inverter cost,utility_estimation
+typical eb bill for 2bhk with two ac units in chennai,utility_estimation
+what is the monthly maintenance fee in student apartments,utility_estimation
+utility expense prediction for college flat,utility_estimation
+cost of internet connection for student sublet,utility_estimation
+electricity sub meter bill calculation,utility_estimation
+how much should roommates budget for monthly bills,utility_estimation
+utility estimate in indian rupees,utility_estimation
+what bills do i have to pay besides rent,utility_estimation
+how does roommate matching work,roommate_synergy
+find me a compatible flatmate near campus,roommate_synergy
+i am an early riser looking for a quiet roommate,roommate_synergy
+can i find a vegetarian roommate in bengaluru,roommate_synergy
+how to resolve conflict with messy roommate,roommate_synergy
+matching with university students sharing the same budget,roommate_synergy
+night owl vs early bird roommate compatibility,roommate_synergy
+find non smoker student flatmate in chennai,roommate_synergy
+what compatibility percentage is safe for room sharing,roommate_synergy
+how does syncmate evaluate lifestyle synergy,roommate_synergy
+looking for female roommate anna university,roommate_synergy
+roommate sharing study habits and quiet hours,roommate_synergy
+how to choose the best roommate for subletting,roommate_synergy
+roommate compatibility score formula,roommate_synergy
+can you match me with someone with 12000 inr budget,roommate_synergy
+how to avoid sublease rental scams,scam_safety_deposit
+landlord is asking for advance token money before viewing,scam_safety_deposit
+is it safe to pay deposit via upi or gpay,scam_safety_deposit
+how much security deposit is normal in india,scam_safety_deposit
+beware of fake listing on olx or facebook,scam_safety_deposit
+what to do if landlord refuses to refund security deposit,scam_safety_deposit
+how to verify if the listing is genuine or fake,scam_safety_deposit
+never transfer money without seeing the room,scam_safety_deposit
+fake sublet scam red flags,scam_safety_deposit
+should i pay token amount before signing agreement,scam_safety_deposit
+standard security deposit for college students in inr,scam_safety_deposit
+how to check if subletter has original landlord permission,scam_safety_deposit
+warning signs of rental fraud near university,scam_safety_deposit
+safe payment methods for student rent,scam_safety_deposit
+what to look for during room inspection visit,contract_inspection
+sublease contract agreement checklist,contract_inspection
+what is the standard notice period for vacating,contract_inspection
+is 11 month rental agreement valid for students,contract_inspection
+checking water pressure and geyser before moving in,contract_inspection
+room viewing walkthrough tips,contract_inspection
+subleasing clause in master rent agreement,contract_inspection
+unfair deduction for painting from security deposit,contract_inspection
+how to inspect mobile network and wifi speed,contract_inspection
+checklist before signing sublet agreement,contract_inspection
+do i need a written sublease agreement,contract_inspection
+lock in period and early termination penalty,contract_inspection
+electricity meter reading before move in date,contract_inspection
+hello,greeting_help
+hi,greeting_help
+hey there,greeting_help
+good morning,greeting_help
+who are you,greeting_help
+what can you do,greeting_help
+help me,greeting_help
+start,greeting_help
+tell me about syncmate,greeting_help
+what features does this app have,greeting_help
+please what is the fair rent in chennai,rent_inquiry
+can you tell me what is the fair rent in chennai,rent_inquiry
+please how much does a private room cost in adyar,rent_inquiry
+can you tell me how much does a private room cost in adyar,rent_inquiry
+please fair rent for a studio apartment in koramangala bengaluru,rent_inquiry
+can you tell me fair rent for a studio apartment in koramangala bengaluru,rent_inquiry
+please what is the average rent for 2bhk in delhi north campus,rent_inquiry
+can you tell me what is the average rent for 2bhk in delhi north campus,rent_inquiry
+please how much should i pay for shared room in pune,rent_inquiry
+can you tell me how much should i pay for shared room in pune,rent_inquiry
+please calculate rent for 500 sqft flat in hyderabad hitec city,rent_inquiry
+can you tell me calculate rent for 500 sqft flat in hyderabad hitec city,rent_inquiry
+please is 15000 inr good rent for a 1bhk in chennai,rent_inquiry
+can you tell me is 15000 inr good rent for a 1bhk in chennai,rent_inquiry
+please what is the price of single room near campus,rent_inquiry
+can you tell me what is the price of single room near campus,rent_inquiry
+please how much rent for unfurnished studio in bengaluru,rent_inquiry
+can you tell me how much rent for unfurnished studio in bengaluru,rent_inquiry
+please fair price range for sublet flat in adyar,rent_inquiry
+can you tell me fair price range for sublet flat in adyar,rent_inquiry
+please how much is student accommodation in delhi,rent_inquiry
+can you tell me how much is student accommodation in delhi,rent_inquiry
+please what are the rental rates in kothrud pune,rent_inquiry
+can you tell me what are the rental rates in kothrud pune,rent_inquiry
+please rent estimate for furnished room with ac in hyderabad,rent_inquiry
+can you tell me rent estimate for furnished room with ac in hyderabad,rent_inquiry
+please can you calculate monthly rent in indian rupees,rent_inquiry
+can you tell me can you calculate monthly rent in indian rupees,rent_inquiry
+please what is the fair market value of this room,rent_inquiry
+can you tell me what is the fair market value of this room,rent_inquiry
+please how much for 2-sharing room near anna university,rent_inquiry
+can you tell me how much for 2-sharing room near anna university,rent_inquiry
+please rent pricing benchmark for college students,rent_inquiry
+can you tell me rent pricing benchmark for college students,rent_inquiry
+please is 25000 rupees too expensive for 2bhk sublet,rent_inquiry
+can you tell me is 25000 rupees too expensive for 2bhk sublet,rent_inquiry
+please give me rent estimate for 600 sqft apartment,rent_inquiry
+can you tell me give me rent estimate for 600 sqft apartment,rent_inquiry
+please what is the cost of renting near iit madras,rent_inquiry
+can you tell me what is the cost of renting near iit madras,rent_inquiry
+please how much are monthly utility bills,utility_estimation
+can you tell me how much are monthly utility bills,utility_estimation
+please what is the cost of electricity and ac in summer,utility_estimation
+can you tell me what is the cost of electricity and ac in summer,utility_estimation
+please estimate monthly water and maintenance charges,utility_estimation
+can you tell me estimate monthly water and maintenance charges,utility_estimation
+please how much for high speed wifi broadband per month,utility_estimation
+can you tell me how much for high speed wifi broadband per month,utility_estimation
+please breakdown of utility costs for 2 roommates,utility_estimation
+can you tell me breakdown of utility costs for 2 roommates,utility_estimation
+please are utilities included in the monthly rent,utility_estimation
+can you tell me are utilities included in the monthly rent,utility_estimation
+please how much does power backup and inverter cost,utility_estimation
+can you tell me how much does power backup and inverter cost,utility_estimation
+please typical eb bill for 2bhk with two ac units in chennai,utility_estimation
+can you tell me typical eb bill for 2bhk with two ac units in chennai,utility_estimation
+please what is the monthly maintenance fee in student apartments,utility_estimation
+can you tell me what is the monthly maintenance fee in student apartments,utility_estimation
+please utility expense prediction for college flat,utility_estimation
+can you tell me utility expense prediction for college flat,utility_estimation
+please cost of internet connection for student sublet,utility_estimation
+can you tell me cost of internet connection for student sublet,utility_estimation
+please electricity sub meter bill calculation,utility_estimation
+can you tell me electricity sub meter bill calculation,utility_estimation
+please how much should roommates budget for monthly bills,utility_estimation
+can you tell me how much should roommates budget for monthly bills,utility_estimation
+please utility estimate in indian rupees,utility_estimation
+can you tell me utility estimate in indian rupees,utility_estimation
+please what bills do i have to pay besides rent,utility_estimation
+can you tell me what bills do i have to pay besides rent,utility_estimation
+please how does roommate matching work,roommate_synergy
+can you tell me how does roommate matching work,roommate_synergy
+please find me a compatible flatmate near campus,roommate_synergy
+can you tell me find me a compatible flatmate near campus,roommate_synergy
+please i am an early riser looking for a quiet roommate,roommate_synergy
+can you tell me i am an early riser looking for a quiet roommate,roommate_synergy
+please can i find a vegetarian roommate in bengaluru,roommate_synergy
+can you tell me can i find a vegetarian roommate in bengaluru,roommate_synergy
+please how to resolve conflict with messy roommate,roommate_synergy
+can you tell me how to resolve conflict with messy roommate,roommate_synergy
+please matching with university students sharing the same budget,roommate_synergy
+can you tell me matching with university students sharing the same budget,roommate_synergy
+please night owl vs early bird roommate compatibility,roommate_synergy
+can you tell me night owl vs early bird roommate compatibility,roommate_synergy
+please find non smoker student flatmate in chennai,roommate_synergy
+can you tell me find non smoker student flatmate in chennai,roommate_synergy
+please what compatibility percentage is safe for room sharing,roommate_synergy
+can you tell me what compatibility percentage is safe for room sharing,roommate_synergy
+please how does syncmate evaluate lifestyle synergy,roommate_synergy
+can you tell me how does syncmate evaluate lifestyle synergy,roommate_synergy
+please looking for female roommate anna university,roommate_synergy
+can you tell me looking for female roommate anna university,roommate_synergy
+please roommate sharing study habits and quiet hours,roommate_synergy
+can you tell me roommate sharing study habits and quiet hours,roommate_synergy
+please how to choose the best roommate for subletting,roommate_synergy
+can you tell me how to choose the best roommate for subletting,roommate_synergy
+please roommate compatibility score formula,roommate_synergy
+can you tell me roommate compatibility score formula,roommate_synergy
+please can you match me with someone with 12000 inr budget,roommate_synergy
+can you tell me can you match me with someone with 12000 inr budget,roommate_synergy
+please how to avoid sublease rental scams,scam_safety_deposit
+can you tell me how to avoid sublease rental scams,scam_safety_deposit
+please landlord is asking for advance token money before viewing,scam_safety_deposit
+can you tell me landlord is asking for advance token money before viewing,scam_safety_deposit
+please is it safe to pay deposit via upi or gpay,scam_safety_deposit
+can you tell me is it safe to pay deposit via upi or gpay,scam_safety_deposit
+please how much security deposit is normal in india,scam_safety_deposit
+can you tell me how much security deposit is normal in india,scam_safety_deposit
+please beware of fake listing on olx or facebook,scam_safety_deposit
+can you tell me beware of fake listing on olx or facebook,scam_safety_deposit
+please what to do if landlord refuses to refund security deposit,scam_safety_deposit
+can you tell me what to do if landlord refuses to refund security deposit,scam_safety_deposit
+please how to verify if the listing is genuine or fake,scam_safety_deposit
+can you tell me how to verify if the listing is genuine or fake,scam_safety_deposit
+please never transfer money without seeing the room,scam_safety_deposit
+can you tell me never transfer money without seeing the room,scam_safety_deposit
+please fake sublet scam red flags,scam_safety_deposit
+can you tell me fake sublet scam red flags,scam_safety_deposit
+please should i pay token amount before signing agreement,scam_safety_deposit
+can you tell me should i pay token amount before signing agreement,scam_safety_deposit
+please standard security deposit for college students in inr,scam_safety_deposit
+can you tell me standard security deposit for college students in inr,scam_safety_deposit
+please how to check if subletter has original landlord permission,scam_safety_deposit
+can you tell me how to check if subletter has original landlord permission,scam_safety_deposit
+please warning signs of rental fraud near university,scam_safety_deposit
+can you tell me warning signs of rental fraud near university,scam_safety_deposit
+please safe payment methods for student rent,scam_safety_deposit
+can you tell me safe payment methods for student rent,scam_safety_deposit
+please what to look for during room inspection visit,contract_inspection
+can you tell me what to look for during room inspection visit,contract_inspection
+please sublease contract agreement checklist,contract_inspection
+can you tell me sublease contract agreement checklist,contract_inspection
+please what is the standard notice period for vacating,contract_inspection
+can you tell me what is the standard notice period for vacating,contract_inspection
+please is 11 month rental agreement valid for students,contract_inspection
+can you tell me is 11 month rental agreement valid for students,contract_inspection
+please checking water pressure and geyser before moving in,contract_inspection
+can you tell me checking water pressure and geyser before moving in,contract_inspection
+please room viewing walkthrough tips,contract_inspection
+can you tell me room viewing walkthrough tips,contract_inspection
+please subleasing clause in master rent agreement,contract_inspection
+can you tell me subleasing clause in master rent agreement,contract_inspection
+please unfair deduction for painting from security deposit,contract_inspection
+can you tell me unfair deduction for painting from security deposit,contract_inspection
+please how to inspect mobile network and wifi speed,contract_inspection
+can you tell me how to inspect mobile network and wifi speed,contract_inspection
+please checklist before signing sublet agreement,contract_inspection
+can you tell me checklist before signing sublet agreement,contract_inspection
+please do i need a written sublease agreement,contract_inspection
+can you tell me do i need a written sublease agreement,contract_inspection
+please lock in period and early termination penalty,contract_inspection
+can you tell me lock in period and early termination penalty,contract_inspection
+please electricity meter reading before move in date,contract_inspection
+can you tell me electricity meter reading before move in date,contract_inspection
+please hello,greeting_help
+can you tell me hello,greeting_help
+please hi,greeting_help
+can you tell me hi,greeting_help
+please hey there,greeting_help
+can you tell me hey there,greeting_help
+please good morning,greeting_help
+can you tell me good morning,greeting_help
+please who are you,greeting_help
+can you tell me who are you,greeting_help
+please what can you do,greeting_help
+can you tell me what can you do,greeting_help
+please help me,greeting_help
+can you tell me help me,greeting_help
+please start,greeting_help
+can you tell me start,greeting_help
+please tell me about syncmate,greeting_help
+can you tell me tell me about syncmate,greeting_help
+please what features does this app have,greeting_help
+can you tell me what features does this app have,greeting_help

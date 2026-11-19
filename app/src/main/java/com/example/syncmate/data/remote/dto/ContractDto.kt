@@ -2,6 +2,12 @@ package com.example.syncmate.data.remote.dto
 
 import com.google.gson.annotations.SerializedName
 
+data class AnalyzeContractRequestDto(
+    @SerializedName("file_name") val fileName: String,
+    @SerializedName("file_base64") val fileBase64: String? = null,
+    @SerializedName("contract_text") val contractText: String? = null
+)
+
 data class FlaggedClauseDto(
     @SerializedName("title") val title: String,
     @SerializedName("clause_text") val clauseText: String,

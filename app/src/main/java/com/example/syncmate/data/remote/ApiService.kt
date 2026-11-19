@@ -1,11 +1,14 @@
 package com.example.syncmate.data.remote
 
+import com.example.syncmate.data.remote.dto.AnalyzeContractRequestDto
 import com.example.syncmate.data.remote.dto.ApiResponse
 import com.example.syncmate.data.remote.dto.AuthResponseDto
 import com.example.syncmate.data.remote.dto.ChatRequestDto
 import com.example.syncmate.data.remote.dto.ChatResponseDto
+import com.example.syncmate.data.remote.dto.ContractSummaryDto
 import com.example.syncmate.data.remote.dto.CreateListingRequestDto
 import com.example.syncmate.data.remote.dto.DashboardSummaryDto
+import com.example.syncmate.data.remote.dto.FakeListingAnalysisDto
 import com.example.syncmate.data.remote.dto.ForgotPasswordRequestDto
 import com.example.syncmate.data.remote.dto.HousingListingDto
 import com.example.syncmate.data.remote.dto.LoginRequestDto
@@ -15,6 +18,7 @@ import com.example.syncmate.data.remote.dto.RegisterRequestDto
 import com.example.syncmate.data.remote.dto.ReportListingRequestDto
 import com.example.syncmate.data.remote.dto.RoommateProfileDto
 import com.example.syncmate.data.remote.dto.SaveListingRequestDto
+import com.example.syncmate.data.remote.dto.ScanListingRequestDto
 import com.example.syncmate.data.remote.dto.UpdateProfileRequestDto
 import com.example.syncmate.data.remote.dto.UserDto
 import com.example.syncmate.data.remote.dto.VerifyEmailRequestDto
@@ -23,6 +27,8 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Query
+
+typealias SyncMateApiService = ApiService
 
 interface ApiService {
     @POST("auth/login.php")
@@ -68,9 +74,20 @@ interface ApiService {
     @POST("listings/report.php")
     suspend fun reportListing(@Body request: ReportListingRequestDto): Response<ApiResponse<Boolean>>
 
-    // AI Module 1: Fair-Rent & Utility Regressor
+    // AI Module 1: Fair-Price & Utility Regressor (Live ML Model)
+    @POST("predict_price")
+    suspend fun predictPrice(@Body request: PredictionRequestDto): Response<ApiResponse<PredictionResponseDto>>
+
     @POST("ai/predict_rent.php")
     suspend fun predictRent(@Body request: PredictionRequestDto): Response<ApiResponse<PredictionResponseDto>>
+
+    // AI Module 2: Fake-Listing Scam Shield (Live ML Scanner)
+    @POST("scan_listing")
+    suspend fun scanListing(@Body request: ScanListingRequestDto): Response<ApiResponse<FakeListingAnalysisDto>>
+
+    // AI Module 3: Contract Guard (Live ML Document Analyzer)
+    @POST("analyze_contract")
+    suspend fun analyzeContract(@Body request: AnalyzeContractRequestDto): Response<ApiResponse<ContractSummaryDto>>
 
     // AI Module 4: Roommate Compatibility Matcher
     @GET("roommates/matches.php")

@@ -239,7 +239,8 @@ fun AppNavGraph(
                     onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                     onNavigateToPrivacy = { navController.navigate(Screen.Privacy.route) },
                     onNavigateToFeedback = { navController.navigate(Screen.Feedback.route) },
-                    onNavigateToPreferences = { navController.navigate(Screen.Preferences.route) }
+                    onNavigateToPreferences = { navController.navigate(Screen.Preferences.route) },
+                    onNavigateToRoommates = { navController.navigate(Screen.Roommates.route) }
                 )
             }
 

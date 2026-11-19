@@ -84,9 +84,9 @@ fun HomeScreen(
     onNavigateToFairRent: () -> Unit,
     onNavigateToUtilityPredictor: () -> Unit,
     onNavigateToCompareListings: () -> Unit,
-    onNavigateToFakeListing: () -> Unit,
-    onNavigateToUploadPhotos: () -> Unit,
-    onNavigateToContractGuard: () -> Unit,
+    onNavigateToFakeListing: () -> Unit = {},
+    onNavigateToUploadPhotos: () -> Unit = {},
+    onNavigateToContractGuard: () -> Unit = {},
     onNavigateToSavedListings: () -> Unit,
     onNavigateToChat: () -> Unit,
     onNavigateToNotifications: () -> Unit,
@@ -97,7 +97,8 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToPrivacy: () -> Unit,
     onNavigateToFeedback: () -> Unit,
-    onNavigateToPreferences: () -> Unit
+    onNavigateToPreferences: () -> Unit,
+    onNavigateToRoommates: () -> Unit = {}
 ) {
     val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
 
@@ -213,18 +214,18 @@ fun HomeScreen(
                     }
                     item {
                         AiFeatureChip(
-                            title = "Fake Shield",
-                            subtitle = "Scam Detector",
-                            icon = Icons.Default.Security,
-                            onClick = onNavigateToFakeListing
+                            title = "Roommate Matcher",
+                            subtitle = "Neural Synergy AI",
+                            icon = Icons.Default.Person,
+                            onClick = onNavigateToRoommates
                         )
                     }
                     item {
                         AiFeatureChip(
-                            title = "Contract Guard",
-                            subtitle = "Legal Lease Review",
-                            icon = Icons.Default.Description,
-                            onClick = onNavigateToContractGuard
+                            title = "AI Chatbot",
+                            subtitle = "Housing Assistant",
+                            icon = Icons.Default.Chat,
+                            onClick = onNavigateToChat
                         )
                     }
                     item {

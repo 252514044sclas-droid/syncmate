@@ -1,62 +1,84 @@
 package com.example.syncmate.data.repository
 
+import android.util.Base64
 import com.example.syncmate.data.model.ContractSummary
 import com.example.syncmate.data.model.FlaggedClause
 import com.example.syncmate.data.remote.ApiService
-import kotlinx.coroutines.delay
+import com.example.syncmate.data.remote.dto.AnalyzeContractRequestDto
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 interface ContractRepository {
     suspend fun analyzeContractDocument(fileName: String, fileBytes: ByteArray? = null): Result<ContractSummary>
 }
 
-class MockContractRepositoryImpl(
-    private val apiService: ApiService? = null
+typealias ContractGuardRepository = ContractRepository
+
+class NetworkContractRepositoryImpl(
+    private val apiService: ApiService
 ) : ContractRepository {
     override suspend fun analyzeContractDocument(
         fileName: String,
         fileBytes: ByteArray?
-    ): Result<ContractSummary> {
-        delay(1000)
+    ): Result<ContractSummary> = withContext(Dispatchers.IO) {
+        val base64Str = fileBytes?.let { bytes ->
+            Base64.encodeToString(bytes, Base64.NO_WRAP)
+        }
 
-        val flaggedClauses = listOf(
-            FlaggedClause(
-                title = "Automatic Lease Renewal Without Prior Notice",
-                clauseText = "Clause 14B: Lease shall automatically renew for a full 11-month term unless written notice is received 90 days prior to expiration.",
-                severity = "HIGH",
-                explanation = "A 90-day notice window is unusually long for student sublets and may trap you into an unwanted term.",
-                recommendation = "Request shortening the notice window to 30 days or removing auto-renewal for student subleases."
-            ),
-            FlaggedClause(
-                title = "Mandatory Cleaning Fee Deduction",
-                clauseText = "Clause 8: Mandatory non-refundable ₹2,500 cleaning fee deducted directly from security deposit upon move-out.",
-                severity = "MEDIUM",
-                explanation = "Non-refundable security deposit deductions must be explicitly agreed upon upfront under standard tenancy terms.",
-                recommendation = "Clarify whether deep cleaning is required or if returning the room in broom-clean state waives the ₹2,500 deduction."
-            )
+        val textContent = if (fileBytes != null && (fileName.endsWith(".txt", ignoreCase = true) || fileName.endsWith(".md", ignoreCase = true))) {
+            try { String(fileBytes, Charsets.UTF_8) } catch (_: Exception) { null }
+        } else null
+
+        val request = AnalyzeContractRequestDto(
+            fileName = fileName,
+            fileBase64 = base64Str,
+            contractText = textContent
         )
 
-        return Result.success(
-            ContractSummary(
-                id = "ctr_" + System.currentTimeMillis(),
-                fileName = fileName,
-                leaseTerm = "May 15, 2025 - August 15, 2025",
-                monthlyRent = 14500.0,
-                securityDeposit = 25000.0,
-                extraFees = mapOf(
-                    "Sublease Transfer Fee" to 1500.0,
-                    "Utility & Society Setup" to 500.0
-                ),
-                utilityResponsibilities = listOf(
-                    "Tenant pays Electricity and Cooking Gas",
-                    "Landlord covers Water, Society Maintenance, and High-Speed Broadband"
-                ),
-                noticePeriodDays = 60,
-                subleaseAllowed = true,
-                flaggedClauses = flaggedClauses,
-                overallRiskScore = 28,
-                summaryOverview = "Contract Guard completed legal clause analysis. Standard sublease agreement with 2 potential risk flags flagged for student review.",
-                isAnalysisVerified = false
-            )
-        )
+        try {
+            val response = apiService.analyzeContract(request)
+
+            if (response.isSuccessful && response.body()?.data != null) {
+                val data = response.body()!!.data!!
+                val mappedClauses = data.flaggedClauses.map { clause ->
+                    FlaggedClause(
+                        title = clause.title,
+                        clauseText = clause.clauseText,
+                        severity = clause.severity,
+                        explanation = clause.explanation,
+                        recommendation = clause.recommendation
+                    )
+                }
+
+                Result.success(
+                    ContractSummary(
+                        id = data.id,
+                        fileName = data.fileName,
+                        leaseTerm = data.leaseTerm,
+                        monthlyRent = data.monthlyRent,
+                        securityDeposit = data.securityDeposit,
+                        extraFees = data.extraFees,
+                        utilityResponsibilities = data.utilityResponsibilities,
+                        noticePeriodDays = data.noticePeriodDays,
+                        subleaseAllowed = data.subleaseAllowed,
+                        flaggedClauses = mappedClauses,
+                        overallRiskScore = data.overallRiskScore,
+                        summaryOverview = data.summaryOverview,
+                        isAnalysisVerified = data.isAnalysisVerified
+                    )
+                )
+            } else {
+                val errorMsg = response.errorBody()?.string() 
+                    ?: response.body()?.message 
+                    ?: "Server returned HTTP ${response.code()}: Contract Guard analysis failed"
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            // Real network or parsing error exposed directly to UI
+            Result.failure(Exception("Cannot connect to Contract Guard server: ${e.localizedMessage ?: e.message}"))
+        }
     }
 }
+
+// Backward-compatible alias
+typealias MockContractRepositoryImpl = NetworkContractRepositoryImpl

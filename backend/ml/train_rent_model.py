@@ -129,7 +129,20 @@ print(f"  * Mean Absolute Error (MAE):    INR {mae:.2f}")
 print(f"  * Root Mean Sq Error (RMSE):    INR {rmse:.2f}")
 print("----------------------------------------------------------")
 
+model_artifact = {
+    "model": model,
+    "feature_columns": feature_cols,
+    "version": "2.0.0-fair-rent-regressor",
+    "metrics": {
+        "r2_score": float(r2),
+        "mae_inr": float(mae),
+        "rmse_inr": float(rmse),
+        "cv_mean_r2": float(cv_scores.mean()),
+        "cv_std_r2": float(cv_scores.std())
+    }
+}
+
 model_path = os.path.join(os.path.dirname(__file__), 'rent_model.pkl')
-joblib.dump(model, model_path)
-print(f"[5/5] Successfully serialized high-precision model to: {model_path}")
+joblib.dump(model_artifact, model_path)
+print(f"[5/5] Successfully serialized high-precision model artifact to: {model_path}")
 print("Deep training completed successfully!")
