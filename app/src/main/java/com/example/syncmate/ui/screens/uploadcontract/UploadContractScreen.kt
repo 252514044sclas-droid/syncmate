@@ -26,7 +26,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.PictureAsPdf
-import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -45,6 +44,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.syncmate.ui.components.AppHeader
+import com.example.syncmate.ui.components.ErrorMessage
 import com.example.syncmate.ui.components.PrimaryButton
 import com.example.syncmate.ui.components.SecondaryButton
 import com.example.syncmate.ui.components.StatBadge
@@ -95,7 +95,6 @@ fun UploadContractScreen(
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
     var selectedFileName by remember { mutableStateOf("Sublease_Agreement_2025.pdf") }
 
-    // Use OpenDocument SAF launcher to allow picking any file format across all Android versions
     val documentPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
     ) { uri: Uri? ->
@@ -111,7 +110,6 @@ fun UploadContractScreen(
         }
     }
 
-    // Fallback getContent launcher if needed
     val fallbackContentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -126,13 +124,6 @@ fun UploadContractScreen(
             documentPickerLauncher.launch(arrayOf("*/*"))
         } catch (_: Exception) {
             fallbackContentLauncher.launch("*/*")
-        }
-    }
-
-    // Automatically navigate to Contract Summary Screen once AI analysis completes
-    LaunchedEffect(uiState.summary) {
-        if (uiState.summary != null && !uiState.isLoading) {
-            onContractAnalyzed()
         }
     }
 
@@ -166,6 +157,13 @@ fun UploadContractScreen(
                 color = TextSecondary,
                 modifier = Modifier.padding(top = 6.dp, bottom = 20.dp)
             )
+
+            if (uiState.error != null) {
+                ErrorMessage(
+                    message = uiState.error!!,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+            }
 
             Box(
                 modifier = Modifier
@@ -241,7 +239,11 @@ fun UploadContractScreen(
                         }
                     } catch (_: Exception) { null }
 
-                    contractViewModel.analyzeContract(selectedFileName, fileBytes)
+                    contractViewModel.analyzeContract(
+                        fileName = selectedFileName,
+                        fileBytes = fileBytes,
+                        onSuccess = { onContractAnalyzed() }
+                    )
                 }
             )
 

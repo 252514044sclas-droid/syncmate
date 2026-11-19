@@ -23,12 +23,13 @@ class ContractViewModel(
     private val _uiState = MutableStateFlow(ContractUiState())
     val uiState: StateFlow<ContractUiState> = _uiState.asStateFlow()
 
-    fun analyzeContract(fileName: String, fileBytes: ByteArray? = null) {
-        _uiState.value = _uiState.value.copy(selectedFileName = fileName, isLoading = true, error = null)
+    fun analyzeContract(fileName: String, fileBytes: ByteArray? = null, onSuccess: (() -> Unit)? = null) {
+        _uiState.value = _uiState.value.copy(selectedFileName = fileName, summary = null, isLoading = true, error = null)
         viewModelScope.launch {
             val result = contractRepository.analyzeContractDocument(fileName, fileBytes)
             result.onSuccess { summary ->
                 _uiState.value = _uiState.value.copy(isLoading = false, summary = summary)
+                onSuccess?.invoke()
             }.onFailure { ex ->
                 _uiState.value = _uiState.value.copy(isLoading = false, error = ex.message ?: "Contract analysis failed")
             }
