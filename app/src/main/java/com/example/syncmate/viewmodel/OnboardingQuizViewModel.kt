@@ -112,12 +112,22 @@ class OnboardingQuizViewModel(
             val currentUni = currentUser?.university ?: "University"
             val currentBio = currentUser?.bio ?: ""
 
-            authRepository.updateProfile(
+            val updatedUserRes = authRepository.updateProfile(
                 name = currentName,
                 university = currentUni,
                 bio = currentBio,
                 maxBudget = targetBudget
             )
+
+            // Real-time Firestore sync: publish user profile with completed quiz preferences
+            val finalUser = (updatedUserRes.getOrNull() ?: currentUser)?.copy(
+                hasCompletedQuiz = true,
+                roommatePreferences = currentPrefs,
+                maxBudget = targetBudget
+            )
+            if (finalUser != null) {
+                com.example.syncmate.data.firestore.SyncMateFirestore.saveUser(finalUser)
+            }
 
             _uiState.value = _uiState.value.copy(isLoading = false, isCompleted = true)
         }

@@ -86,12 +86,30 @@ interface ApiService {
     suspend fun scanListing(@Body request: ScanListingRequestDto): Response<ApiResponse<FakeListingAnalysisDto>>
 
     // AI Module 3: Contract Guard (Live ML Document Analyzer)
-    @POST("analyze_contract")
+    @POST("ai/analyze_contract.php")
     suspend fun analyzeContract(@Body request: AnalyzeContractRequestDto): Response<ApiResponse<ContractSummaryDto>>
 
     // AI Module 4: Roommate Compatibility Matcher
     @GET("roommates/matches.php")
     suspend fun getRoommateMatches(): Response<ApiResponse<List<RoommateProfileDto>>>
+
+    @POST("predict_compatibility")
+    suspend fun predictCompatibility(@Body request: com.example.syncmate.data.remote.dto.PredictCompatibilityRequestDto): Response<ApiResponse<com.example.syncmate.data.remote.dto.CompatibilityResultDto>>
+
+    @POST("roommates/sync_quiz")
+    suspend fun syncQuizPreferences(@Body request: com.example.syncmate.data.remote.dto.SyncQuizRequestDto): Response<ApiResponse<Unit>>
+
+    @GET("roommates/active_users")
+    suspend fun getActiveQuizUsers(@Query("user_id") userId: String): Response<ApiResponse<List<com.example.syncmate.data.remote.dto.RemoteUserDto>>>
+
+    @POST("roommates/send_request")
+    suspend fun sendRoommateRequest(@Body request: com.example.syncmate.data.remote.dto.SendRoommateRequestDto): Response<ApiResponse<com.example.syncmate.data.remote.dto.RoommateRequestDto>>
+
+    @GET("roommates/get_requests")
+    suspend fun getRoommateRequests(@Query("user_id") userId: String): Response<ApiResponse<com.example.syncmate.data.remote.dto.RequestsBundleDto>>
+
+    @POST("roommates/update_request")
+    suspend fun updateRequestStatus(@Body request: com.example.syncmate.data.remote.dto.UpdateRequestStatusDto): Response<ApiResponse<Unit>>
 
     // AI Chatbot Assistant: Dynamic Conversational AI Integration
     @POST("ai/chat.php")

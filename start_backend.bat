@@ -11,7 +11,7 @@ echo.
 :: 1. Check Python
 where python >nul 2>&1
 if %ERRORLEVEL% neq 0 (
-    echo [ERROR] Python was not found in your PATH.
+    echo [ERROR] Python was not found in your PATH!
     pause
     exit /b 1
 )
@@ -20,30 +20,37 @@ if %ERRORLEVEL% neq 0 (
 set PHP_BIN=php
 where php >nul 2>&1
 if %ERRORLEVEL% neq 0 (
-    if exist "C:\xampp\php\php.exe" (
-        set PHP_BIN=C:\xampp\php\php.exe
-    ) else (
-        echo [WARNING] PHP not found in PATH or C:\xampp\php\php.exe.
+    if not exist "C:\xampp\php\php.exe" (
+        echo [WARNING] PHP was not found in PATH or C:\xampp\php\php.exe.
     )
 )
 
-:: 3. Launch Python ML microservice (port 5000) in a new window
-:: Use full absolute path so it always finds app.py regardless of CWD
-start "SyncMate Python AI (:5000)" cmd /k "cd /d "%~dp0backend\ml" && python app.py"
+:: 3. Check ADB for automatic port forwarding
+set ADB_BIN=adb
+where adb >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+    if exist "%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe" (
+        set ADB_BIN="%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe"
+    )
+)
 
-:: 4. Launch PHP REST API server (port 8000) in a new window
-start "SyncMate PHP Server (:8000)" cmd /k "%PHP_BIN% -S 0.0.0.0:8000 -t "%~dp0backend""
+:: Automatically forward ports if emulator/device is connected
+echo [*] Configuring ADB port forwarding (bypasses all firewall blocks)...
+%ADB_BIN% reverse tcp:8000 tcp:8000 >nul 2>&1
+%ADB_BIN% reverse tcp:5000 tcp:5000 >nul 2>&1
+
+echo [*] Launching SyncMate FastAPI AI Server (port 8000, 0.0.0.0)...
+start "SyncMate FastAPI AI (:8000)" "%~dp0backend\start_fastapi.bat"
 
 echo.
 echo =================================================================
-echo   [OK] Both SyncMate backend services are starting...
-echo.
-echo   Python AI Engine : http://127.0.0.1:5000
-echo   PHP REST API     : http://127.0.0.1:8000/api/
-echo   Android Emulator : http://10.0.2.2:8000/api/
+echo   [OK] SyncMate FastAPI AI Backend is starting!
+echo   - Local PC:          http://127.0.0.1:8000
+echo   - Physical Device:   http://172.23.176.202:8000
+echo   - Android Emulator:  http://10.0.2.2:8000
+echo   - Listening on:      0.0.0.0:8000 (all network interfaces)
 echo =================================================================
-echo.
-echo Keep those two windows open while using the Android app.
-echo You may close this launcher window now.
+echo Keep the two new windows open while running the Android app.
+echo You can close this launcher window now.
 echo.
 pause

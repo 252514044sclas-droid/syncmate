@@ -9,6 +9,7 @@ import com.example.syncmate.data.repository.HousingRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 data class DashboardUiState(
@@ -38,41 +39,32 @@ class DashboardViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
-            val sampleRoommates = listOf(
-                RoommateProfile(
-                    id = "rm_1",
-                    name = "Maya Lin",
-                    university = "Anna University '26",
-                    compatibilityPercentage = 96,
-                    matchReason = "Matches your quiet study hours & budget",
-                    lifestyleRhythm = "Early Riser • Non-Smoker",
-                    maxBudgetMonthly = 12000.0,
-                    preferredLocation = "Adyar / Guindy",
-                    bio = "CS junior looking for a clean, peaceful sublet room for summer internship."
-                ),
-                RoommateProfile(
-                    id = "rm_2",
-                    name = "Jordan Patel",
-                    university = "IIT Madras '25",
-                    compatibilityPercentage = 91,
-                    matchReason = "Similar lease term & campus quadrant",
-                    lifestyleRhythm = "Night Owl • Quiet & Organized",
-                    maxBudgetMonthly = 16500.0,
-                    preferredLocation = "Koramangala, Bengaluru",
-                    bio = "Grad student in ECE. Friendly, respectful, and loves cooking on weekends."
-                ),
-                RoommateProfile(
-                    id = "rm_3",
-                    name = "Chloe Bennett",
-                    university = "Delhi University '25",
-                    compatibilityPercentage = 88,
-                    matchReason = "Shared campus commute & budget preference",
-                    lifestyleRhythm = "Flexible • Social & Clean",
-                    maxBudgetMonthly = 14000.0,
-                    preferredLocation = "North Campus, Delhi",
-                    bio = "Commerce major looking for a sublet roommate near North Campus."
-                )
-            )
+            // Reactively stream real-time roommate matches from Firestore
+            viewModelScope.launch {
+                val currentUserId = authRepository.currentUserFlow.firstOrNull()?.id ?: ""
+                com.example.syncmate.data.firestore.SyncMateFirestore.attachUsersSnapshotListener(currentUserId) { users ->
+                    val liveRoommates = users.map { u ->
+                        val rhythm = listOfNotNull(
+                            u.roommatePreferences?.sleepSchedule,
+                            if (u.roommatePreferences?.smokingOption == false) "Non-Smoker" else null,
+                            u.roommatePreferences?.noiseTolerance
+                        ).joinToString(" • ")
+
+                        RoommateProfile(
+                            id = u.id,
+                            name = u.name,
+                            university = u.university,
+                            compatibilityPercentage = 92,
+                            matchReason = "Matches your ${u.roommatePreferences?.sleepSchedule ?: "lifestyle"} & budget preferences",
+                            lifestyleRhythm = rhythm.ifEmpty { "Verified Student • Clean & Quiet" },
+                            maxBudgetMonthly = u.roommatePreferences?.maxBudgetINR ?: u.maxBudget,
+                            preferredLocation = u.preferredLocation,
+                            bio = u.bio
+                        )
+                    }
+                    _uiState.value = _uiState.value.copy(roommateMatches = liveRoommates)
+                }
+            }
 
             // Reactively collect current user updates (such as name changes)
             viewModelScope.launch {
@@ -85,8 +77,7 @@ class DashboardViewModel(
             housingRepository.getListings().collect { listings ->
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    recommendedListings = listings,
-                    roommateMatches = sampleRoommates
+                    recommendedListings = listings
                 )
             }
         }

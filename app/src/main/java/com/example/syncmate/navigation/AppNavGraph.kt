@@ -47,6 +47,9 @@ import com.example.syncmate.ui.screens.preferences.PreferencesScreen
 import com.example.syncmate.ui.screens.privacy.PrivacyScreen
 import com.example.syncmate.ui.screens.profile.ProfileScreen
 import com.example.syncmate.ui.screens.reportlisting.ReportListingScreen
+import com.example.syncmate.ui.screens.roommates.IncomingRequestsScreen
+import com.example.syncmate.ui.screens.roommates.RoommateProfileScreen
+import com.example.syncmate.ui.screens.roommates.RoommateRequestsScreen
 import com.example.syncmate.ui.screens.roommates.RoommatesScreen
 import com.example.syncmate.ui.screens.savedlistings.SavedListingsScreen
 import com.example.syncmate.ui.screens.search.SearchScreen
@@ -64,8 +67,10 @@ import com.example.syncmate.viewmodel.DashboardViewModel
 import com.example.syncmate.viewmodel.FakeListingViewModel
 import com.example.syncmate.viewmodel.HomeViewModel
 import com.example.syncmate.viewmodel.HousingViewModel
+import com.example.syncmate.viewmodel.IncomingRequestsViewModel
 import com.example.syncmate.viewmodel.OnboardingQuizViewModel
 import com.example.syncmate.viewmodel.PredictionViewModel
+import com.example.syncmate.viewmodel.RoommateMatchViewModel
 import com.example.syncmate.viewmodel.SettingsViewModel
 
 @Composable
@@ -76,7 +81,11 @@ fun AppNavGraph(
 
     // Persistent Repositories and Local Storage
     val appPreferences = remember { AppPreferences(context) }
-    val apiService = remember { RetrofitClient.getApiService(appPreferences) }
+    val apiService = remember {
+        RetrofitClient.getApiService(appPreferences).also {
+            com.example.syncmate.data.firestore.SyncMateFirestore.initApiService(it)
+        }
+    }
     val authRepository = remember { DevAuthRepositoryImpl(apiService, appPreferences) }
     val housingRepository = remember { MockHousingRepositoryImpl(apiService) }
     val predictionRepository = remember { MockPredictionRepositoryImpl(apiService) }
@@ -95,6 +104,8 @@ fun AppNavGraph(
     val settingsViewModel: SettingsViewModel = viewModel(factory = SimpleViewModelFactory { SettingsViewModel(appPreferences) })
     val dashboardViewModel: DashboardViewModel = viewModel(factory = SimpleViewModelFactory { DashboardViewModel(authRepository, housingRepository) })
     val onboardingQuizViewModel: OnboardingQuizViewModel = viewModel(factory = SimpleViewModelFactory { OnboardingQuizViewModel(authRepository) })
+    val roommateMatchViewModel: RoommateMatchViewModel = viewModel(factory = SimpleViewModelFactory { RoommateMatchViewModel(authRepository, apiService, appPreferences) })
+    val incomingRequestsViewModel: IncomingRequestsViewModel = viewModel(factory = SimpleViewModelFactory { IncomingRequestsViewModel(authRepository) })
 
     val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
     val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
@@ -193,8 +204,45 @@ fun AppNavGraph(
             // Roommates Screen
             composable(Screen.Roommates.route) {
                 RoommatesScreen(
+                    viewModel = roommateMatchViewModel,
+                    onNavigateToProfile = { userId -> navController.navigate(Screen.RoommateProfile.createRoute(userId)) },
+                    onNavigateToRequests = { navController.navigate(Screen.IncomingRequests.route) },
                     onNavigateToChat = { navController.navigate(Screen.Chat.route) },
                     onNavigateToQuiz = { navController.navigate(Screen.OnboardingQuiz.route) },
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // Dedicated Incoming Roommate Requests Screen
+            composable(Screen.IncomingRequests.route) {
+                IncomingRequestsScreen(
+                    viewModel = incomingRequestsViewModel,
+                    onNavigateToProfile = { userId -> navController.navigate(Screen.RoommateProfile.createRoute(userId)) },
+                    onNavigateToChat = { navController.navigate(Screen.Chat.route) },
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // Roommate Mutual Profile Screen
+            composable(
+                route = Screen.RoommateProfile.route,
+                arguments = listOf(navArgument("userId") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val userId = backStackEntry.arguments?.getString("userId") ?: ""
+                RoommateProfileScreen(
+                    userId = userId,
+                    viewModel = roommateMatchViewModel,
+                    onNavigateToChat = { navController.navigate(Screen.Chat.route) },
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // Roommate Connection Requests Screen
+            composable(Screen.RoommateRequests.route) {
+                RoommateRequestsScreen(
+                    viewModel = roommateMatchViewModel,
+                    onNavigateToProfile = { userId -> navController.navigate(Screen.RoommateProfile.createRoute(userId)) },
+                    onNavigateToChat = { navController.navigate(Screen.Chat.route) },
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

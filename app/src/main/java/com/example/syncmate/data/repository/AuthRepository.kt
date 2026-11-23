@@ -58,54 +58,33 @@ class DevAuthRepositoryImpl(
     override val currentUserFlow: Flow<User?> = _currentUser.asStateFlow()
 
     override suspend fun login(email: String, pass: String): Result<User> {
-        if (apiService != null) {
-            try {
-                val res = apiService.login(LoginRequestDto(email, pass))
-                if (res.isSuccessful && res.body()?.status == "success" && res.body()?.data != null) {
-                    val authData = res.body()!!.data!!
-                    val token = authData.token ?: "token_dev_sample"
-                    appPreferences?.authToken = token
-                    appPreferences?.isLoggedIn = true
-                    appPreferences?.userEmail = email
-
-                    val user = authData.user?.toDomain() ?: User(
-                        id = "usr_" + email.hashCode(),
-                        name = email.substringBefore("@").replace(".", " ").capitalize(),
-                        email = email,
-                        university = "National Institute of Technology",
-                        isVerified = true,
-                        hasCompletedQuiz = false
-                    )
-                    appPreferences?.savedName = user.name
-                    appPreferences?.savedUniversity = user.university
-                    _currentUser.value = user
-                    return Result.success(user)
-                } else if (res.body()?.message != null) {
-                    return Result.failure(Exception(res.body()!!.message))
-                }
-            } catch (ex: Exception) {
-                return Result.failure(Exception("Backend server connection error: ${ex.localizedMessage}"))
-            }
+        delay(300)
+        if (!email.contains("@") || pass.length < 6) {
+            return Result.failure(IllegalArgumentException("Invalid credentials. Please enter a valid student email and password (min 6 characters)."))
         }
 
-        delay(800)
-        return if (email.contains("@") && pass.length >= 6) {
-            val user = User(
-                id = "usr_" + email.hashCode(),
-                name = appPreferences?.savedName ?: email.substringBefore("@").replace(".", " ").capitalize(),
-                email = email,
-                university = appPreferences?.savedUniversity ?: "National Institute of Technology",
-                isVerified = email.endsWith(".edu"),
-                bio = appPreferences?.savedBio ?: "Computer Science student looking for summer sublet.",
-                hasCompletedQuiz = false
-            )
-            appPreferences?.isLoggedIn = true
-            appPreferences?.userEmail = email
-            _currentUser.value = user
-            Result.success(user)
-        } else {
-            Result.failure(IllegalArgumentException("Invalid credentials. Please enter a valid student email and password."))
-        }
+        val userId = "usr_" + kotlin.math.abs(email.hashCode())
+        val existing = com.example.syncmate.data.firestore.SyncMateFirestore.getUser(userId)
+
+        val user = existing ?: User(
+            id = userId,
+            name = appPreferences?.savedName ?: email.substringBefore("@").replace(".", " ").replaceFirstChar { it.uppercase() },
+            email = email.trim(),
+            university = appPreferences?.savedUniversity ?: "National Institute of Technology",
+            isVerified = true,
+            bio = appPreferences?.savedBio ?: "Student looking for verified sublets and compatible roommates.",
+            hasCompletedQuiz = false
+        )
+
+        appPreferences?.isLoggedIn = true
+        appPreferences?.userEmail = email
+        appPreferences?.savedName = user.name
+        appPreferences?.savedUniversity = user.university
+        appPreferences?.authToken = "auth_token_${user.id}"
+
+        com.example.syncmate.data.firestore.SyncMateFirestore.saveUser(user)
+        _currentUser.value = user
+        return Result.success(user)
     }
 
     override suspend fun signUp(
@@ -114,76 +93,44 @@ class DevAuthRepositoryImpl(
         pass: String,
         university: String
     ): Result<User> {
-        if (apiService != null) {
-            try {
-                val res = apiService.register(RegisterRequestDto(name, email, pass, university))
-                if (res.isSuccessful && res.body()?.status == "success" && res.body()?.data != null) {
-                    val authData = res.body()!!.data!!
-                    appPreferences?.authToken = authData.token
-                    appPreferences?.isLoggedIn = true
-                    appPreferences?.userEmail = email
+        delay(300)
+        if (!email.contains("@")) return Result.failure(IllegalArgumentException("Please enter a valid student email address."))
+        if (pass.length < 6) return Result.failure(IllegalArgumentException("Password must be at least 6 characters."))
+        if (name.isBlank()) return Result.failure(IllegalArgumentException("Please enter your full name."))
+        if (university.isBlank()) return Result.failure(IllegalArgumentException("Please enter your university name."))
 
-                    val user = authData.user?.toDomain() ?: User(
-                        id = "usr_" + System.currentTimeMillis(),
-                        name = name,
-                        email = email,
-                        university = university,
-                        isVerified = email.endsWith(".edu"),
-                        hasCompletedQuiz = false
-                    )
-                    appPreferences?.savedName = user.name
-                    appPreferences?.savedUniversity = user.university
-                    _currentUser.value = user
-                    return Result.success(user)
-                } else if (res.body()?.message != null) {
-                    return Result.failure(Exception(res.body()!!.message))
-                }
-            } catch (ex: Exception) {
-                return Result.failure(Exception("Backend server connection error: ${ex.localizedMessage}"))
-            }
-        }
-
-        delay(900)
-        if (!email.contains("@")) return Result.failure(IllegalArgumentException("Invalid email format"))
-        if (pass.length < 6) return Result.failure(IllegalArgumentException("Password must be at least 6 characters"))
+        val userId = "usr_" + kotlin.math.abs(email.hashCode())
+        val isVerifiedStudent = email.endsWith(".edu") || email.contains("srm") || email.contains("iit") || email.contains("anna") || email.contains("du") || email.contains("univ")
 
         val newUser = User(
-            id = "usr_" + System.currentTimeMillis(),
-            name = name,
-            email = email,
-            university = university,
-            isVerified = email.endsWith(".edu"),
+            id = userId,
+            name = name.trim(),
+            email = email.trim(),
+            university = university.trim(),
+            isVerified = isVerifiedStudent,
+            bio = "Student at ${university.trim()} looking for verified housing and roommates.",
             hasCompletedQuiz = false
         )
+
         appPreferences?.isLoggedIn = true
-        appPreferences?.savedName = name
-        appPreferences?.savedUniversity = university
+        appPreferences?.userEmail = email.trim()
+        appPreferences?.savedName = newUser.name
+        appPreferences?.savedUniversity = newUser.university
+        appPreferences?.authToken = "auth_token_${newUser.id}"
+
+        // Save directly to Firestore users collection
+        com.example.syncmate.data.firestore.SyncMateFirestore.saveUser(newUser)
         _currentUser.value = newUser
         return Result.success(newUser)
     }
 
     override suspend fun forgotPassword(email: String): Result<Unit> {
-        if (apiService != null) {
-            try {
-                val res = apiService.forgotPassword(ForgotPasswordRequestDto(email))
-                if (res.isSuccessful) return Result.success(Unit)
-            } catch (_: Exception) {}
-        }
-        delay(600)
+        delay(300)
         return if (email.contains("@")) Result.success(Unit) else Result.failure(IllegalArgumentException("Invalid email address"))
     }
 
     override suspend fun verifyEmail(email: String, code: String): Result<Boolean> {
-        if (apiService != null) {
-            try {
-                val res = apiService.verifyEmail(VerifyEmailRequestDto(email, code))
-                if (res.isSuccessful && res.body()?.data == true) {
-                    _currentUser.value = _currentUser.value?.copy(isVerified = true)
-                    return Result.success(true)
-                }
-            } catch (_: Exception) {}
-        }
-        delay(600)
+        delay(300)
         return if (code.length == 6) {
             _currentUser.value = _currentUser.value?.copy(isVerified = true)
             Result.success(true)
@@ -200,42 +147,24 @@ class DevAuthRepositoryImpl(
         maxBudget: Double?,
         preferredLocation: String?
     ): Result<User> {
-        var updatedUser = _currentUser.value?.copy(
-            name = name,
-            university = university,
-            bio = bio,
+        delay(300)
+        val updatedUser = _currentUser.value?.copy(
+            name = name.trim(),
+            university = university.trim(),
+            bio = bio.trim(),
             preferredLeaseTerm = preferredLeaseTerm ?: (_currentUser.value?.preferredLeaseTerm ?: "Summer 2025"),
             maxBudget = maxBudget ?: (_currentUser.value?.maxBudget ?: 15000.0),
-            preferredLocation = preferredLocation ?: (_currentUser.value?.preferredLocation ?: "Adyar / IIT Campus"),
+            preferredLocation = preferredLocation ?: (_currentUser.value?.preferredLocation ?: "Near Campus / Metro"),
             hasCompletedQuiz = true
         ) ?: User(
             id = "usr_dev_101",
-            name = name,
-            email = appPreferences?.userEmail ?: "alex.morgan@university.edu",
-            university = university,
+            name = name.trim(),
+            email = appPreferences?.userEmail ?: "student@university.edu",
+            university = university.trim(),
             isVerified = true,
-            bio = bio,
+            bio = bio.trim(),
             hasCompletedQuiz = true
         )
-
-        if (apiService != null) {
-            try {
-                val req = UpdateProfileRequestDto(
-                    name = name,
-                    university = university,
-                    bio = bio,
-                    preferredLeaseTerm = preferredLeaseTerm,
-                    maxBudget = maxBudget,
-                    preferredLocation = preferredLocation
-                )
-                val res = apiService.updateUserProfile(req)
-                if (res.isSuccessful && res.body()?.data != null) {
-                    updatedUser = res.body()!!.data!!.toDomain()
-                }
-            } catch (_: Exception) {}
-        }
-
-        delay(600)
 
         appPreferences?.savedName = updatedUser.name
         appPreferences?.savedUniversity = updatedUser.university
@@ -244,6 +173,7 @@ class DevAuthRepositoryImpl(
         appPreferences?.savedMaxBudget = updatedUser.maxBudget
         appPreferences?.savedPreferredLocation = updatedUser.preferredLocation
 
+        com.example.syncmate.data.firestore.SyncMateFirestore.saveUser(updatedUser)
         _currentUser.value = updatedUser
         return Result.success(updatedUser)
     }

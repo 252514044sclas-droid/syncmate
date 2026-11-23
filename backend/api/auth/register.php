@@ -17,12 +17,22 @@ $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 $isVerified = 1;
 
 try {
-    $stmt = $pdo->prepare("INSERT INTO users (id, name, email, password_hash, university, is_verified) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = ?, university = ?, password_hash = ?");
-    $stmt->execute([$userId, $name, $email, $passwordHash, $university, $isVerified, $name, $university, $passwordHash]);
+    if (!$pdo) {
+        throw new Exception("Database connection is not available.");
+    }
+
+    $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+    if ($driver === 'sqlite') {
+        $stmt = $pdo->prepare("INSERT INTO users (id, name, email, password_hash, university, is_verified) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(email) DO UPDATE SET name = excluded.name, university = excluded.university, password_hash = excluded.password_hash");
+        $stmt->execute([$userId, $name, $email, $passwordHash, $university, $isVerified]);
+    } else {
+        $stmt = $pdo->prepare("INSERT INTO users (id, name, email, password_hash, university, is_verified) VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = ?, university = ?, password_hash = ?");
+        $stmt->execute([$userId, $name, $email, $passwordHash, $university, $isVerified, $name, $university, $passwordHash]);
+    }
 
     echo json_encode([
         "status" => "success",
-        "message" => "User registered and stored in MySQL successfully",
+        "message" => "User registered successfully",
         "data" => [
             "token" => "token_subletsync_" . md5($email),
             "user" => [
@@ -38,7 +48,7 @@ try {
             ]
         ]
     ]);
-} catch (PDOException $e) {
+} catch (Exception $e) {
     echo json_encode([
         "status" => "error",
         "message" => "Database error: " . $e->getMessage()

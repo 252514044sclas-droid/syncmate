@@ -10,6 +10,11 @@ sealed class Screen(val route: String) {
     object Home : Screen("home")
     object Dashboard : Screen("dashboard")
     object Roommates : Screen("roommates")
+    object RoommateProfile : Screen("roommate_profile/{userId}") {
+        fun createRoute(userId: String) = "roommate_profile/$userId"
+    }
+    object RoommateRequests : Screen("roommate_requests")
+    object IncomingRequests : Screen("incoming_requests")
     object OnboardingQuiz : Screen("onboarding_quiz")
     object Search : Screen("search")
     object Filters : Screen("filters")

@@ -11,6 +11,9 @@ if (empty($email) || empty($password)) {
 }
 
 try {
+    if (!$pdo) {
+        throw new Exception("Database connection is not available.");
+    }
     $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
     $stmt->execute([$email]);
     $user = $stmt->fetch();

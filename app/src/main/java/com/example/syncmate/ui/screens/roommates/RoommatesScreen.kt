@@ -22,10 +22,22 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,19 +46,19 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.syncmate.data.local.AppPreferences
-import com.example.syncmate.data.model.RoommatePreferences
-import com.example.syncmate.data.model.RoommateProfile
-import com.example.syncmate.ui.components.AppHeader
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.syncmate.data.model.RoommateMatchProfile
+import com.example.syncmate.data.model.User
 import com.example.syncmate.ui.components.GlassCard
 import com.example.syncmate.ui.components.PrimaryButton
 import com.example.syncmate.ui.components.SecondaryButton
 import com.example.syncmate.ui.components.StatBadge
+import com.example.syncmate.ui.theme.EmeraldGreenPrimary
 import com.example.syncmate.ui.theme.EmeraldSuccess
 import com.example.syncmate.ui.theme.IndigoPrimary
 import com.example.syncmate.ui.theme.SlateBackground
@@ -55,137 +67,35 @@ import com.example.syncmate.ui.theme.SlateCardBorder
 import com.example.syncmate.ui.theme.TextPrimary
 import com.example.syncmate.ui.theme.TextSecondary
 import com.example.syncmate.util.CurrencyFormatter
-import kotlin.math.abs
-
-fun calculateQuizSynergy(userPrefs: RoommatePreferences?, roommate: RoommateProfile): Int {
-    if (userPrefs == null) return roommate.compatibilityPercentage
-
-    var score = 78
-
-    // 1. Sleep Schedule match
-    if (userPrefs.sleepSchedule.isNotBlank()) {
-        if (userPrefs.sleepSchedule.contains("Early", ignoreCase = true) && roommate.lifestyleRhythm.contains("Early", ignoreCase = true)) {
-            score += 8
-        } else if (userPrefs.sleepSchedule.contains("Night", ignoreCase = true) && roommate.lifestyleRhythm.contains("Night", ignoreCase = true)) {
-            score += 8
-        }
-    }
-
-    // 2. Smoking policy match
-    if (userPrefs.smokingOption == false && roommate.lifestyleRhythm.contains("Non-Smoker", ignoreCase = true)) {
-        score += 7
-    }
-
-    // 3. Noise & Study match
-    if (userPrefs.noiseTolerance.isNotBlank() && roommate.lifestyleRhythm.contains("Quiet", ignoreCase = true)) {
-        score += 6
-    }
-
-    // 4. Budget proximity
-    if (userPrefs.maxBudgetINR > 0) {
-        val diff = abs(userPrefs.maxBudgetINR - roommate.maxBudgetMonthly)
-        if (diff <= 3000) score += 5
-    }
-
-    return score.coerceIn(75, 98)
-}
+import com.example.syncmate.viewmodel.RoommateMatchViewModel
 
 @Composable
 fun RoommatesScreen(
+    viewModel: RoommateMatchViewModel,
+    onNavigateToProfile: (String) -> Unit,
+    onNavigateToRequests: () -> Unit,
     onNavigateToChat: () -> Unit,
     onNavigateToQuiz: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
-    val context = LocalContext.current
-    val appPreferences = remember { AppPreferences(context) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val haptic = LocalHapticFeedback.current
 
-    var selectedFilter by remember { mutableStateOf("All Matches") }
-    var selectedRoommateIds by remember { mutableStateOf(setOf<String>()) }
-
-    // Retrieve Quiz preferences saved by the student
-    val userQuizPreferences = remember {
-        RoommatePreferences(
-            sleepSchedule = appPreferences.savedPreferredLease ?: "",
-            maxBudgetINR = appPreferences.savedMaxBudget
-        )
-    }
-
-    val sampleRoommates = remember {
-        listOf(
-            RoommateProfile(
-                id = "rm_1",
-                name = "Maya Lin",
-                university = "Anna University '26",
-                compatibilityPercentage = 96,
-                matchReason = "Matches your quiet study hours & budget",
-                lifestyleRhythm = "Early Riser • Non-Smoker • Quiet Study",
-                maxBudgetMonthly = 12000.0,
-                preferredLocation = "Adyar / Guindy",
-                bio = "CS junior looking for a clean, peaceful sublet room for summer internship."
-            ),
-            RoommateProfile(
-                id = "rm_2",
-                name = "Jordan Patel",
-                university = "IIT Madras '25",
-                compatibilityPercentage = 91,
-                matchReason = "Similar lease term & campus quadrant",
-                lifestyleRhythm = "Night Owl • Quiet & Organized",
-                maxBudgetMonthly = 16500.0,
-                preferredLocation = "Koramangala, Bengaluru",
-                bio = "Grad student in ECE. Friendly, respectful, and loves cooking on weekends."
-            ),
-            RoommateProfile(
-                id = "rm_3",
-                name = "Chloe Bennett",
-                university = "Delhi University '25",
-                compatibilityPercentage = 88,
-                matchReason = "Shared campus commute & budget preference",
-                lifestyleRhythm = "Flexible • Social & Clean",
-                maxBudgetMonthly = 14000.0,
-                preferredLocation = "North Campus, Delhi",
-                bio = "Commerce major looking for a sublet roommate near North Campus."
-            ),
-            RoommateProfile(
-                id = "rm_4",
-                name = "Rohan Sharma",
-                university = "IIT Bombay '26",
-                compatibilityPercentage = 85,
-                matchReason = "Loves quiet study hours & gym rhythm",
-                lifestyleRhythm = "Early Riser • Non-Smoker • Gym",
-                maxBudgetMonthly = 18000.0,
-                preferredLocation = "Powai, Mumbai",
-                bio = "Mechanical Engineering senior looking for a clean studio or 2BHK roommate near IIT gate."
-            ),
-            RoommateProfile(
-                id = "rm_5",
-                name = "Priya Nair",
-                university = "Symbiosis Pune '26",
-                compatibilityPercentage = 93,
-                matchReason = "Matches budget & non-smoking preference",
-                lifestyleRhythm = "Quiet Study • Non-Smoker • Veg",
-                maxBudgetMonthly = 13500.0,
-                preferredLocation = "Viman Nagar, Pune",
-                bio = "MBA student looking for a friendly roommate to share 2BHK sublet near Symbiosis."
-            )
-        )
-    }
-
-    val evaluatedRoommates = remember(userQuizPreferences, sampleRoommates) {
-        sampleRoommates.map { roommate ->
-            val dynamicScore = calculateQuizSynergy(userQuizPreferences, roommate)
-            roommate.copy(compatibilityPercentage = dynamicScore)
-        }.sortedByDescending { it.compatibilityPercentage }
-    }
+    var showIntroDialogForUser by remember { mutableStateOf<User?>(null) }
+    var introMessageText by remember { mutableStateOf("") }
 
     val filterOptions = listOf("All Matches", "90%+ Synergy", "Early Riser", "Quiet Study")
 
-    val filteredList = remember(selectedFilter, evaluatedRoommates) {
-        when (selectedFilter) {
-            "90%+ Synergy" -> evaluatedRoommates.filter { it.compatibilityPercentage >= 90 }
-            "Early Riser" -> evaluatedRoommates.filter { it.lifestyleRhythm.contains("Early Riser", ignoreCase = true) }
-            "Quiet Study" -> evaluatedRoommates.filter { it.lifestyleRhythm.contains("Quiet", ignoreCase = true) }
-            else -> evaluatedRoommates
+    val filteredList = remember(uiState.selectedFilter, uiState.roommates) {
+        when (uiState.selectedFilter) {
+            "90%+ Synergy" -> uiState.roommates.filter { it.compatibilityPercentage >= 90 }
+            "Early Riser" -> uiState.roommates.filter {
+                it.user.roommatePreferences?.sleepSchedule?.contains("Early", ignoreCase = true) == true
+            }
+            "Quiet Study" -> uiState.roommates.filter {
+                it.user.roommatePreferences?.noiseTolerance?.contains("Quiet", ignoreCase = true) == true
+            }
+            else -> uiState.roommates
         }
     }
 
@@ -195,10 +105,81 @@ fun RoommatesScreen(
             .background(SlateBackground)
             .safeDrawingPadding()
     ) {
-        AppHeader(
-            title = "AI Compatible Roommates",
-            onBackClick = onNavigateBack
-        )
+        // Custom Top-Bar with Live Requests Counter Badge
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onNavigateBack) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = TextPrimary
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "AI Compatible Roommates",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+            }
+
+            // Clearly Visible Connection Requests Button with Live BadgedBox
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(if (uiState.pendingIncomingCount > 0) EmeraldSuccess.copy(alpha = 0.15f) else SlateCard)
+                    .border(
+                        1.dp,
+                        if (uiState.pendingIncomingCount > 0) EmeraldSuccess.copy(alpha = 0.5f) else SlateCardBorder,
+                        RoundedCornerShape(20.dp)
+                    )
+                    .clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onNavigateToRequests()
+                    }
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BadgedBox(
+                        badge = {
+                            if (uiState.pendingIncomingCount > 0) {
+                                Badge(
+                                    containerColor = EmeraldSuccess,
+                                    contentColor = Color.White
+                                ) {
+                                    Text(
+                                        text = uiState.pendingIncomingCount.toString(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Group,
+                            contentDescription = "Roommate Requests",
+                            tint = if (uiState.pendingIncomingCount > 0) EmeraldSuccess else TextPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Requests",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (uiState.pendingIncomingCount > 0) EmeraldSuccess else TextPrimary
+                    )
+                }
+            }
+        }
 
         Column(
             modifier = Modifier
@@ -212,14 +193,14 @@ fun RoommatesScreen(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Select Student Roommates",
+                        text = "Real-Time Roommates",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
                     )
 
                     Text(
-                        text = "Matched using your 10-question Onboarding Quiz answers.",
+                        text = "Live neural compatibility scored via our self-trained MLPRegressor.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary,
                         modifier = Modifier.padding(top = 2.dp)
@@ -245,7 +226,7 @@ fun RoommatesScreen(
                 contentPadding = PaddingValues(bottom = 16.dp)
             ) {
                 items(filterOptions) { filter ->
-                    val isSelected = filter == selectedFilter
+                    val isSelected = filter == uiState.selectedFilter
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(20.dp))
@@ -257,7 +238,7 @@ fun RoommatesScreen(
                             )
                             .clickable {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                selectedFilter = filter
+                                viewModel.setFilter(filter)
                             }
                             .padding(horizontal = 14.dp, vertical = 8.dp)
                     ) {
@@ -271,128 +252,279 @@ fun RoommatesScreen(
                 }
             }
 
-            LazyColumn(
-                contentPadding = PaddingValues(bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.weight(1f)
-            ) {
-                items(filteredList, key = { it.id }) { roommate ->
-                    val isSelectedRoommate = selectedRoommateIds.contains(roommate.id)
-
-                    GlassCard(
-                        modifier = Modifier.fillMaxWidth()
+            if (uiState.isLoading && uiState.roommates.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = IndigoPrimary)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "Calculating live neural synergy scores...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextSecondary
+                        )
+                    }
+                }
+            } else if (filteredList.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(24.dp)
                     ) {
-                        Column(modifier = Modifier.padding(18.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .clip(CircleShape)
-                                            .background(IndigoPrimary.copy(alpha = 0.2f)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Person,
-                                            contentDescription = roommate.name,
-                                            tint = IndigoPrimary,
-                                            modifier = Modifier.size(28.dp)
-                                        )
+                        Icon(
+                            imageVector = Icons.Default.Group,
+                            contentDescription = null,
+                            tint = TextSecondary,
+                            modifier = Modifier.size(56.dp)
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "No Roommates Discovered Yet",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "As new students join and complete the 10-question Onboarding Quiz, they will appear here in real time.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextSecondary,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    items(filteredList, key = { it.user.id }) { roommate ->
+                        RoommateCard(
+                            roommate = roommate,
+                            onCardClick = { onNavigateToProfile(roommate.user.id) },
+                            onRequestClick = {
+                                when (roommate.requestStatus) {
+                                    "NONE" -> {
+                                        showIntroDialogForUser = roommate.user
+                                        introMessageText = "Hi ${roommate.user.name}, let's team up for a sublet near campus!"
                                     }
-
-                                    Spacer(modifier = Modifier.width(12.dp))
-
-                                    Column {
-                                        Text(
-                                            text = roommate.name,
-                                            style = MaterialTheme.typography.titleLarge,
-                                            fontWeight = FontWeight.Bold,
-                                            color = TextPrimary
-                                        )
-                                        Text(
-                                            text = roommate.university,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = TextSecondary
-                                        )
+                                    "PENDING_RECEIVED" -> {
+                                        onNavigateToRequests()
+                                    }
+                                    "ACCEPTED" -> {
+                                        onNavigateToChat()
                                     }
                                 }
+                            },
+                            onChatClick = onNavigateToChat
+                        )
+                    }
+                }
+            }
+        }
+    }
 
-                                StatBadge(
-                                    text = "${roommate.compatibilityPercentage}% MATCH",
-                                    backgroundColor = EmeraldSuccess
-                                )
-                            }
+    // Intro Message Dialog
+    if (showIntroDialogForUser != null) {
+        val targetUser = showIntroDialogForUser!!
+        AlertDialog(
+            onDismissRequest = { showIntroDialogForUser = null },
+            title = {
+                Text(
+                    text = "Send Roommate Request",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        text = "Introduce yourself to ${targetUser.name} (${targetUser.university}):",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = introMessageText,
+                        onValueChange = { introMessageText = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Add an intro note...", color = TextSecondary) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = IndigoPrimary,
+                            unfocusedBorderColor = SlateCardBorder,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary
+                        ),
+                        maxLines = 4
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.sendRoommateRequest(targetUser, introMessageText)
+                        showIntroDialogForUser = null
+                    }
+                ) {
+                    Text("Send Request", color = IndigoPrimary, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showIntroDialogForUser = null }) {
+                    Text("Cancel", color = TextSecondary)
+                }
+            },
+            containerColor = SlateCard
+        )
+    }
+}
 
-                            Spacer(modifier = Modifier.height(12.dp))
+@Composable
+fun RoommateCard(
+    roommate: RoommateMatchProfile,
+    onCardClick: () -> Unit,
+    onRequestClick: () -> Unit,
+    onChatClick: () -> Unit
+) {
+    val budgetAmount = roommate.user.roommatePreferences?.maxBudgetINR ?: roommate.user.maxBudget
 
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCardClick() }
+    ) {
+        Column(modifier = Modifier.padding(18.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(50.dp)
+                            .clip(CircleShape)
+                            .background(IndigoPrimary.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = roommate.user.name,
+                            tint = IndigoPrimary,
+                            modifier = Modifier.size(30.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "💡 " + roommate.matchReason,
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = IndigoPrimary
-                            )
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Text(
-                                text = roommate.bio,
-                                style = MaterialTheme.typography.bodyMedium,
+                                text = roommate.user.name,
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
                                 color = TextPrimary
                             )
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Budget: ${CurrencyFormatter.formatMonthlyRent(roommate.maxBudgetMonthly)}",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = IndigoPrimary
-                                )
-
-                                Text(
-                                    text = "Area: ${roommate.preferredLocation}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = TextSecondary
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                PrimaryButton(
-                                    text = if (isSelectedRoommate) "✓ Roommate Selected" else "Select as Roommate",
-                                    onClick = {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        selectedRoommateIds = if (isSelectedRoommate) {
-                                            selectedRoommateIds - roommate.id
-                                        } else {
-                                            selectedRoommateIds + roommate.id
-                                        }
-                                    },
-                                    modifier = Modifier.weight(1f)
-                                )
-
-                                SecondaryButton(
-                                    text = "Chat",
-                                    onClick = onNavigateToChat,
-                                    modifier = Modifier.width(90.dp)
+                            if (roommate.user.isVerified) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = "Verified University Student",
+                                    tint = EmeraldSuccess,
+                                    modifier = Modifier.size(16.dp)
                                 )
                             }
                         }
+                        Text(
+                            text = roommate.user.university,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextSecondary
+                        )
                     }
                 }
+
+                StatBadge(
+                    text = "${roommate.compatibilityPercentage}% SYNERGY",
+                    backgroundColor = EmeraldSuccess
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "💡 " + roommate.matchReason,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = IndigoPrimary
+            )
+
+            if (roommate.user.bio.isNotBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = roommate.user.bio,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextPrimary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Budget: ${CurrencyFormatter.formatMonthlyRent(budgetAmount)}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = IndigoPrimary
+                )
+
+                Text(
+                    text = "Area: ${roommate.user.preferredLocation}",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                val buttonText = when (roommate.requestStatus) {
+                    "PENDING_SENT" -> "✓ Request Sent"
+                    "PENDING_RECEIVED" -> "Review Request"
+                    "ACCEPTED" -> "Connected • Chat"
+                    else -> "Send Roommate Request"
+                }
+
+                PrimaryButton(
+                    text = buttonText,
+                    onClick = onRequestClick,
+                    enabled = roommate.requestStatus != "PENDING_SENT",
+                    modifier = Modifier.weight(1f)
+                )
+
+                SecondaryButton(
+                    text = "Profile",
+                    onClick = onCardClick,
+                    modifier = Modifier.width(90.dp)
+                )
             }
         }
     }

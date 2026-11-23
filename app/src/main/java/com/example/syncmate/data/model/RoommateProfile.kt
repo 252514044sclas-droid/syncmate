@@ -5,11 +5,21 @@ data class RoommateProfile(
     val name: String,
     val university: String,
     val avatarUrl: String? = null,
-    val compatibilityPercentage: Int,
-    val matchReason: String,
-    val lifestyleRhythm: String, // e.g. "Early Riser • Clean & Quiet"
-    val maxBudgetMonthly: Double,
-    val preferredLocation: String,
+    val compatibilityPercentage: Int = 85,
+    val matchReason: String = "",
+    val lifestyleRhythm: String = "",
+    val maxBudgetMonthly: Double = 15000.0,
+    val preferredLocation: String = "",
     val isSaved: Boolean = false,
     val bio: String = ""
+)
+
+data class RoommateMatchProfile(
+    val user: User,
+    val compatibilityPercentage: Int = 85,
+    val matchReason: String = "",
+    val whyYouMatch: List<String> = emptyList(),
+    val dimensionScores: Map<String, Int> = emptyMap(),
+    val requestStatus: String = "NONE", // NONE, PENDING_SENT, PENDING_RECEIVED, ACCEPTED, DECLINED
+    val requestId: String? = null
 )
