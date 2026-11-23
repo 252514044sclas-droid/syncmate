@@ -2,6 +2,7 @@ package com.example.syncmate.ui.screens.roommates
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,9 +22,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -102,18 +105,98 @@ fun IncomingRequestsScreen(
             Spacer(modifier = Modifier.width(8.dp))
             Column {
                 Text(
-                    text = "Incoming Roommate Requests",
+                    text = "Roommate Connection Requests",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary
                 )
                 Text(
-                    text = "${uiState.pendingCount} pending compatibility request${if (uiState.pendingCount == 1) "" else "s"}",
+                    text = "${uiState.incomingRequests.size} incoming • ${uiState.sentRequests.size} sent from device",
                     style = MaterialTheme.typography.labelSmall,
                     color = TextSecondary
                 )
             }
         }
+
+        // Tab Selector Row: Incoming vs Sent Requests
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            val isIncomingSelected = uiState.selectedTab == "Incoming"
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (isIncomingSelected) IndigoPrimary else SlateCard)
+                    .border(
+                        width = 1.dp,
+                        color = if (isIncomingSelected) IndigoPrimary else SlateCardBorder,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    .clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.setSelectedTab("Incoming")
+                    }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Inbox,
+                        contentDescription = null,
+                        tint = if (isIncomingSelected) MaterialTheme.colorScheme.onPrimary else TextPrimary,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Incoming (${uiState.incomingRequests.size})",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isIncomingSelected) MaterialTheme.colorScheme.onPrimary else TextPrimary
+                    )
+                }
+            }
+
+            val isSentSelected = uiState.selectedTab == "Sent"
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (isSentSelected) IndigoPrimary else SlateCard)
+                    .border(
+                        width = 1.dp,
+                        color = if (isSentSelected) IndigoPrimary else SlateCardBorder,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    .clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.setSelectedTab("Sent")
+                    }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = null,
+                        tint = if (isSentSelected) MaterialTheme.colorScheme.onPrimary else TextPrimary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "Sent (${uiState.sentRequests.size})",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isSentSelected) MaterialTheme.colorScheme.onPrimary else TextPrimary
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(6.dp))
 
         // Action Message Toast Banner
         if (uiState.actionMessage != null) {
@@ -156,7 +239,7 @@ fun IncomingRequestsScreen(
                     CircularProgressIndicator(color = IndigoPrimary)
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "Loading real-time incoming requests...",
+                        text = "Loading real-time connection requests...",
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary
                     )
@@ -183,17 +266,17 @@ fun IncomingRequestsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Inbox,
+                            imageVector = if (uiState.selectedTab == "Sent") Icons.Default.Send else Icons.Default.Inbox,
                             contentDescription = null,
                             tint = IndigoPrimary,
-                            modifier = Modifier.size(38.dp)
+                            modifier = Modifier.size(36.dp)
                         )
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "No Pending Incoming Requests",
+                        text = if (uiState.selectedTab == "Sent") "No Sent Requests Yet" else "No Pending Incoming Requests",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary
@@ -202,7 +285,10 @@ fun IncomingRequestsScreen(
                     Spacer(modifier = Modifier.height(8.dp))
 
                     Text(
-                        text = "When other verified university students discover your profile and want to connect as roommates, their requests will appear here in real time.",
+                        text = if (uiState.selectedTab == "Sent")
+                            "When you send connection requests to roommate candidates, they will appear here with live status tracking."
+                        else
+                            "When other verified university students discover your profile and want to connect as roommates, their requests will appear here in real time.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary,
                         modifier = Modifier.padding(horizontal = 16.dp)
@@ -219,7 +305,8 @@ fun IncomingRequestsScreen(
                 items(uiState.requests, key = { it.request.requestId }) { item ->
                     IncomingRequestCard(
                         item = item,
-                        onViewProfile = { onNavigateToProfile(item.request.senderId) },
+                        isSentTab = uiState.selectedTab == "Sent",
+                        onViewProfile = { onNavigateToProfile(if (uiState.selectedTab == "Sent") item.request.receiverId else item.request.senderId) },
                         onAccept = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             viewModel.acceptRequest(item.request.requestId)
@@ -227,7 +314,8 @@ fun IncomingRequestsScreen(
                         onDecline = {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             viewModel.declineRequest(item.request.requestId)
-                        }
+                        },
+                        onOpenChat = onNavigateToChat
                     )
                 }
             }
@@ -238,17 +326,21 @@ fun IncomingRequestsScreen(
 @Composable
 fun IncomingRequestCard(
     item: IncomingRequestUiModel,
+    isSentTab: Boolean,
     onViewProfile: () -> Unit,
     onAccept: () -> Unit,
-    onDecline: () -> Unit
+    onDecline: () -> Unit,
+    onOpenChat: () -> Unit
 ) {
     val req = item.request
+    val displayName = if (isSentTab) req.receiverName else req.senderName
+    val displayUni = if (isSentTab) "Sent to Campus Partner" else "${req.senderUniversity} • .edu Verified"
 
     GlassCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(18.dp)) {
-            // Header Row: Sender Details & Neural Compatibility Score
+            // Header Row: Sender/Receiver Details & Neural Compatibility Score
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -264,7 +356,7 @@ fun IncomingRequestCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Person,
-                            contentDescription = req.senderName,
+                            contentDescription = displayName,
                             tint = IndigoPrimary,
                             modifier = Modifier.size(28.dp)
                         )
@@ -275,7 +367,7 @@ fun IncomingRequestCard(
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = req.senderName,
+                                text = displayName,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = TextPrimary
@@ -292,7 +384,7 @@ fun IncomingRequestCard(
                         }
 
                         Text(
-                            text = "${req.senderUniversity} • .edu Verified",
+                            text = displayUni,
                             style = MaterialTheme.typography.bodySmall,
                             color = TextSecondary
                         )
@@ -307,14 +399,30 @@ fun IncomingRequestCard(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Top Matching Lifestyle Traits (8-Dimension Preview)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                LifestyleTraitPill(label = "Rhythm", value = item.sleepSchedule)
-                LifestyleTraitPill(label = "Cleanliness", value = "${item.cleanlinessRating}/5")
-                LifestyleTraitPill(label = "Budget", value = CurrencyFormatter.formatMonthlyRent(item.budgetINR))
+            // Status Badge for Sent Requests
+            if (isSentTab) {
+                val statusText = when (req.status) {
+                    "ACCEPTED" -> "✓ ACCEPTED • CHAT UNLOCKED"
+                    "DECLINED" -> "DECLINED"
+                    else -> "⏳ CONNECTION PENDING"
+                }
+                val statusColor = when (req.status) {
+                    "ACCEPTED" -> EmeraldSuccess
+                    "DECLINED" -> RoseError
+                    else -> IndigoPrimary
+                }
+                StatBadge(text = statusText, backgroundColor = statusColor)
+                Spacer(modifier = Modifier.height(10.dp))
+            } else {
+                // Top Matching Lifestyle Traits (8-Dimension Preview)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    LifestyleTraitPill(label = "Rhythm", value = item.sleepSchedule)
+                    LifestyleTraitPill(label = "Cleanliness", value = "${item.cleanlinessRating}/5")
+                    LifestyleTraitPill(label = "Budget", value = CurrencyFormatter.formatMonthlyRent(item.budgetINR))
+                }
             }
 
             // Intro Note Sent With Request
@@ -352,28 +460,48 @@ fun IncomingRequestCard(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 3 Actions: View Profile, Accept, Decline
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                PrimaryButton(
-                    text = "Accept",
-                    onClick = onAccept,
-                    modifier = Modifier.weight(1.2f)
-                )
+            // Actions
+            if (isSentTab) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (req.status == "ACCEPTED") {
+                        PrimaryButton(
+                            text = "Chat Now",
+                            onClick = onOpenChat,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    SecondaryButton(
+                        text = "View Profile",
+                        onClick = onViewProfile,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    PrimaryButton(
+                        text = "Accept",
+                        onClick = onAccept,
+                        modifier = Modifier.weight(1.2f)
+                    )
 
-                SecondaryButton(
-                    text = "Decline",
-                    onClick = onDecline,
-                    modifier = Modifier.weight(1f)
-                )
+                    SecondaryButton(
+                        text = "Decline",
+                        onClick = onDecline,
+                        modifier = Modifier.weight(1f)
+                    )
 
-                SecondaryButton(
-                    text = "View Profile",
-                    onClick = onViewProfile,
-                    modifier = Modifier.weight(1.2f)
-                )
+                    SecondaryButton(
+                        text = "View Profile",
+                        onClick = onViewProfile,
+                        modifier = Modifier.weight(1.2f)
+                    )
+                }
             }
         }
     }
