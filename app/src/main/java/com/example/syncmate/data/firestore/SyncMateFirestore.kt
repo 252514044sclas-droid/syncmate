@@ -188,7 +188,14 @@ object SyncMateFirestore {
         onUpdate: (List<User>) -> Unit
     ): ListenerRegistration {
         val listener: (List<User>) -> Unit = { allUsers ->
-            val filtered = allUsers.filter { it.hasCompletedQuiz && it.id != currentUserId }
+            val currentUserObj = allUsers.firstOrNull { it.id == currentUserId }
+            val currentUserName = currentUserObj?.name ?: ""
+
+            val filtered = allUsers.filter { user ->
+                user.hasCompletedQuiz &&
+                user.id != currentUserId &&
+                (currentUserName.isBlank() || !user.name.equals(currentUserName, ignoreCase = true))
+            }
             onUpdate(filtered)
         }
         userListeners.add(listener)
@@ -308,6 +315,7 @@ object SyncMateFirestore {
                 map[r.requestId] = r
             }
             _requestsCollection.value = map
+            notifyRequestListeners()
         }
     }
 
