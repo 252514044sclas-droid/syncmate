@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.abs
 
 data class RoommateMatchUiState(
     val roommates: List<RoommateMatchProfile> = emptyList(),
@@ -57,6 +58,8 @@ class RoommateMatchViewModel(
                 id = "usr_dev_101",
                 name = appPreferences.savedName ?: "Alex Morgan",
                 university = appPreferences.savedUniversity ?: "Anna University '26",
+                email = appPreferences.userEmail ?: "student@university.edu",
+                isVerified = true,
                 maxBudget = appPreferences.savedMaxBudget,
                 hasCompletedQuiz = true,
                 roommatePreferences = RoommatePreferences(
@@ -218,7 +221,15 @@ class RoommateMatchViewModel(
 
     fun sendRoommateRequest(candidate: User, introMessage: String) {
         viewModelScope.launch {
-            val currentUser = authRepository.currentUserFlow.firstOrNull() ?: return@launch
+            val currentUser = authRepository.currentUserFlow.firstOrNull() ?: User(
+                id = "usr_dev_101",
+                name = appPreferences.savedName ?: "Alex Morgan",
+                university = appPreferences.savedUniversity ?: "Anna University '26",
+                email = appPreferences.userEmail ?: "student@university.edu",
+                isVerified = true,
+                maxBudget = appPreferences.savedMaxBudget
+            )
+
             val profile = _uiState.value.roommates.firstOrNull { it.user.id == candidate.id }
             val score = profile?.compatibilityPercentage ?: 90
 
@@ -250,7 +261,7 @@ class RoommateMatchViewModel(
     private fun calculateLocalSynergy(
         u1: User,
         u2: User
-    ): Quadruple<Int, String, List<String>, Map<String, Int>> {
+    ): SynergyResult {
         var score = 82
         val reasons = mutableListOf<String>()
 
@@ -264,7 +275,7 @@ class RoommateMatchViewModel(
 
         val c1 = u1.roommatePreferences?.cleanlinessRating ?: 4
         val c2 = u2.roommatePreferences?.cleanlinessRating ?: 4
-        val cleanScore = if (kotlin.math.abs(c1 - c2) <= 1) {
+        val cleanScore = if (abs(c1 - c2) <= 1) {
             score += 5
             reasons.add("High cleanliness harmony ($c1/5 vs $c2/5)")
             94
@@ -272,7 +283,7 @@ class RoommateMatchViewModel(
 
         val b1 = u1.roommatePreferences?.maxBudgetINR ?: u1.maxBudget
         val b2 = u2.roommatePreferences?.maxBudgetINR ?: u2.maxBudget
-        val diff = kotlin.math.abs(b1 - b2).toInt()
+        val diff = abs(b1 - b2).toInt()
         val budgetScore = if (diff <= 3500) {
             score += 5
             reasons.add("Budget overlap within ₹$diff in INR")
@@ -291,7 +302,7 @@ class RoommateMatchViewModel(
             "Sharing Style" to 90,
             "Budget Overlap" to budgetScore
         )
-        return Quadruple(finalScore, matchReason, reasons, dimMap)
+        return SynergyResult(finalScore, matchReason, reasons, dimMap)
     }
 
     override fun onCleared() {
@@ -301,4 +312,9 @@ class RoommateMatchViewModel(
     }
 }
 
-data class Quadruple<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
+data class SynergyResult(
+    val first: Int,
+    val second: String,
+    val third: List<String>,
+    val fourth: Map<String, Int>
+)
