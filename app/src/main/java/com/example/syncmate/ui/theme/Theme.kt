@@ -5,6 +5,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -20,7 +21,7 @@ fun SyncmateTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            val bgColor = colorScheme.background.toArgb()
+            val bgColor = (if (darkTheme) DarkBackground else LightBackground).toArgb()
             window.statusBarColor = bgColor
             window.navigationBarColor = bgColor
 
@@ -35,4 +36,13 @@ fun SyncmateTheme(
         typography = AppTypography,
         content = content
     )
+}
+
+// Backward-compatible alias
+@Composable
+fun SyncMateTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit
+) {
+    SyncmateTheme(darkTheme = darkTheme, content = content)
 }

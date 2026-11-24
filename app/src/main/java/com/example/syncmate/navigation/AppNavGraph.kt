@@ -22,6 +22,7 @@ import com.example.syncmate.data.repository.MockFakeListingRepositoryImpl
 import com.example.syncmate.data.repository.MockHousingRepositoryImpl
 import com.example.syncmate.data.repository.MockPredictionRepositoryImpl
 import com.example.syncmate.data.repository.NetworkChatRepositoryImpl
+import com.example.syncmate.ui.components.AmbientLiveBackground
 import com.example.syncmate.ui.screens.chat.ChatListScreen
 import com.example.syncmate.ui.screens.chat.ChatScreen
 import com.example.syncmate.ui.screens.chat.DirectChatScreen
@@ -121,10 +122,13 @@ fun AppNavGraph(
     SyncmateTheme(
         darkTheme = settingsUiState.darkModeEnabled
     ) {
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Loading.route
+        AmbientLiveBackground(
+            darkTheme = settingsUiState.darkModeEnabled
         ) {
+            NavHost(
+                navController = navController,
+                startDestination = Screen.Loading.route
+            ) {
             // 1. Loading Screen
             composable(Screen.Loading.route) {
                 LoadingScreen(
@@ -574,6 +578,7 @@ fun AppNavGraph(
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
+        }
         }
     }
 }

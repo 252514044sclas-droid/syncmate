@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -39,11 +40,20 @@ fun Modifier.shimmerLoading(): Modifier = composed {
         label = "shimmer_anim"
     )
 
-    val shimmerColors = listOf(
-        Color(0xFF1E293B),
-        Color(0xFF334155),
-        Color(0xFF1E293B)
-    )
+    val isLight = MaterialTheme.colorScheme.background.red > 0.5f
+    val shimmerColors = if (isLight) {
+        listOf(
+            Color(0xFFEDE2D2),
+            Color(0xFFFAF7F2),
+            Color(0xFFEDE2D2)
+        )
+    } else {
+        listOf(
+            Color(0xFF141210),
+            Color(0xFF26221D),
+            Color(0xFF141210)
+        )
+    }
 
     val brush = Brush.linearGradient(
         colors = shimmerColors,

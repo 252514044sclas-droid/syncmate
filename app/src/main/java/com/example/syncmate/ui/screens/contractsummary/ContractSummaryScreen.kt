@@ -206,8 +206,8 @@ fun ContractSummaryScreen(
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Surface(
                                     shape = RoundedCornerShape(10.dp),
-                                    color = Color(0xFF0F172A),
-                                    border = BorderStroke(1.dp, Color(0xFF334155))
+                                    color = MaterialTheme.colorScheme.surfaceVariant,
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                                 ) {
                                     Row(
                                         modifier = Modifier
@@ -228,7 +228,7 @@ fun ContractSummaryScreen(
                                                 fontStyle = FontStyle.Italic,
                                                 lineHeight = 18.sp
                                             ),
-                                            color = Color(0xFFE2E8F0)
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
                                 }

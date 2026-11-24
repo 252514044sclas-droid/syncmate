@@ -120,7 +120,7 @@ fun SettingsScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(text = "Dark Theme", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = TextPrimary)
                             Text(
-                                text = if (uiState.darkModeEnabled) "Emerald Dark Slate Palette Active" else "Green & White Light Theme Active",
+                                text = if (uiState.darkModeEnabled) "Pitch Black & Warm Beige Palette Active" else "Crisp White & Warm Beige Palette Active",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = TextSecondary
                             )
@@ -144,8 +144,8 @@ fun SettingsScreen(
                     ) {
                         Text(text = "Active Theme Mode", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
                         StatBadge(
-                            text = if (uiState.darkModeEnabled) "DARK MODE" else "LIGHT GREEN MODE",
-                            backgroundColor = EmeraldSuccess
+                            text = if (uiState.darkModeEnabled) "DARK MODE" else "LIGHT MODE",
+                            backgroundColor = if (uiState.darkModeEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.tertiary
                         )
                     }
                 }

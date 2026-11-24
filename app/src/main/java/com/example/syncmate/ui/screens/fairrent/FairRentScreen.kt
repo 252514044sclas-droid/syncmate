@@ -616,7 +616,7 @@ fun FairRentScreen(
 
                         Surface(
                             shape = RoundedCornerShape(12.dp),
-                            color = Color(0xFF0F172A),
+                            color = MaterialTheme.colorScheme.surfaceVariant,
                             border = BorderStroke(1.dp, SlateCardBorder)
                         ) {
                             Row(

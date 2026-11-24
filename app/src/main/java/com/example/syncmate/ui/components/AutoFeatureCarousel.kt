@@ -89,10 +89,10 @@ fun AutoFeatureCarousel(
             title = "ML Fair-Rent & Utility Engine",
             subtitle = "Calculate fair market rent & monthly utility bills in INR based on campus zone data.",
             badgeText = "ML POWERED",
-            badgeColor = Color(0xFF0097A7),
+            badgeColor = MaterialTheme.colorScheme.primary,
             icon = Icons.Default.Analytics,
             category = SlideCategory.ML_ANALYTICS,
-            gradientColors = listOf(Color(0xFF064E3B), Color(0xFF0F172A), Color(0xFF065F46)),
+            gradientColors = listOf(Color(0xFF1C1916), Color(0xFF111111), Color(0xFF24201A)),
             onClick = onNavigateToFairRent
         ),
         FeatureSlide(
@@ -102,7 +102,7 @@ fun AutoFeatureCarousel(
             badgeColor = RoseError,
             icon = Icons.Default.Security,
             category = SlideCategory.SCAM_SHIELD,
-            gradientColors = listOf(Color(0xFF4C0519), Color(0xFF0F172A), Color(0xFF881337)),
+            gradientColors = listOf(Color(0xFF261416), Color(0xFF111111), Color(0xFF1F1214)),
             onClick = onNavigateToFakeListing
         ),
         FeatureSlide(
@@ -112,17 +112,17 @@ fun AutoFeatureCarousel(
             badgeColor = AmberWarning,
             icon = Icons.Default.Description,
             category = SlideCategory.LEGAL_SCANNER,
-            gradientColors = listOf(Color(0xFF451A03), Color(0xFF0F172A), Color(0xFF78350F)),
+            gradientColors = listOf(Color(0xFF261E14), Color(0xFF111111), Color(0xFF1F1810)),
             onClick = onNavigateToContractGuard
         ),
         FeatureSlide(
             title = "Verified .edu Student Network",
             subtitle = "Connect safely with verified university peers and match study & living rhythm.",
             badgeText = "VERIFIED PEERS",
-            badgeColor = EmeraldSuccess,
+            badgeColor = MaterialTheme.colorScheme.primary,
             icon = Icons.Default.Verified,
             category = SlideCategory.VERIFIED_NETWORK,
-            gradientColors = listOf(Color(0xFF022C22), Color(0xFF0F172A), Color(0xFF065F46)),
+            gradientColors = listOf(Color(0xFF1E1A16), Color(0xFF111111), Color(0xFF28231C)),
             onClick = onNavigateToPreferences
         )
     )
@@ -189,10 +189,10 @@ fun CarouselSlideCard(
     val cardBackgroundBrush = if (isLight) {
         Brush.linearGradient(
             colors = when (slide.category) {
-                SlideCategory.ML_ANALYTICS -> listOf(Color(0xFFE0F2FE), Color(0xFFF0F9FF), Color(0xFFE0F2FE))
-                SlideCategory.SCAM_SHIELD -> listOf(Color(0xFFFFE4E6), Color(0xFFFFF1F2), Color(0xFFFFE4E6))
-                SlideCategory.LEGAL_SCANNER -> listOf(Color(0xFFFEF3C7), Color(0xFFFFFBEB), Color(0xFFFEF3C7))
-                SlideCategory.VERIFIED_NETWORK -> listOf(Color(0xFFD1FAE5), Color(0xFFECFDF5), Color(0xFFD1FAE5))
+                SlideCategory.ML_ANALYTICS -> listOf(Color(0xFFFAF7F2), Color(0xFFF3ECE1), Color(0xFFFAF7F2))
+                SlideCategory.SCAM_SHIELD -> listOf(Color(0xFFFFF1F2), Color(0xFFFAF7F2), Color(0xFFFFE4E6))
+                SlideCategory.LEGAL_SCANNER -> listOf(Color(0xFFFFFBEB), Color(0xFFFAF7F2), Color(0xFFFEF3C7))
+                SlideCategory.VERIFIED_NETWORK -> listOf(Color(0xFFF5EFE6), Color(0xFFFAF7F2), Color(0xFFEDE2D2))
             }
         )
     } else {

@@ -42,10 +42,10 @@ fun PrimaryButton(
         enabled = enabled && !isLoading,
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = IndigoPrimary,
-            contentColor = Color.White,
-            disabledContainerColor = IndigoPrimary,
-            disabledContentColor = Color.White
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+            disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f)
         ),
         modifier = modifier
             .fillMaxWidth()
@@ -53,7 +53,7 @@ fun PrimaryButton(
     ) {
         if (isLoading) {
             CircularProgressIndicator(
-                color = Color.White,
+                color = MaterialTheme.colorScheme.onPrimary,
                 strokeWidth = 3.dp,
                 modifier = Modifier.size(24.dp)
             )

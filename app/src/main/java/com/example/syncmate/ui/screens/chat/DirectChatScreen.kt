@@ -164,17 +164,17 @@ fun DirectChatScreen(
                         .clip(CircleShape)
                         .background(
                             Brush.linearGradient(
-                                listOf(IndigoPrimary, Color(0xFF4F46E5))
+                                listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)
                             )
                         )
-                        .border(1.dp, Color(0xFF818CF8).copy(alpha = 0.5f), CircleShape),
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = initials,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color.White
+                        color = MaterialTheme.colorScheme.onPrimary
                     )
                 }
 
@@ -447,8 +447,8 @@ fun DirectChatScreen(
                         .weight(1f)
                         .heightIn(min = 46.dp, max = 110.dp),
                     shape = RoundedCornerShape(24.dp),
-                    color = Color(0xFF0F172A),
-                    border = BorderStroke(1.dp, Color(0xFF334155))
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                 ) {
                     Box(
                         modifier = Modifier
@@ -471,7 +471,7 @@ fun DirectChatScreen(
                                 color = TextPrimary,
                                 fontSize = 15.sp
                             ),
-                            cursorBrush = SolidColor(IndigoPrimary),
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                             maxLines = 4,
                             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                             keyboardActions = KeyboardActions(onSend = { handleSend() })
@@ -487,11 +487,11 @@ fun DirectChatScreen(
                         .size(46.dp)
                         .clip(CircleShape)
                         .background(
-                            if (inputText.isNotBlank()) IndigoPrimary else Color(0xFF1E293B)
+                            if (inputText.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
                         )
                         .border(
                             width = 1.dp,
-                            color = if (inputText.isNotBlank()) IndigoPrimary else SlateCardBorder,
+                            color = if (inputText.isNotBlank()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
                             shape = CircleShape
                         )
                         .clickable(enabled = inputText.isNotBlank()) { handleSend() },
@@ -500,7 +500,7 @@ fun DirectChatScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Send",
-                        tint = if (inputText.isNotBlank()) Color.White else TextSecondary.copy(alpha = 0.4f),
+                        tint = if (inputText.isNotBlank()) MaterialTheme.colorScheme.onPrimary else TextSecondary.copy(alpha = 0.4f),
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -551,18 +551,14 @@ fun DirectMessageBubble(
                 )
                 .background(
                     if (isMe) {
-                        Color(0xFF6366F1) // IndigoPrimary
+                        MaterialTheme.colorScheme.primary
                     } else {
-                        Color(0xFF1E293B) // DarkSlateSurface
+                        MaterialTheme.colorScheme.surface
                     }
                 )
                 .border(
                     width = 1.dp,
-                    color = if (isMe) {
-                        Color(0xFF818CF8).copy(alpha = 0.35f)
-                    } else {
-                        Color(0xFF334155)
-                    },
+                    color = MaterialTheme.colorScheme.outlineVariant,
                     shape = if (isMe) {
                         RoundedCornerShape(18.dp, 18.dp, 18.dp, 4.dp)
                     } else {
@@ -578,7 +574,7 @@ fun DirectMessageBubble(
                         fontSize = 15.sp,
                         lineHeight = 20.sp
                     ),
-                    color = Color.White
+                    color = if (isMe) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
                 )
 
                 Spacer(modifier = Modifier.height(3.dp))
@@ -590,14 +586,14 @@ fun DirectMessageBubble(
                     Text(
                         text = formattedTime,
                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                        color = if (isMe) Color.White.copy(alpha = 0.75f) else Color(0xFF94A3B8)
+                        color = if (isMe) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.75f) else TextSecondary
                     )
                     if (isMe) {
                         Spacer(modifier = Modifier.width(3.dp))
                         Icon(
                             imageVector = Icons.Default.Done,
                             contentDescription = "Sent",
-                            tint = Color.White.copy(alpha = 0.8f),
+                            tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
                             modifier = Modifier.size(12.dp)
                         )
                     }
