@@ -116,7 +116,7 @@ val LightColorSchemeColors = lightColorScheme(
 // =====================================================================
 val SlateBackground: Color
     @Composable
-    get() = MaterialTheme.colorScheme.background
+    get() = Color.Transparent
 
 val SlateCard: Color
     @Composable
