@@ -15,12 +15,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.syncmate.data.local.AppPreferences
+import com.example.syncmate.data.local.room.SyncMateDatabase
 import com.example.syncmate.data.remote.RetrofitClient
+import com.example.syncmate.data.repository.FirebaseAuthRepositoryImpl
 import com.example.syncmate.data.repository.DevAuthRepositoryImpl
-import com.example.syncmate.data.repository.MockContractRepositoryImpl
-import com.example.syncmate.data.repository.MockFakeListingRepositoryImpl
-import com.example.syncmate.data.repository.MockHousingRepositoryImpl
-import com.example.syncmate.data.repository.MockPredictionRepositoryImpl
+import com.example.syncmate.data.repository.NetworkContractRepositoryImpl
+import com.example.syncmate.data.repository.NetworkFakeListingRepositoryImpl
+import com.example.syncmate.data.repository.NetworkHousingRepositoryImpl
+import com.example.syncmate.data.repository.NetworkPredictionRepositoryImpl
 import com.example.syncmate.data.repository.NetworkChatRepositoryImpl
 import com.example.syncmate.ui.components.AmbientLiveBackground
 import com.example.syncmate.ui.screens.chat.ChatListScreen
@@ -88,16 +90,20 @@ fun AppNavGraph(
 
     // Persistent Repositories and Local Storage
     val appPreferences = remember { AppPreferences(context) }
+    
+    // Initialize Room Database
+    val database = remember { SyncMateDatabase.getDatabase(context) }
+    
     val apiService = remember {
         RetrofitClient.getApiService(appPreferences).also {
             com.example.syncmate.data.firestore.SyncMateFirestore.initApiService(it)
         }
     }
-    val authRepository = remember { DevAuthRepositoryImpl(apiService, appPreferences) }
-    val housingRepository = remember { MockHousingRepositoryImpl(apiService) }
-    val predictionRepository = remember { MockPredictionRepositoryImpl(apiService) }
-    val fakeListingRepository = remember { MockFakeListingRepositoryImpl(apiService) }
-    val contractRepository = remember { MockContractRepositoryImpl(apiService) }
+    val authRepository = remember { FirebaseAuthRepositoryImpl(apiService, appPreferences) }
+    val housingRepository = remember { NetworkHousingRepositoryImpl(apiService, database.housingDao()) }
+    val predictionRepository = remember { NetworkPredictionRepositoryImpl(apiService) }
+    val fakeListingRepository = remember { NetworkFakeListingRepositoryImpl(apiService) }
+    val contractRepository = remember { NetworkContractRepositoryImpl(apiService) }
     val chatRepository = remember { NetworkChatRepositoryImpl(apiService, appPreferences) }
 
     // Shared ViewModels

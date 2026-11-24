@@ -10,10 +10,6 @@ class AppPreferences(context: Context) {
         get() = prefs.getBoolean("remember_device", false)
         set(value) = prefs.edit().putBoolean("remember_device", value).apply()
 
-    var isLoggedIn: Boolean
-        get() = prefs.getBoolean("is_logged_in", false)
-        set(value) = prefs.edit().putBoolean("is_logged_in", value).apply()
-
     var userEmail: String?
         get() = prefs.getString("user_email", null)
         set(value) = prefs.edit().putString("user_email", value).apply()
@@ -21,10 +17,6 @@ class AppPreferences(context: Context) {
     var savedUserId: String?
         get() = prefs.getString("saved_user_id", null)
         set(value) = prefs.edit().putString("saved_user_id", value).apply()
-
-    var authToken: String?
-        get() = prefs.getString("auth_token", null)
-        set(value) = prefs.edit().putString("auth_token", value).apply()
 
     var savedName: String?
         get() = prefs.getString("saved_name", null)
