@@ -48,8 +48,8 @@ fun FakeListingScreen(
 ) {
     val uiState by fakeListingViewModel.uiState.collectAsStateWithLifecycle()
 
-    var description by remember { mutableStateOf("Subletting my studio apartment in Adyar. Asking ₹4,000/mo. Must send deposit via wire transfer upfront before physical viewing.") }
-    var price by remember { mutableStateOf("4000") }
+    var description by remember { mutableStateOf("") }
+    var price by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -93,7 +93,7 @@ fun FakeListingScreen(
                 label = "Listing Description / Message Text",
                 singleLine = false,
                 maxLines = 5,
-                placeholder = "Paste description here..."
+                placeholder = "Paste listing description or terms to analyze..."
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -101,7 +101,8 @@ fun FakeListingScreen(
             AppTextField(
                 value = price,
                 onValueChange = { price = it },
-                label = "Listed Monthly Rent (₹)"
+                label = "Listed Monthly Rent (₹)",
+                placeholder = "e.g. 15000"
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -110,7 +111,11 @@ fun FakeListingScreen(
                 text = "Scan Listing for Fraud",
                 isLoading = uiState.isLoading,
                 onClick = {
-                    fakeListingViewModel.analyzeListing(description, price, emptyList())
+                    fakeListingViewModel.analyzeListing(
+                        description.trim().ifEmpty { "Student apartment near campus" },
+                        price.trim().ifEmpty { "15000" },
+                        emptyList()
+                    )
                 }
             )
 

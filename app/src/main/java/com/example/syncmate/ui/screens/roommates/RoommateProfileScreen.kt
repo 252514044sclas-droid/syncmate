@@ -110,7 +110,7 @@ fun RoommateProfileScreen(
         }
 
     var showIntroDialog by remember { mutableStateOf(false) }
-    var introMessageText by remember { mutableStateOf("Hi! I saw we have a high compatibility score on SyncMate. Let's connect!") }
+    var introMessageText by remember { mutableStateOf("") }
 
     if (roommateProfile == null) {
         Column(
@@ -549,7 +549,7 @@ fun RoommateProfileScreen(
                         value = introMessageText,
                         onValueChange = { introMessageText = it },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Write a message...", color = TextSecondary) },
+                        placeholder = { Text("e.g. Hi! I saw we have a high compatibility score on SyncMate. Let's connect!", color = TextSecondary) },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = IndigoPrimary,
                             unfocusedBorderColor = SlateCardBorder,
@@ -564,7 +564,10 @@ fun RoommateProfileScreen(
                 TextButton(
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        viewModel.sendRoommateRequest(user, introMessageText)
+                        val messageToSend = introMessageText.trim().ifEmpty {
+                            "Hi! I saw we have a high compatibility score on SyncMate. Let's connect!"
+                        }
+                        viewModel.sendRoommateRequest(user, messageToSend)
                         showIntroDialog = false
                     }
                 ) {

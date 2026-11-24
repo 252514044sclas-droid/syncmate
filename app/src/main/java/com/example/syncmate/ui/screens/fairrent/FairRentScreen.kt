@@ -49,11 +49,11 @@ fun FairRentScreen(
 ) {
     val uiState by predictionViewModel.uiState.collectAsStateWithLifecycle()
 
-    var location by remember { mutableStateOf("Adyar, Chennai") }
-    var sqFt by remember { mutableStateOf("650") }
-    var bedrooms by remember { mutableStateOf("1") }
-    var roomType by remember { mutableStateOf("Private Room") }
-    var leaseDuration by remember { mutableStateOf("3") }
+    var location by remember { mutableStateOf("") }
+    var sqFt by remember { mutableStateOf("") }
+    var bedrooms by remember { mutableStateOf("") }
+    var roomType by remember { mutableStateOf("") }
+    var leaseDuration by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -94,7 +94,8 @@ fun FairRentScreen(
             AppTextField(
                 value = location,
                 onValueChange = { location = it },
-                label = "Location / Campus Zone (e.g. Adyar, Koramangala, Kothrud)"
+                label = "Location / Campus Zone",
+                placeholder = "e.g. Adyar, Koramangala, Kothrud"
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -104,6 +105,7 @@ fun FairRentScreen(
                     value = sqFt,
                     onValueChange = { sqFt = it },
                     label = "Area (Sq Ft)",
+                    placeholder = "e.g. 650",
                     modifier = Modifier.weight(1f)
                 )
 
@@ -113,6 +115,7 @@ fun FairRentScreen(
                     value = bedrooms,
                     onValueChange = { bedrooms = it },
                     label = "Bedrooms",
+                    placeholder = "e.g. 1",
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -122,7 +125,8 @@ fun FairRentScreen(
             AppTextField(
                 value = roomType,
                 onValueChange = { roomType = it },
-                label = "Room Type (e.g. Private Room, Studio, 1BHK)"
+                label = "Room Type",
+                placeholder = "e.g. Private Room, Studio, 1BHK"
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -130,7 +134,8 @@ fun FairRentScreen(
             AppTextField(
                 value = leaseDuration,
                 onValueChange = { leaseDuration = it },
-                label = "Lease Duration (Months)"
+                label = "Lease Duration (Months)",
+                placeholder = "e.g. 3"
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -140,12 +145,12 @@ fun FairRentScreen(
                 isLoading = uiState.isLoading,
                 onClick = {
                     predictionViewModel.predictFairRent(
-                        location = location,
-                        sqFtStr = sqFt,
-                        bedroomsStr = bedrooms,
+                        location = location.trim().ifEmpty { "Adyar, Chennai" },
+                        sqFtStr = sqFt.trim().ifEmpty { "650" },
+                        bedroomsStr = bedrooms.trim().ifEmpty { "1" },
                         bathroomsStr = "1.0",
-                        roomType = roomType,
-                        leaseDurationStr = leaseDuration,
+                        roomType = roomType.trim().ifEmpty { "Private Room" },
+                        leaseDurationStr = leaseDuration.trim().ifEmpty { "3" },
                         season = "Summer",
                         facilities = listOf("WiFi", "AC", "Power Backup")
                     )

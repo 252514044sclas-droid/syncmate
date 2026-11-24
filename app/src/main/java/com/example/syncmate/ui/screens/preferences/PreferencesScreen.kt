@@ -31,9 +31,9 @@ import com.example.syncmate.ui.theme.TextSecondary
 fun PreferencesScreen(
     onNavigateBack: () -> Unit
 ) {
-    var maxBudget by remember { mutableStateOf("15000") }
-    var locationPref by remember { mutableStateOf("Adyar / Near Campus") }
-    var lifestyleRhythm by remember { mutableStateOf("Early Riser • Clean & Quiet") }
+    var maxBudget by remember { mutableStateOf("") }
+    var locationPref by remember { mutableStateOf("") }
+    var lifestyleRhythm by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -71,7 +71,7 @@ fun PreferencesScreen(
                 value = maxBudget,
                 onValueChange = { maxBudget = it },
                 label = "Target Monthly Budget (₹)",
-                placeholder = "15000"
+                placeholder = "e.g. 15000"
             )
 
             Spacer(modifier = Modifier.height(14.dp))

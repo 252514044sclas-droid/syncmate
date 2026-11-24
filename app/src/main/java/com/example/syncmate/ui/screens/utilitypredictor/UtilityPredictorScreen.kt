@@ -46,8 +46,8 @@ fun UtilityPredictorScreen(
 ) {
     val uiState by predictionViewModel.uiState.collectAsStateWithLifecycle()
 
-    var bedrooms by remember { mutableStateOf("2") }
-    var season by remember { mutableStateOf("Summer") }
+    var bedrooms by remember { mutableStateOf("") }
+    var season by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -84,7 +84,8 @@ fun UtilityPredictorScreen(
             AppTextField(
                 value = bedrooms,
                 onValueChange = { bedrooms = it },
-                label = "Number of Roommates / Bedrooms"
+                label = "Number of Roommates / Bedrooms",
+                placeholder = "e.g. 2"
             )
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -92,7 +93,8 @@ fun UtilityPredictorScreen(
             AppTextField(
                 value = season,
                 onValueChange = { season = it },
-                label = "Season (e.g. Summer, Monsoon, Winter)"
+                label = "Season",
+                placeholder = "e.g. Summer, Monsoon, Winter"
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -104,11 +106,11 @@ fun UtilityPredictorScreen(
                     predictionViewModel.predictFairRent(
                         location = "Adyar, Chennai",
                         sqFtStr = "800",
-                        bedroomsStr = bedrooms,
+                        bedroomsStr = bedrooms.trim().ifEmpty { "2" },
                         bathroomsStr = "1.0",
                         roomType = "Apartment",
                         leaseDurationStr = "3",
-                        season = season,
+                        season = season.trim().ifEmpty { "Summer" },
                         facilities = listOf("AC", "WiFi")
                     )
                 }

@@ -93,7 +93,7 @@ fun UploadContractScreen(
     val context = LocalContext.current
     val uiState by contractViewModel.uiState.collectAsStateWithLifecycle()
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
-    var selectedFileName by remember { mutableStateOf("Sublease_Agreement_2025.pdf") }
+    var selectedFileName by remember { mutableStateOf("") }
 
     val documentPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -194,10 +194,10 @@ fun UploadContractScreen(
                     Spacer(modifier = Modifier.height(14.dp))
 
                     Text(
-                        text = selectedFileName,
+                        text = if (selectedFileName.isNotBlank()) selectedFileName else "No document selected",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary,
+                        color = if (selectedFileName.isNotBlank()) TextPrimary else TextSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
