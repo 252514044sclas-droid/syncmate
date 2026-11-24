@@ -2,6 +2,7 @@ package com.example.syncmate.ui.screens.roommates
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,15 +22,15 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.Inbox
 import androidx.compose.material.icons.filled.Outbox
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,10 +40,8 @@ import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,6 +51,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.syncmate.data.firestore.SyncMateFirestore
 import com.example.syncmate.data.model.RoommateRequest
 import com.example.syncmate.ui.components.GlassCard
 import com.example.syncmate.ui.components.PrimaryButton
@@ -66,23 +66,39 @@ import com.example.syncmate.ui.theme.SlateCard
 import com.example.syncmate.ui.theme.SlateCardBorder
 import com.example.syncmate.ui.theme.TextPrimary
 import com.example.syncmate.ui.theme.TextSecondary
-import com.example.syncmate.viewmodel.RoommateMatchViewModel
+import com.example.syncmate.util.CurrencyFormatter
+import com.example.syncmate.viewmodel.RoommateRequestsViewModel
+import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 @Composable
 fun RoommateRequestsScreen(
-    viewModel: RoommateMatchViewModel,
+    viewModel: RoommateRequestsViewModel,
     onNavigateToProfile: (String) -> Unit,
     onNavigateToChat: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val haptic = LocalHapticFeedback.current
-    var selectedTabIndex by remember { mutableIntStateOf(0) }
 
     val tabTitles = listOf("Incoming Requests", "Sent Requests")
+
+    // Auto-dismiss notification toast message after 3.5 seconds
+    LaunchedEffect(uiState.actionMessage) {
+        if (uiState.actionMessage != null) {
+            delay(3500)
+            viewModel.clearActionMessage()
+        }
+    }
+
+    LaunchedEffect(uiState.errorMessage) {
+        if (uiState.errorMessage != null) {
+            delay(4000)
+            viewModel.clearErrorMessage()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -105,32 +121,97 @@ fun RoommateRequestsScreen(
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Roommate Connection Requests",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary
-            )
+            Column {
+                Text(
+                    text = "Roommate Connection Requests",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+                Text(
+                    text = "${uiState.incomingRequests.size} incoming • ${uiState.sentRequests.size} sent",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextSecondary
+                )
+            }
+        }
+
+        // Notification Banner: Action Confirmation
+        if (uiState.actionMessage != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 4.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(EmeraldSuccess.copy(alpha = 0.2f))
+                    .border(1.dp, EmeraldSuccess.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = EmeraldSuccess,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = uiState.actionMessage!!,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = EmeraldSuccess
+                    )
+                }
+            }
+        }
+
+        // Error Banner: Firestore / Network errors
+        if (uiState.errorMessage != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 4.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(RoseError.copy(alpha = 0.2f))
+                    .border(1.dp, RoseError.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = null,
+                        tint = RoseError,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = uiState.errorMessage!!,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = RoseError
+                    )
+                }
+            }
         }
 
         // Material 3 Two-Tab Header
         TabRow(
-            selectedTabIndex = selectedTabIndex,
+            selectedTabIndex = uiState.selectedTab,
             containerColor = SlateCard,
             contentColor = IndigoPrimary,
             indicator = { tabPositions ->
                 TabRowDefaults.SecondaryIndicator(
-                    modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                    modifier = Modifier.tabIndicatorOffset(tabPositions[uiState.selectedTab]),
                     color = IndigoPrimary
                 )
             }
         ) {
             tabTitles.forEachIndexed { index, title ->
                 Tab(
-                    selected = selectedTabIndex == index,
+                    selected = uiState.selectedTab == index,
                     onClick = {
                         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        selectedTabIndex = index
+                        viewModel.selectTab(index)
                     },
                     text = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -142,7 +223,7 @@ fun RoommateRequestsScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = title,
-                                fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Medium
+                                fontWeight = if (uiState.selectedTab == index) FontWeight.Bold else FontWeight.Medium
                             )
 
                             if (index == 0 && uiState.pendingIncomingCount > 0) {
@@ -167,35 +248,58 @@ fun RoommateRequestsScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // Content
-        if (selectedTabIndex == 0) {
-            IncomingRequestsList(
-                requests = uiState.incomingRequests,
-                onAccept = { reqId ->
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    viewModel.acceptRequest(reqId)
-                },
-                onDecline = { reqId ->
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    viewModel.declineRequest(reqId)
-                },
-                onViewProfile = onNavigateToProfile,
-                onOpenChat = onNavigateToChat
-            )
+        if (uiState.isLoading && uiState.incomingRequests.isEmpty() && uiState.sentRequests.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(color = IndigoPrimary)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Loading real-time requests from Firestore...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary
+                    )
+                }
+            }
         } else {
-            SentRequestsList(
-                requests = uiState.sentRequests,
-                onViewProfile = onNavigateToProfile,
-                onOpenChat = onNavigateToChat
-            )
+            // Content
+            if (uiState.selectedTab == 0) {
+                IncomingRequestsTabContent(
+                    requests = uiState.incomingRequests,
+                    onAccept = { reqId ->
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.acceptRequest(reqId)
+                    },
+                    onDecline = { reqId ->
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.declineRequest(reqId)
+                    },
+                    onViewProfile = onNavigateToProfile,
+                    onOpenChat = onNavigateToChat
+                )
+            } else {
+                SentRequestsTabContent(
+                    requests = uiState.sentRequests,
+                    onCancelRequest = { reqId ->
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        viewModel.cancelRequest(reqId)
+                    },
+                    onViewProfile = onNavigateToProfile,
+                    onOpenChat = onNavigateToChat
+                )
+            }
         }
     }
 }
 
 @Composable
-fun IncomingRequestsList(
+fun IncomingRequestsTabContent(
     requests: List<RoommateRequest>,
     onAccept: (String) -> Unit,
     onDecline: (String) -> Unit,
@@ -225,7 +329,7 @@ fun IncomingRequestsList(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "When other students want to connect as roommates, their requests will appear here in real time.",
+                    text = "When other students want to connect as roommates, their connection requests will appear here in real time.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextSecondary,
                     modifier = Modifier.padding(horizontal = 16.dp)
@@ -238,6 +342,10 @@ fun IncomingRequestsList(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             items(requests, key = { it.requestId }) { req ->
+                val senderUser = SyncMateFirestore.getUser(req.senderId)
+                val prefs = senderUser?.roommatePreferences
+                val budget = prefs?.maxBudgetINR ?: (senderUser?.maxBudget ?: 15000.0)
+
                 GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(18.dp)) {
                         Row(
@@ -248,7 +356,7 @@ fun IncomingRequestsList(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
                                     modifier = Modifier
-                                        .size(44.dp)
+                                        .size(46.dp)
                                         .clip(CircleShape)
                                         .background(IndigoPrimary.copy(alpha = 0.2f)),
                                     contentAlignment = Alignment.Center
@@ -257,17 +365,28 @@ fun IncomingRequestsList(
                                         imageVector = Icons.Default.Person,
                                         contentDescription = req.senderName,
                                         tint = IndigoPrimary,
-                                        modifier = Modifier.size(26.dp)
+                                        modifier = Modifier.size(28.dp)
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
-                                    Text(
-                                        text = req.senderName,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        color = TextPrimary
-                                    )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = req.senderName,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextPrimary
+                                        )
+                                        if (senderUser?.isVerified != false) {
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Icon(
+                                                imageVector = Icons.Default.VerifiedUser,
+                                                contentDescription = "Verified Student",
+                                                tint = EmeraldSuccess,
+                                                modifier = Modifier.size(15.dp)
+                                            )
+                                        }
+                                    }
                                     Text(
                                         text = req.senderUniversity,
                                         style = MaterialTheme.typography.bodySmall,
@@ -280,6 +399,19 @@ fun IncomingRequestsList(
                                 text = "${req.compatibilityScore}% MATCH",
                                 backgroundColor = EmeraldSuccess
                             )
+                        }
+
+                        // Top Matching Lifestyle Traits
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (prefs != null) {
+                                LifestylePill(text = prefs.sleepSchedule)
+                                LifestylePill(text = "Clean: ${prefs.cleanlinessRating}/5")
+                            }
+                            LifestylePill(text = CurrencyFormatter.formatMonthlyRent(budget))
                         }
 
                         if (req.introMessage.isNotBlank()) {
@@ -341,49 +473,53 @@ fun IncomingRequestsList(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
-                        if (req.status == "PENDING") {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                PrimaryButton(
-                                    text = "Accept",
-                                    onClick = { onAccept(req.requestId) },
-                                    modifier = Modifier.weight(1f)
-                                )
+                        when (req.status) {
+                            "PENDING" -> {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    PrimaryButton(
+                                        text = "Accept",
+                                        onClick = { onAccept(req.requestId) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    SecondaryButton(
+                                        text = "Decline",
+                                        onClick = { onDecline(req.requestId) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    SecondaryButton(
+                                        text = "Profile",
+                                        onClick = { onViewProfile(req.senderId) },
+                                        modifier = Modifier.width(80.dp)
+                                    )
+                                }
+                            }
+                            "ACCEPTED" -> {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    PrimaryButton(
+                                        text = "Matched • Open Chat",
+                                        onClick = onOpenChat,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    SecondaryButton(
+                                        text = "Profile",
+                                        onClick = { onViewProfile(req.senderId) },
+                                        modifier = Modifier.width(90.dp)
+                                    )
+                                }
+                            }
+                            else -> {
                                 SecondaryButton(
-                                    text = "Decline",
-                                    onClick = { onDecline(req.requestId) },
-                                    modifier = Modifier.weight(1f)
-                                )
-                                SecondaryButton(
-                                    text = "Profile",
+                                    text = "View Profile",
                                     onClick = { onViewProfile(req.senderId) },
-                                    modifier = Modifier.width(80.dp)
+                                    modifier = Modifier.fillMaxWidth()
                                 )
                             }
-                        } else if (req.status == "ACCEPTED") {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                PrimaryButton(
-                                    text = "Open Direct Chat",
-                                    onClick = onOpenChat,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                SecondaryButton(
-                                    text = "Profile",
-                                    onClick = { onViewProfile(req.senderId) },
-                                    modifier = Modifier.width(90.dp)
-                                )
-                            }
-                        } else {
-                            SecondaryButton(
-                                text = "View Profile",
-                                onClick = { onViewProfile(req.senderId) },
-                                modifier = Modifier.fillMaxWidth()
-                            )
                         }
                     }
                 }
@@ -393,8 +529,9 @@ fun IncomingRequestsList(
 }
 
 @Composable
-fun SentRequestsList(
+fun SentRequestsTabContent(
     requests: List<RoommateRequest>,
+    onCancelRequest: (String) -> Unit,
     onViewProfile: (String) -> Unit,
     onOpenChat: () -> Unit
 ) {
@@ -434,6 +571,8 @@ fun SentRequestsList(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             items(requests, key = { it.requestId }) { req ->
+                val receiverUser = SyncMateFirestore.getUser(req.receiverId)
+
                 GlassCard(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(18.dp)) {
                         Row(
@@ -444,7 +583,7 @@ fun SentRequestsList(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Box(
                                     modifier = Modifier
-                                        .size(44.dp)
+                                        .size(46.dp)
                                         .clip(CircleShape)
                                         .background(IndigoPrimary.copy(alpha = 0.2f)),
                                     contentAlignment = Alignment.Center
@@ -453,7 +592,7 @@ fun SentRequestsList(
                                         imageVector = Icons.Default.Person,
                                         contentDescription = req.receiverName,
                                         tint = IndigoPrimary,
-                                        modifier = Modifier.size(26.dp)
+                                        modifier = Modifier.size(28.dp)
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(10.dp))
@@ -465,7 +604,7 @@ fun SentRequestsList(
                                         color = TextPrimary
                                     )
                                     Text(
-                                        text = "To: ${req.receiverName}",
+                                        text = if (req.receiverUniversity.isNotBlank()) req.receiverUniversity else (receiverUser?.university ?: "Student Peer"),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = TextSecondary
                                     )
@@ -508,6 +647,7 @@ fun SentRequestsList(
                                 color = TextSecondary
                             )
 
+                            // Live Status Badge
                             when (req.status) {
                                 "ACCEPTED" -> {
                                     Text(
@@ -521,6 +661,7 @@ fun SentRequestsList(
                                     Text(
                                         text = "Declined",
                                         style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
                                         color = RoseError
                                     )
                                 }
@@ -541,23 +682,62 @@ fun SentRequestsList(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            if (req.status == "ACCEPTED") {
-                                PrimaryButton(
-                                    text = "Open Chat",
-                                    onClick = onOpenChat,
-                                    modifier = Modifier.weight(1f)
-                                )
+                            when (req.status) {
+                                "ACCEPTED" -> {
+                                    PrimaryButton(
+                                        text = "Matched • Open Chat",
+                                        onClick = onOpenChat,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    SecondaryButton(
+                                        text = "View Profile",
+                                        onClick = { onViewProfile(req.receiverId) },
+                                        modifier = Modifier.width(110.dp)
+                                    )
+                                }
+                                "PENDING" -> {
+                                    SecondaryButton(
+                                        text = "Cancel Request",
+                                        onClick = { onCancelRequest(req.requestId) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    SecondaryButton(
+                                        text = "View Profile",
+                                        onClick = { onViewProfile(req.receiverId) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                                else -> {
+                                    SecondaryButton(
+                                        text = "View Profile",
+                                        onClick = { onViewProfile(req.receiverId) },
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
                             }
-                            SecondaryButton(
-                                text = "View Profile",
-                                onClick = { onViewProfile(req.receiverId) },
-                                modifier = if (req.status == "ACCEPTED") Modifier.width(100.dp) else Modifier.fillMaxWidth()
-                            )
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun LifestylePill(text: String) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(IndigoPrimary.copy(alpha = 0.12f))
+            .border(1.dp, IndigoPrimary.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.SemiBold,
+            color = IndigoPrimary
+        )
     }
 }
 
@@ -568,6 +748,7 @@ fun formatTimestamp(timestamp: Long): String {
     val days = hours / 24
 
     return when {
+        diff < 0 -> "Just now"
         minutes < 2 -> "Just now"
         minutes < 60 -> "$minutes min ago"
         hours < 24 -> "$hours hr ago"

@@ -218,8 +218,6 @@ object SyncMateFirestore {
         userId: String,
         onUpdate: (incoming: List<RoommateRequest>, sent: List<RoommateRequest>) -> Unit
     ): ListenerRegistration {
-        seedIncomingRequestsIfNeeded(userId)
-
         val listener: (List<RoommateRequest>) -> Unit = { allRequests ->
             val incoming = allRequests.filter { it.receiverId == userId }.sortedByDescending { it.timestamp }
             val sent = allRequests.filter { it.senderId == userId }.sortedByDescending { it.timestamp }
@@ -246,8 +244,6 @@ object SyncMateFirestore {
         receiverId: String,
         onUpdate: (List<RoommateRequest>) -> Unit
     ): ListenerRegistration {
-        seedIncomingRequestsIfNeeded(receiverId)
-
         val listener: (List<RoommateRequest>) -> Unit = { allRequests ->
             val pendingIncoming = allRequests.filter {
                 it.receiverId == receiverId && it.status == "PENDING"
@@ -264,58 +260,6 @@ object SyncMateFirestore {
         return ListenerRegistration {
             requestListeners.remove(listener)
             checkStopSync()
-        }
-    }
-
-    private fun seedIncomingRequestsIfNeeded(receiverId: String) {
-        val existingIncoming = _requestsCollection.value.values.filter { it.receiverId == receiverId }
-        if (existingIncoming.isEmpty()) {
-            val now = System.currentTimeMillis()
-            val seedRequests = listOf(
-                RoommateRequest(
-                    requestId = "req_seed_101",
-                    senderId = "usr_rm_101",
-                    senderName = "Maya Lin",
-                    senderUniversity = "Anna University '26",
-                    receiverId = receiverId,
-                    receiverName = "Student Peer",
-                    compatibilityScore = 96,
-                    introMessage = "Hey! Saw your profile on SyncMate. We both prefer quiet study hours & Adyar location! Would love to connect as roommates.",
-                    status = "PENDING",
-                    timestamp = now - (12 * 60 * 1000) // 12 mins ago
-                ),
-                RoommateRequest(
-                    requestId = "req_seed_102",
-                    senderId = "usr_rm_102",
-                    senderName = "Jordan Patel",
-                    senderUniversity = "IIT Madras '25",
-                    receiverId = receiverId,
-                    receiverName = "Student Peer",
-                    compatibilityScore = 91,
-                    introMessage = "Hi there! I'm looking for a sublet roommate near campus for Fall 2025. Our budgets match well!",
-                    status = "PENDING",
-                    timestamp = now - (2 * 3600 * 1000) // 2 hours ago
-                ),
-                RoommateRequest(
-                    requestId = "req_seed_105",
-                    senderId = "usr_rm_105",
-                    senderName = "Priya Nair",
-                    senderUniversity = "Symbiosis Pune '26",
-                    receiverId = receiverId,
-                    receiverName = "Student Peer",
-                    compatibilityScore = 93,
-                    introMessage = "Hello! I saw we share non-smoking and early riser preferences. Let's connect!",
-                    status = "PENDING",
-                    timestamp = now - (1 * 86400 * 1000) // 1 day ago
-                )
-            )
-
-            val map = _requestsCollection.value.toMutableMap()
-            for (r in seedRequests) {
-                map[r.requestId] = r
-            }
-            _requestsCollection.value = map
-            notifyRequestListeners()
         }
     }
 
@@ -365,6 +309,7 @@ object SyncMateFirestore {
 
     /**
      * Creates and sends a connection request into Firestore and pushes to the backend database.
+     * Prevents duplicate requests if a request already exists between sender and receiver.
      */
     fun sendRoommateRequest(
         sender: User,
@@ -372,6 +317,14 @@ object SyncMateFirestore {
         compatibilityScore: Int,
         introMessage: String
     ): RoommateRequest {
+        // Prevent duplicate requests: check existing requests between senderId and receiverId
+        val existing = _requestsCollection.value.values.firstOrNull {
+            it.senderId == sender.id && it.receiverId == receiver.id && (it.status == "PENDING" || it.status == "ACCEPTED")
+        }
+        if (existing != null) {
+            return existing
+        }
+
         val requestId = "req_" + System.currentTimeMillis() + "_" + (100..999).random()
         val request = RoommateRequest(
             requestId = requestId,
@@ -380,6 +333,7 @@ object SyncMateFirestore {
             senderUniversity = sender.university,
             receiverId = receiver.id,
             receiverName = receiver.name,
+            receiverUniversity = receiver.university,
             compatibilityScore = compatibilityScore,
             introMessage = introMessage,
             status = "PENDING",
@@ -405,6 +359,7 @@ object SyncMateFirestore {
                             senderUniversity = sender.university,
                             receiverId = receiver.id,
                             receiverName = receiver.name,
+                            receiverUniversity = receiver.university,
                             compatibilityScore = compatibilityScore,
                             introMessage = introMessage
                         )
@@ -417,8 +372,29 @@ object SyncMateFirestore {
     }
 
     /**
+     * Cancels a pending sent request.
+     */
+    fun cancelRoommateRequest(requestId: String) {
+        val existing = _requestsCollection.value[requestId] ?: return
+        val updated = existing.copy(status = "DECLINED")
+
+        val updatedMap = _requestsCollection.value.toMutableMap()
+        updatedMap[requestId] = updated
+        _requestsCollection.value = updatedMap
+
+        notifyRequestListeners()
+
+        val api = apiService ?: return
+        scope.launch(Dispatchers.IO) {
+            try {
+                api.updateRequestStatus(UpdateRequestStatusDto(requestId, "DECLINED"))
+            } catch (_: Exception) {}
+        }
+    }
+
+    /**
      * Updates request status to "ACCEPTED" or "DECLINED".
-     * If "ACCEPTED", automatically unlocks and creates a 1-on-1 direct chat channel in Firestore.
+     * If "ACCEPTED", automatically unlocks and creates a deterministic 1-on-1 direct chat channel in Firestore.
      */
     fun updateRequestStatus(requestId: String, newStatus: String) {
         val existing = _requestsCollection.value[requestId] ?: return
@@ -429,9 +405,11 @@ object SyncMateFirestore {
         _requestsCollection.value = updatedMap
 
         if (newStatus == "ACCEPTED") {
-            val channelId = "chat_${listOf(existing.senderId, existing.receiverId).sorted().joinToString("_")}"
+            val sortedUserIds = listOf(existing.senderId, existing.receiverId).sorted().joinToString("_")
+            val channelId = "chat_$sortedUserIds"
             val chatsMap = _directChatsCollection.value.toMutableMap()
             chatsMap[channelId] = Pair(existing.senderId, existing.receiverId)
+            chatsMap[sortedUserIds] = Pair(existing.senderId, existing.receiverId)
             _directChatsCollection.value = chatsMap
         }
 
@@ -446,8 +424,9 @@ object SyncMateFirestore {
     }
 
     fun isDirectChatUnlocked(user1Id: String, user2Id: String): Boolean {
-        val channelId = "chat_${listOf(user1Id, user2Id).sorted().joinToString("_")}"
-        return _directChatsCollection.value.containsKey(channelId)
+        val sortedUserIds = listOf(user1Id, user2Id).sorted().joinToString("_")
+        val channelId = "chat_$sortedUserIds"
+        return _directChatsCollection.value.containsKey(channelId) || _directChatsCollection.value.containsKey(sortedUserIds)
     }
 
     private fun startCrossDeviceSync(userId: String) {
@@ -524,6 +503,7 @@ object SyncMateFirestore {
                                         senderUniversity = r.senderUniversity,
                                         receiverId = r.receiverId,
                                         receiverName = r.receiverName,
+                                        receiverUniversity = r.receiverUniversity,
                                         compatibilityScore = r.compatibilityScore,
                                         introMessage = r.introMessage ?: "",
                                         status = r.status,

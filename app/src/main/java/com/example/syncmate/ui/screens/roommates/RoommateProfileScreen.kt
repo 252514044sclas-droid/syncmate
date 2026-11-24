@@ -22,6 +22,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.VerifiedUser
@@ -35,6 +36,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -74,6 +76,20 @@ fun RoommateProfileScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val haptic = LocalHapticFeedback.current
+
+    LaunchedEffect(uiState.actionMessage) {
+        if (uiState.actionMessage != null) {
+            kotlinx.coroutines.delay(3500)
+            viewModel.clearActionMessage()
+        }
+    }
+
+    LaunchedEffect(uiState.errorMessage) {
+        if (uiState.errorMessage != null) {
+            kotlinx.coroutines.delay(4000)
+            viewModel.clearErrorMessage()
+        }
+    }
 
     // Look up roommate in evaluated list, fallback to direct Firestore lookup
     val roommateProfile = uiState.roommates.firstOrNull { it.user.id == userId }
@@ -144,6 +160,64 @@ fun RoommateProfileScreen(
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary
             )
+        }
+
+        // Action Message Toast Banner
+        if (uiState.actionMessage != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 4.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(EmeraldSuccess.copy(alpha = 0.2f))
+                    .border(1.dp, EmeraldSuccess.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = EmeraldSuccess,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = uiState.actionMessage!!,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = EmeraldSuccess
+                    )
+                }
+            }
+        }
+
+        // Error Message Banner
+        if (uiState.errorMessage != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 4.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(com.example.syncmate.ui.theme.RoseError.copy(alpha = 0.2f))
+                    .border(1.dp, com.example.syncmate.ui.theme.RoseError.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                    .padding(horizontal = 14.dp, vertical = 8.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = null,
+                        tint = com.example.syncmate.ui.theme.RoseError,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = uiState.errorMessage!!,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = com.example.syncmate.ui.theme.RoseError
+                    )
+                }
+            }
         }
 
         Column(

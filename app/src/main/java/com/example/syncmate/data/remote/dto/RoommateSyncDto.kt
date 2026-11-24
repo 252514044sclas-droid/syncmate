@@ -30,21 +30,23 @@ data class SendRoommateRequestDto(
     @SerializedName("sender_university") val senderUniversity: String,
     @SerializedName("receiver_id") val receiverId: String,
     @SerializedName("receiver_name") val receiverName: String,
+    @SerializedName("receiver_university") val receiverUniversity: String = "",
     @SerializedName("compatibility_score") val compatibilityScore: Int,
-    @SerializedName("intro_message") val introMessage: String
+    @SerializedName("intro_message") val introMessage: String = ""
 )
 
 data class RoommateRequestDto(
     @SerializedName("request_id") val requestId: String,
     @SerializedName("sender_id") val senderId: String,
     @SerializedName("sender_name") val senderName: String,
-    @SerializedName("sender_university") val senderUniversity: String,
+    @SerializedName("sender_university") val senderUniversity: String = "",
     @SerializedName("receiver_id") val receiverId: String,
     @SerializedName("receiver_name") val receiverName: String,
-    @SerializedName("compatibility_score") val compatibilityScore: Int,
-    @SerializedName("intro_message") val introMessage: String?,
-    @SerializedName("status") val status: String,
-    @SerializedName("timestamp") val timestamp: Long
+    @SerializedName("receiver_university") val receiverUniversity: String = "",
+    @SerializedName("compatibility_score") val compatibilityScore: Int = 0,
+    @SerializedName("intro_message") val introMessage: String? = null,
+    @SerializedName("status") val status: String = "PENDING",
+    @SerializedName("timestamp") val timestamp: Long = 0L
 )
 
 data class RequestsBundleDto(

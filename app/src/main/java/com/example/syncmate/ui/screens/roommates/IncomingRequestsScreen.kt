@@ -334,7 +334,11 @@ fun IncomingRequestCard(
 ) {
     val req = item.request
     val displayName = if (isSentTab) req.receiverName else req.senderName
-    val displayUni = if (isSentTab) "Sent to Campus Partner" else "${req.senderUniversity} • .edu Verified"
+    val displayUni = if (isSentTab) {
+        if (req.receiverUniversity.isNotBlank()) req.receiverUniversity else "Sent to Campus Partner"
+    } else {
+        "${req.senderUniversity} • .edu Verified"
+    }
 
     GlassCard(
         modifier = Modifier.fillMaxWidth()

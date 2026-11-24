@@ -29,6 +29,7 @@ data class RoommateMatchUiState(
     val pendingIncomingCount: Int = 0,
     val selectedFilter: String = "All Matches",
     val isLoading: Boolean = false,
+    val actionMessage: String? = null,
     val errorMessage: String? = null
 )
 
@@ -54,8 +55,9 @@ class RoommateMatchViewModel(
 
     private fun startRealtimeListeners() {
         viewModelScope.launch {
+            val resolvedId = appPreferences.savedUserId ?: if (!appPreferences.userEmail.isNullOrBlank()) "usr_" + kotlin.math.abs(appPreferences.userEmail.hashCode()) else "usr_dev_101"
             val currentUser = authRepository.currentUserFlow.firstOrNull() ?: User(
-                id = "usr_dev_101",
+                id = resolvedId,
                 name = appPreferences.savedName ?: "Alex Morgan",
                 university = appPreferences.savedUniversity ?: "Anna University '26",
                 email = appPreferences.userEmail ?: "student@university.edu",
@@ -221,37 +223,97 @@ class RoommateMatchViewModel(
 
     fun sendRoommateRequest(candidate: User, introMessage: String) {
         viewModelScope.launch {
-            val currentUser = authRepository.currentUserFlow.firstOrNull() ?: User(
-                id = "usr_dev_101",
-                name = appPreferences.savedName ?: "Alex Morgan",
-                university = appPreferences.savedUniversity ?: "Anna University '26",
-                email = appPreferences.userEmail ?: "student@university.edu",
-                isVerified = true,
-                maxBudget = appPreferences.savedMaxBudget
-            )
+            try {
+                val resolvedId = appPreferences.savedUserId ?: if (!appPreferences.userEmail.isNullOrBlank()) "usr_" + kotlin.math.abs(appPreferences.userEmail.hashCode()) else "usr_dev_101"
+                val currentUser = authRepository.currentUserFlow.firstOrNull() ?: User(
+                    id = resolvedId,
+                    name = appPreferences.savedName ?: "Alex Morgan",
+                    university = appPreferences.savedUniversity ?: "Anna University '26",
+                    email = appPreferences.userEmail ?: "student@university.edu",
+                    isVerified = true,
+                    maxBudget = appPreferences.savedMaxBudget
+                )
 
-            val profile = _uiState.value.roommates.firstOrNull { it.user.id == candidate.id }
-            val score = profile?.compatibilityPercentage ?: 90
+                // Prevent duplicate requests: check if a request already exists between senderId and receiverId
+                val existing = cachedSent.firstOrNull { it.receiverId == candidate.id }
+                    ?: cachedIncoming.firstOrNull { it.senderId == candidate.id }
 
-            SyncMateFirestore.sendRoommateRequest(
-                sender = currentUser,
-                receiver = candidate,
-                compatibilityScore = score,
-                introMessage = introMessage.ifBlank { "Hey ${candidate.name}! Saw we have high lifestyle synergy on SyncMate. Let's connect!" }
-            )
+                if (existing != null) {
+                    if (existing.status == "PENDING") {
+                        _uiState.value = _uiState.value.copy(
+                            actionMessage = "Request already sent to ${candidate.name} (Pending approval)."
+                        )
+                        updateRoommateRequestStatuses()
+                        return@launch
+                    } else if (existing.status == "ACCEPTED") {
+                        _uiState.value = _uiState.value.copy(
+                            actionMessage = "Connected with ${candidate.name}! Chat unlocked."
+                        )
+                        updateRoommateRequestStatuses()
+                        return@launch
+                    }
+                }
+
+                val profile = _uiState.value.roommates.firstOrNull { it.user.id == candidate.id }
+                val score = profile?.compatibilityPercentage ?: 90
+
+                SyncMateFirestore.sendRoommateRequest(
+                    sender = currentUser,
+                    receiver = candidate,
+                    compatibilityScore = score,
+                    introMessage = introMessage.ifBlank { "Hey ${candidate.name}! Saw we have high lifestyle synergy on SyncMate. Let's connect!" }
+                )
+
+                _uiState.value = _uiState.value.copy(
+                    actionMessage = "Roommate request sent to ${candidate.name}!",
+                    errorMessage = null
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = "Failed to send roommate request: ${e.message}"
+                )
+            }
         }
     }
 
     fun acceptRequest(requestId: String) {
         viewModelScope.launch {
-            SyncMateFirestore.updateRequestStatus(requestId, "ACCEPTED")
+            try {
+                SyncMateFirestore.updateRequestStatus(requestId, "ACCEPTED")
+                _uiState.value = _uiState.value.copy(
+                    actionMessage = "Request accepted! Direct chat unlocked.",
+                    errorMessage = null
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = "Failed to accept request: ${e.message}"
+                )
+            }
         }
     }
 
     fun declineRequest(requestId: String) {
         viewModelScope.launch {
-            SyncMateFirestore.updateRequestStatus(requestId, "DECLINED")
+            try {
+                SyncMateFirestore.updateRequestStatus(requestId, "DECLINED")
+                _uiState.value = _uiState.value.copy(
+                    actionMessage = "Request declined.",
+                    errorMessage = null
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    errorMessage = "Failed to decline request: ${e.message}"
+                )
+            }
         }
+    }
+
+    fun clearActionMessage() {
+        _uiState.value = _uiState.value.copy(actionMessage = null)
+    }
+
+    fun clearErrorMessage() {
+        _uiState.value = _uiState.value.copy(errorMessage = null)
     }
 
     fun setFilter(filter: String) {

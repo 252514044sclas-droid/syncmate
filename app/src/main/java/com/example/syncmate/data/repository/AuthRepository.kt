@@ -38,8 +38,9 @@ class DevAuthRepositoryImpl(
 ) : AuthRepository {
 
     private val initialUser = if (appPreferences?.isLoggedIn == true) {
+        val uid = appPreferences.savedUserId ?: if (!appPreferences.userEmail.isNullOrBlank()) "usr_" + kotlin.math.abs(appPreferences.userEmail.hashCode()) else "usr_dev_101"
         User(
-            id = "usr_dev_101",
+            id = uid,
             name = appPreferences.savedName ?: "Alex Morgan",
             email = appPreferences.userEmail ?: "alex.morgan@university.edu",
             university = appPreferences.savedUniversity ?: "National Institute of Technology",
@@ -78,6 +79,7 @@ class DevAuthRepositoryImpl(
 
         appPreferences?.isLoggedIn = true
         appPreferences?.userEmail = email
+        appPreferences?.savedUserId = user.id
         appPreferences?.savedName = user.name
         appPreferences?.savedUniversity = user.university
         appPreferences?.authToken = "auth_token_${user.id}"
@@ -114,6 +116,7 @@ class DevAuthRepositoryImpl(
 
         appPreferences?.isLoggedIn = true
         appPreferences?.userEmail = email.trim()
+        appPreferences?.savedUserId = newUser.id
         appPreferences?.savedName = newUser.name
         appPreferences?.savedUniversity = newUser.university
         appPreferences?.authToken = "auth_token_${newUser.id}"
@@ -157,7 +160,7 @@ class DevAuthRepositoryImpl(
             preferredLocation = preferredLocation ?: (_currentUser.value?.preferredLocation ?: "Near Campus / Metro"),
             hasCompletedQuiz = true
         ) ?: User(
-            id = "usr_dev_101",
+            id = appPreferences?.savedUserId ?: if (!appPreferences?.userEmail.isNullOrBlank()) "usr_" + kotlin.math.abs(appPreferences!!.userEmail.hashCode()) else "usr_dev_101",
             name = name.trim(),
             email = appPreferences?.userEmail ?: "student@university.edu",
             university = university.trim(),
@@ -166,6 +169,7 @@ class DevAuthRepositoryImpl(
             hasCompletedQuiz = true
         )
 
+        appPreferences?.savedUserId = updatedUser.id
         appPreferences?.savedName = updatedUser.name
         appPreferences?.savedUniversity = updatedUser.university
         appPreferences?.savedBio = updatedUser.bio

@@ -18,6 +18,10 @@ class AppPreferences(context: Context) {
         get() = prefs.getString("user_email", null)
         set(value) = prefs.edit().putString("user_email", value).apply()
 
+    var savedUserId: String?
+        get() = prefs.getString("saved_user_id", null)
+        set(value) = prefs.edit().putString("saved_user_id", value).apply()
+
     var authToken: String?
         get() = prefs.getString("auth_token", null)
         set(value) = prefs.edit().putString("auth_token", value).apply()

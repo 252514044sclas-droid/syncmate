@@ -71,6 +71,7 @@ import com.example.syncmate.viewmodel.IncomingRequestsViewModel
 import com.example.syncmate.viewmodel.OnboardingQuizViewModel
 import com.example.syncmate.viewmodel.PredictionViewModel
 import com.example.syncmate.viewmodel.RoommateMatchViewModel
+import com.example.syncmate.viewmodel.RoommateRequestsViewModel
 import com.example.syncmate.viewmodel.SettingsViewModel
 
 @Composable
@@ -106,6 +107,7 @@ fun AppNavGraph(
     val onboardingQuizViewModel: OnboardingQuizViewModel = viewModel(factory = SimpleViewModelFactory { OnboardingQuizViewModel(authRepository) })
     val roommateMatchViewModel: RoommateMatchViewModel = viewModel(factory = SimpleViewModelFactory { RoommateMatchViewModel(authRepository, apiService, appPreferences) })
     val incomingRequestsViewModel: IncomingRequestsViewModel = viewModel(factory = SimpleViewModelFactory { IncomingRequestsViewModel(authRepository) })
+    val roommateRequestsViewModel: RoommateRequestsViewModel = viewModel(factory = SimpleViewModelFactory { RoommateRequestsViewModel(authRepository) })
 
     val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
     val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
@@ -206,7 +208,7 @@ fun AppNavGraph(
                 RoommatesScreen(
                     viewModel = roommateMatchViewModel,
                     onNavigateToProfile = { userId -> navController.navigate(Screen.RoommateProfile.createRoute(userId)) },
-                    onNavigateToRequests = { navController.navigate(Screen.IncomingRequests.route) },
+                    onNavigateToRequests = { navController.navigate(Screen.RoommateRequests.route) },
                     onNavigateToChat = { navController.navigate(Screen.Chat.route) },
                     onNavigateToQuiz = { navController.navigate(Screen.OnboardingQuiz.route) },
                     onNavigateBack = { navController.popBackStack() }
@@ -237,10 +239,10 @@ fun AppNavGraph(
                 )
             }
 
-            // Roommate Connection Requests Screen
+            // Roommate Connection Requests Screen with BOTH Incoming and Sent Tabs
             composable(Screen.RoommateRequests.route) {
                 RoommateRequestsScreen(
-                    viewModel = roommateMatchViewModel,
+                    viewModel = roommateRequestsViewModel,
                     onNavigateToProfile = { userId -> navController.navigate(Screen.RoommateProfile.createRoute(userId)) },
                     onNavigateToChat = { navController.navigate(Screen.Chat.route) },
                     onNavigateBack = { navController.popBackStack() }

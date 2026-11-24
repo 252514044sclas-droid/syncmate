@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import time
 import sqlite3
 import numpy as np
 import joblib
@@ -99,12 +100,17 @@ def init_db():
             sender_university TEXT NOT NULL,
             receiver_id TEXT NOT NULL,
             receiver_name TEXT NOT NULL,
+            receiver_university TEXT DEFAULT '',
             compatibility_score INTEGER DEFAULT 85,
             intro_message TEXT,
             status TEXT DEFAULT 'PENDING',
             created_at BIGINT
         );
     """)
+    try:
+        cursor.execute("ALTER TABLE roommate_requests ADD COLUMN receiver_university TEXT DEFAULT ''")
+    except Exception:
+        pass
     conn.commit()
     conn.close()
 
@@ -520,22 +526,50 @@ async def active_users(user_id: Optional[str] = None):
 @app.post("/api/roommates/send_request")
 async def send_request(request: Request):
     data = await request.json()
-    req_id = data.get("request_id") or f"req_{int(np.random.randint(100000, 999999))}"
+    req_id = data.get("request_id") or f"req_{int(time.time() * 1000)}_{int(np.random.randint(100, 999))}"
     sender_id = data.get("sender_id", "")
     sender_name = data.get("sender_name", "")
     sender_uni = data.get("sender_university", "")
     receiver_id = data.get("receiver_id", "")
     receiver_name = data.get("receiver_name", "")
+    receiver_uni = data.get("receiver_university", "")
     score = int(data.get("compatibility_score", 85))
     intro = data.get("intro_message", "")
-    created_at = int(np.random.randint(1000, 9999))
+    created_at = int(data.get("timestamp") or int(time.time() * 1000))
 
     conn = get_db()
     c = conn.cursor()
+
+    # Prevent duplicate requests between sender and receiver
     c.execute("""
-        INSERT INTO roommate_requests (request_id, sender_id, sender_name, sender_university, receiver_id, receiver_name, compatibility_score, intro_message, status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?)
-    """, (req_id, sender_id, sender_name, sender_uni, receiver_id, receiver_name, score, intro, created_at))
+        SELECT * FROM roommate_requests 
+        WHERE sender_id = ? AND receiver_id = ? AND status IN ('PENDING', 'ACCEPTED')
+    """, (sender_id, receiver_id))
+    existing = c.fetchone()
+    if existing:
+        conn.close()
+        return {
+            "status": "success",
+            "message": "Existing request retrieved",
+            "data": {
+                "request_id": existing["request_id"],
+                "sender_id": existing["sender_id"],
+                "sender_name": existing["sender_name"],
+                "sender_university": existing["sender_university"],
+                "receiver_id": existing["receiver_id"],
+                "receiver_name": existing["receiver_name"],
+                "receiver_university": existing["receiver_university"] if "receiver_university" in existing.keys() else "",
+                "compatibility_score": int(existing["compatibility_score"]),
+                "intro_message": existing["intro_message"] or "",
+                "status": existing["status"],
+                "timestamp": int(existing["created_at"])
+            }
+        }
+
+    c.execute("""
+        INSERT INTO roommate_requests (request_id, sender_id, sender_name, sender_university, receiver_id, receiver_name, receiver_university, compatibility_score, intro_message, status, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?)
+    """, (req_id, sender_id, sender_name, sender_uni, receiver_id, receiver_name, receiver_uni, score, intro, created_at))
     conn.commit()
     conn.close()
 
@@ -548,6 +582,7 @@ async def send_request(request: Request):
             "sender_university": sender_uni,
             "receiver_id": receiver_id,
             "receiver_name": receiver_name,
+            "receiver_university": receiver_uni,
             "compatibility_score": score,
             "intro_message": intro,
             "status": "PENDING",
@@ -574,6 +609,7 @@ async def get_requests(user_id: str):
             "sender_university": r["sender_university"],
             "receiver_id": r["receiver_id"],
             "receiver_name": r["receiver_name"],
+            "receiver_university": r["receiver_university"] if "receiver_university" in r.keys() else "",
             "compatibility_score": int(r["compatibility_score"]),
             "intro_message": r["intro_message"] or "",
             "status": r["status"],
@@ -601,6 +637,21 @@ async def update_request(request: Request):
     conn.close()
 
     return {"status": "success", "message": f"Updated to {new_status}"}
+
+
+@app.post("/roommates/cancel_request")
+@app.post("/api/roommates/cancel_request")
+async def cancel_request(request: Request):
+    data = await request.json()
+    req_id = data.get("request_id", "")
+
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("UPDATE roommate_requests SET status = 'DECLINED' WHERE request_id = ?", (req_id,))
+    conn.commit()
+    conn.close()
+
+    return {"status": "success", "message": "Request cancelled"}
 
 
 if __name__ == "__main__":

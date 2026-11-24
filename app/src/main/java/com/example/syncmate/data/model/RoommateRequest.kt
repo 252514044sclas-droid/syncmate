@@ -7,6 +7,7 @@ data class RoommateRequest(
     val senderUniversity: String = "",
     val receiverId: String = "",
     val receiverName: String = "",
+    val receiverUniversity: String = "",
     val compatibilityScore: Int = 0,
     val introMessage: String = "",
     val status: String = "PENDING", // PENDING, ACCEPTED, DECLINED
