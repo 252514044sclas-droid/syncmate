@@ -314,7 +314,9 @@ async def predict_compatibility(request: Request):
 # ========================================================
 @app.post("/predict_rent")
 @app.post("/predict_price")
+@app.post("/ai/predict_rent.php")
 @app.post("/api/predict_rent")
+@app.post("/api/predict_price")
 @app.post("/api/ai/predict_rent.php")
 async def predict_rent(request: Request):
     try:
@@ -387,6 +389,8 @@ async def predict_rent(request: Request):
 # ========================================================
 @app.post("/scan_listing")
 @app.post("/api/scan_listing")
+@app.post("/ai/scan_listing.php")
+@app.post("/api/ai/scan_listing.php")
 async def scan_listing(request: Request):
     try:
         data = await request.json()
