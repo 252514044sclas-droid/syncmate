@@ -40,3 +40,7 @@ class ContractViewModel(
         _uiState.value = ContractUiState()
     }
 }
+
+// Backward-compatible alias for ContractGuardViewModel
+typealias ContractGuardViewModel = ContractViewModel
+

@@ -239,13 +239,72 @@ fun UploadContractScreen(
                         }
                     } catch (_: Exception) { null }
 
+                    val effectiveName = if (selectedFileName.isNotBlank()) selectedFileName else "sublease_agreement.pdf"
+
                     contractViewModel.analyzeContract(
-                        fileName = selectedFileName,
+                        fileName = effectiveName,
                         fileBytes = fileBytes,
                         onSuccess = { onContractAnalyzed() }
                     )
                 }
             )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Quick Test Sample Agreements
+            Text(
+                text = "Or Test with Pre-Loaded Lease Samples:",
+                style = MaterialTheme.typography.labelSmall,
+                color = TextSecondary
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            val sampleScamText = """
+                RESIDENTIAL STUDENT SUBLEASE AGREEMENT
+                1. Monthly rent shall be Rs. 24,000 payable on 1st of each month.
+                2. Security deposit of Rs. 96,000 is required. The security deposit shall be entirely non-refundable under any circumstance.
+                3. The landlord is currently stationed overseas; tenant agrees to wire transfer token advance of Rs. 15,000 via GooglePay/UPI before scheduling physical inspection of the property.
+                4. In the event of rent delay exceeding 24 hours, lessor reserves the right to immediately change locks, disconnect electricity, and seize tenant belongings.
+                5. Notice period: Lessor may evict tenant on 24 hours notice without assigning reasons.
+                6. Tenant agrees to waive all statutory rights, protections, and recourse provided under the Model Tenancy Act.
+                7. Tenant shall be exclusively responsible for all building structural repairs, ceiling plastering, and foundation cracks.
+            """.trimIndent()
+
+            val sampleSafeText = """
+                STANDARD RESIDENTIAL TENANCY AGREEMENT
+                1. The monthly rent for the demised premises shall be Rs. 18,500 payable on or before 5th of each calendar month via bank transfer.
+                2. The tenant has deposited a sum of Rs. 37,000 as interest-free refundable security deposit with the lessor.
+                3. The security deposit of Rs. 37,000 (equivalent to 2 months rent) shall be refunded in full within 30 days of the tenant vacating the premises.
+                4. Either party may terminate this agreement by giving 30 days prior written notice without penalty.
+                5. The lessor shall be responsible for all major structural repairs, external seepage, and electrical wiring.
+                6. The tenant has physically inspected the premises and confirmed all fittings are in good working condition.
+                7. Nothing in this agreement shall waive statutory rights available under the Model Tenancy Act.
+            """.trimIndent()
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SecondaryButton(
+                    text = "⚠️ Predatory Sample",
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        contractViewModel.analyzeContract(
+                            fileName = "Predatory_Lease_Trap.txt",
+                            fileBytes = sampleScamText.toByteArray(Charsets.UTF_8),
+                            onSuccess = { onContractAnalyzed() }
+                        )
+                    }
+                )
+                SecondaryButton(
+                    text = "✓ Standard Sample",
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        contractViewModel.analyzeContract(
+                            fileName = "Standard_Model_Lease.txt",
+                            fileBytes = sampleSafeText.toByteArray(Charsets.UTF_8),
+                            onSuccess = { onContractAnalyzed() }
+                        )
+                    }
+                )
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
         }
