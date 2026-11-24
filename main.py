@@ -2,53 +2,132 @@ import os
 import sys
 import json
 import time
-import sqlite3
 import re
 import io
 import base64
 import uuid
+from typing import Dict, Any, List, Optional
 import numpy as np
 import joblib
 import pypdf
-from typing import Dict, Any, List, Optional
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException, Depends, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
+# Optional / resilient Firebase Admin SDK import
+try:
+    import firebase_admin
+    from firebase_admin import auth as fb_auth, credentials
+    HAS_FIREBASE_ADMIN = True
+except ImportError:
+    HAS_FIREBASE_ADMIN = False
 
 # Base directories
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-BACKEND_DIR = os.path.join(ROOT_DIR, "backend") if os.path.exists(os.path.join(ROOT_DIR, "backend")) else ROOT_DIR
-ML_DIR = os.path.join(BACKEND_DIR, "ml")
-DB_PATH = os.path.join(BACKEND_DIR, "subletsync.sqlite")
+ML_DIR = os.path.join(ROOT_DIR, "ml") if os.path.exists(os.path.join(ROOT_DIR, "ml")) else ROOT_DIR
+
+# Environment Configurations
+ALLOWED_ORIGINS_RAW = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:8000,http://127.0.0.1:8000,http://10.0.2.2:8000")
+ALLOWED_ORIGINS = [o.strip() for o in ALLOWED_ORIGINS_RAW.split(",") if o.strip()]
+RATE_LIMIT = os.getenv("RATE_LIMIT", "60/minute")
+MAX_UPLOAD_SIZE_MB = int(os.getenv("MAX_UPLOAD_SIZE_MB", "10"))
+MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024
+FIREBASE_AUTH_ENABLED = os.getenv("FIREBASE_AUTH_ENABLED", "true").lower() in ("true", "1", "yes")
+FIREBASE_CREDENTIALS_PATH = os.getenv("FIREBASE_CREDENTIALS_PATH", "")
+
+# Initialize Firebase Admin SDK
+_fb_initialized = False
+if HAS_FIREBASE_ADMIN and FIREBASE_AUTH_ENABLED:
+    try:
+        if FIREBASE_CREDENTIALS_PATH and os.path.exists(FIREBASE_CREDENTIALS_PATH):
+            cred = credentials.Certificate(FIREBASE_CREDENTIALS_PATH)
+            firebase_admin.initialize_app(cred)
+            _fb_initialized = True
+            print(f"[*] Firebase Admin initialized using {FIREBASE_CREDENTIALS_PATH}")
+        elif os.path.exists("firebase-credentials.json"):
+            cred = credentials.Certificate("firebase-credentials.json")
+            firebase_admin.initialize_app(cred)
+            _fb_initialized = True
+            print("[*] Firebase Admin initialized using firebase-credentials.json")
+        else:
+            firebase_admin.initialize_app()
+            _fb_initialized = True
+            print("[*] Firebase Admin initialized with default credentials.")
+    except Exception as e:
+        print(f"[!] Warning: Firebase Admin initialization: {e}")
+
+# Rate Limiter
+limiter = Limiter(key_func=get_remote_address, default_limits=[RATE_LIMIT])
 
 # Initialize FastAPI App
 app = FastAPI(
     title="SyncMate AI Backend",
-    description="SyncMate In-House AI Backend Microservice powered by self-trained Scikit-Learn / MLPRegressor models.",
-    version="2.0.0"
+    description="SyncMate In-House AI Backend Microservice powered by self-trained Scikit-Learn models and secured via Firebase Authentication.",
+    version="2.1.0"
 )
 
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Secure CORS Middleware (explicit allowed origins only, no wildcard with credentials)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Authentication Dependency
+security = HTTPBearer(auto_error=False)
+
+async def verify_firebase_token(
+    auth_cred: Optional[HTTPAuthorizationCredentials] = Security(security)
+) -> Dict[str, Any]:
+    """
+    Verifies the Firebase ID token passed in the Authorization header.
+    Returns the decoded token claims or raises HTTP 401 Unauthorized.
+    """
+    if not FIREBASE_AUTH_ENABLED:
+        return {"uid": "anonymous", "email": "dev@student.edu"}
+
+    if not auth_cred or not auth_cred.credentials:
+        raise HTTPException(
+            status_code=401,
+            detail="Missing Authorization header or Bearer token"
+        )
+
+    token = auth_cred.credentials
+
+    if not HAS_FIREBASE_ADMIN or not _fb_initialized:
+        # Dev fallback when running locally without live GCP service credentials
+        return {"uid": "dev_user", "email": "student@university.edu"}
+
+    try:
+        decoded_token = fb_auth.verify_id_token(token)
+        return decoded_token
+    except Exception as e:
+        raise HTTPException(
+            status_code=401,
+            detail=f"Invalid or expired Firebase ID token: {str(e)}"
+        )
+
+
 # ========================================================
-# 1. Load Trained AI Models
+# 1. Load Trained AI Models from ml/ directory
 # ========================================================
 rent_model = None
 rent_model_artifact = None
 
-# Search for the newly trained 2026 Chennai / Pan-India Fair-Rent model
 possible_rent_paths = [
     os.path.join(ML_DIR, "fair_price_model.pkl"),
     os.path.join(ML_DIR, "rent_model.pkl"),
-    os.path.join(BACKEND_DIR, "fair_price_model.pkl"),
-    "fair_price_model.pkl",
-    "rent_model.pkl"
+    os.path.join(ROOT_DIR, "fair_price_model.pkl"),
+    os.path.join(ROOT_DIR, "rent_model.pkl")
 ]
 
 for rpath in possible_rent_paths:
@@ -69,8 +148,7 @@ contract_guard_model = None
 contract_guard_artifact = None
 possible_contract_paths = [
     os.path.join(ML_DIR, "contract_guard_model.pkl"),
-    os.path.join(BACKEND_DIR, "contract_guard_model.pkl"),
-    "contract_guard_model.pkl"
+    os.path.join(ROOT_DIR, "contract_guard_model.pkl")
 ]
 
 for cpath in possible_contract_paths:
@@ -108,80 +186,8 @@ if os.path.exists(chat_model_path):
         print(f"[!] Warning: Failed loading chat model: {e}")
 
 
-def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-
-def init_db():
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            email TEXT NOT NULL UNIQUE,
-            password_hash TEXT NOT NULL,
-            university TEXT NOT NULL,
-            is_verified INTEGER DEFAULT 1,
-            profile_picture_url TEXT,
-            bio TEXT,
-            preferred_lease_term TEXT DEFAULT 'Summer 2025',
-            max_budget REAL DEFAULT 15000.00,
-            preferred_location TEXT DEFAULT 'Near Campus / Metro',
-            has_completed_quiz INTEGER DEFAULT 0,
-            quiz_preferences_json TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS roommate_requests (
-            request_id TEXT PRIMARY KEY,
-            sender_id TEXT NOT NULL,
-            sender_name TEXT NOT NULL,
-            sender_university TEXT NOT NULL,
-            receiver_id TEXT NOT NULL,
-            receiver_name TEXT NOT NULL,
-            receiver_university TEXT DEFAULT '',
-            compatibility_score INTEGER DEFAULT 85,
-            intro_message TEXT,
-            status TEXT DEFAULT 'PENDING',
-            created_at BIGINT
-        );
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS chat_rooms (
-            chat_id TEXT PRIMARY KEY,
-            participants_json TEXT NOT NULL,
-            participant_names_json TEXT NOT NULL,
-            last_message TEXT,
-            last_message_timestamp BIGINT,
-            compatibility_score INTEGER DEFAULT 0
-        );
-    """)
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS chat_messages (
-            message_id TEXT PRIMARY KEY,
-            chat_id TEXT NOT NULL,
-            sender_id TEXT NOT NULL,
-            sender_name TEXT NOT NULL,
-            text TEXT NOT NULL,
-            timestamp BIGINT NOT NULL
-        );
-    """)
-    try:
-        cursor.execute("ALTER TABLE roommate_requests ADD COLUMN receiver_university TEXT DEFAULT ''")
-    except Exception:
-        pass
-    conn.commit()
-    conn.close()
-
-
-init_db()
-
 # ========================================================
-# Health & Status
+# Health & Status (Public)
 # ========================================================
 @app.get("/")
 @app.get("/health")
@@ -192,17 +198,45 @@ async def health():
         "service": "SyncMate In-House Python AI Microservice (FastAPI on 0.0.0.0:8000)",
         "models": {
             "module_1_rent_predictor": rent_model is not None,
+            "module_2_contract_guard": contract_guard_model is not None,
             "module_4_roommate_matcher": roommate_model is not None,
             "custom_nlp_chatbot": chat_pipeline is not None
-        }
+        },
+        "firebase_auth_enabled": FIREBASE_AUTH_ENABLED,
+        "source_of_truth": "Firestore"
     }
+
+
+# ========================================================
+# Deprecated Split-Brain SQLite Endpoints
+# ========================================================
+DEPRECATION_MESSAGE = {
+    "status": "deprecated",
+    "message": "Roommate profiles, connection requests, and chats are managed exclusively via Firebase Firestore to guarantee single-source-of-truth real-time consistency.",
+    "firestore_collections": ["users", "roommate_requests", "chats"]
+}
+
+@app.api_route("/roommates/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+@app.api_route("/api/roommates/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def deprecated_roommates(path: str):
+    return JSONResponse(status_code=410, content=DEPRECATION_MESSAGE)
+
+@app.api_route("/chats/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+@app.api_route("/api/chats/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def deprecated_chats(path: str):
+    return JSONResponse(status_code=410, content=DEPRECATION_MESSAGE)
+
 
 # ========================================================
 # Module 4: Neural Compatibility Predictor
 # ========================================================
 @app.post("/predict_compatibility")
 @app.post("/api/predict_compatibility")
-async def predict_compatibility(request: Request):
+@limiter.limit("60/minute")
+async def predict_compatibility(
+    request: Request,
+    user: Dict[str, Any] = Depends(verify_firebase_token)
+):
     try:
         data = await request.json()
     except Exception:
@@ -352,22 +386,24 @@ async def predict_compatibility(request: Request):
         }
     }
 
+
 # ========================================================
 # Module 1: Fair-Rent Prediction (2026 Chennai Real-World Engine)
 # ========================================================
 @app.post("/predict_rent")
 @app.post("/predict_price")
-@app.post("/ai/predict_rent.php")
 @app.post("/api/predict_rent")
 @app.post("/api/predict_price")
-@app.post("/api/ai/predict_rent.php")
-async def predict_rent(request: Request):
+@limiter.limit("60/minute")
+async def predict_rent(
+    request: Request,
+    user: Dict[str, Any] = Depends(verify_firebase_token)
+):
     try:
         data = await request.json()
     except Exception:
         data = {}
 
-    # Support all field aliases from Android UI & Retrofit DTOs
     raw_location = str(data.get("location", "Adyar, Chennai")).strip()
     sqft = float(data.get("area_sqft", data.get("square_feet", data.get("area", 600))))
     bedrooms = int(data.get("bedrooms", 1))
@@ -513,7 +549,6 @@ async def predict_rent(request: Request):
                 feat_5 = np.array([[locality_tier, sqft, bedrooms, room_code, lease_duration]])
                 pred_raw = float(rent_model.predict(feat_5)[0])
             except Exception:
-                # Fallback feature representation if legacy artifact was loaded
                 feat_legacy = np.array([[sqft, bedrooms, 1.0, min(room_code, 3), locality_tier, 1, 0, 1.2, 1]])
                 pred_raw = float(rent_model.predict(feat_legacy)[0])
     else:
@@ -525,7 +560,6 @@ async def predict_rent(request: Request):
     range_min = float(round(predicted_rent * 0.90, -2))
     range_max = float(round(predicted_rent * 1.10, -2))
 
-    # Accurate city-calibrated monthly utilities estimate
     utilities = float(round(min(max(1000.0 + (bedrooms * 350.0) + (sqft * 0.4), 850.0), 3800.0), -1))
 
     locality_display = raw_location.split(",")[0].strip().title()
@@ -563,14 +597,17 @@ async def predict_rent(request: Request):
         }
     }
 
+
 # ========================================================
 # Module 2: Scam Listing Shield
 # ========================================================
 @app.post("/scan_listing")
 @app.post("/api/scan_listing")
-@app.post("/ai/scan_listing.php")
-@app.post("/api/ai/scan_listing.php")
-async def scan_listing(request: Request):
+@limiter.limit("60/minute")
+async def scan_listing(
+    request: Request,
+    user: Dict[str, Any] = Depends(verify_firebase_token)
+):
     try:
         data = await request.json()
     except Exception:
@@ -597,6 +634,7 @@ async def scan_listing(request: Request):
             "explanation": "Scanned with SyncMate Scam Guard."
         }
     }
+
 
 # ========================================================
 # Module 3: Contract Guard AI (Self-Trained PDF & Clause Analyzer)
@@ -651,7 +689,6 @@ def extract_inr_deposit(text: str, monthly_rent: float = 0.0) -> float:
             except Exception:
                 continue
 
-    # Multiplier pattern: "X months rent as security deposit"
     m_mult = re.search(r"([0-9]{1,2})\s*months?(?:['\s]+)?\s*(?:rent\s+(?:as|towards)\s+(?:security\s+)?deposit|security\s+deposit)", text, re.IGNORECASE)
     if m_mult and monthly_rent > 0:
         try:
@@ -688,7 +725,6 @@ def extract_contract_lease_term(text: str) -> str:
         return f"{m2.group(1)} Months"
     return "11 Months"
 
-# Categories and regex detection rules
 CONTRACT_CATEGORIES = {
     "UPFRONT_WIRE_TRAP": {
         "title": "Upfront Wire / Crypto / Third-Party Payment Trap",
@@ -830,17 +866,20 @@ CONTRACT_CATEGORIES = {
 
 @app.post("/analyze_contract")
 @app.post("/api/analyze_contract")
-@app.post("/ai/analyze_contract.php")
-@app.post("/api/ai/analyze_contract.php")
-async def analyze_contract(request: Request):
+@limiter.limit("30/minute")
+async def analyze_contract(
+    request: Request,
+    user: Dict[str, Any] = Depends(verify_firebase_token)
+):
     """
     Module 3: Full Contract Guard AI Document Analysis.
     Supports JSON with Base64/plain text or Multipart form file uploads.
+    Enforces a strict 10MB file size limit to prevent Denial of Service.
     """
     file_name = "Sublease_Agreement.pdf"
     contract_text = ""
 
-    # 1. Parse Input Stream (JSON or Multipart Form)
+    # 1. Parse Input Stream with File Size Validation
     content_type = request.headers.get("content-type", "")
     if "multipart/form-data" in content_type:
         try:
@@ -849,9 +888,16 @@ async def analyze_contract(request: Request):
                 upload_file = form["file"]
                 file_name = upload_file.filename or file_name
                 content_bytes = await upload_file.read()
+                if len(content_bytes) > MAX_UPLOAD_SIZE_BYTES:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"Uploaded file exceeds maximum allowed limit of {MAX_UPLOAD_SIZE_MB} MB"
+                    )
                 contract_text = extract_text_from_pdf_stream(content_bytes)
             if not contract_text and "contract_text" in form:
                 contract_text = str(form["contract_text"])
+        except HTTPException:
+            raise
         except Exception as e:
             print(f"[!] Form parse error: {e}")
     else:
@@ -862,14 +908,28 @@ async def analyze_contract(request: Request):
             base64_data = body.get("file_base64", "")
 
             if base64_data:
+                if len(base64_data) > (MAX_UPLOAD_SIZE_BYTES * 4 // 3):
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"Base64 payload exceeds maximum allowed limit of {MAX_UPLOAD_SIZE_MB} MB"
+                    )
                 try:
                     pdf_bytes = base64.b64decode(base64_data)
+                    if len(pdf_bytes) > MAX_UPLOAD_SIZE_BYTES:
+                        raise HTTPException(
+                            status_code=413,
+                            detail=f"Decoded file exceeds maximum allowed limit of {MAX_UPLOAD_SIZE_MB} MB"
+                        )
                     contract_text = extract_text_from_pdf_stream(pdf_bytes)
+                except HTTPException:
+                    raise
                 except Exception as ex:
                     print(f"[!] Base64 decode error: {ex}")
 
             if not contract_text and raw_text:
                 contract_text = raw_text
+        except HTTPException:
+            raise
         except Exception:
             pass
 
@@ -892,7 +952,6 @@ async def analyze_contract(request: Request):
     lease_term = extract_contract_lease_term(contract_text)
     sublease_allowed = not bool(re.search(r"subletting\s+is\s+strictly\s+prohibited", contract_text, re.IGNORECASE))
 
-    # Fallback sensible defaults if not mentioned
     if monthly_rent == 0.0:
         monthly_rent = 18000.0
     if security_deposit == 0.0:
@@ -953,7 +1012,6 @@ async def analyze_contract(request: Request):
         scam_probability_percent = int(min(max(round(ml_scam_prob * 100.0), 8), 24))
         verdict = "SAFE / STANDARD LEASE"
 
-    # If no flags triggered, add a positive assurance clause
     if not flagged_clauses:
         flagged_clauses.append({
             "title": "Model Tenancy Compliance",
@@ -963,7 +1021,6 @@ async def analyze_contract(request: Request):
             "recommendation": "Perform physical move-in inventory checklist and obtain signed receipts for all payments."
         })
 
-    # Summary Overview Text
     if verdict == "HIGH RISK SCAM":
         overview = f"CRITICAL FRAUD ALERT ({scam_probability_percent}% Scam Risk): Contains {len(flagged_clauses)} severe predatory clauses including upfront payment traps or statutory rights waivers. DO NOT SIGN OR WIRE FUNDS."
     elif verdict == "SUSPICIOUS / PREDATORY CLAUSES":
@@ -998,14 +1055,17 @@ async def analyze_contract(request: Request):
         }
     }
 
+
 # ========================================================
 # Chat NLP Assistant
 # ========================================================
 @app.post("/chat")
 @app.post("/api/chat")
-@app.post("/ai/chat.php")
-@app.post("/api/ai/chat.php")
-async def chat_endpoint(request: Request):
+@limiter.limit("60/minute")
+async def chat_endpoint(
+    request: Request,
+    user: Dict[str, Any] = Depends(verify_firebase_token)
+):
     try:
         data = await request.json()
         msg = str(data.get("message", "")).strip().lower()
@@ -1029,354 +1089,6 @@ async def chat_endpoint(request: Request):
             "confidence": 0.95
         }
     }
-
-# ========================================================
-# Roommates Cross-Device Sync Endpoints
-# ========================================================
-@app.post("/roommates/sync_quiz")
-@app.post("/api/roommates/sync_quiz")
-async def sync_quiz(request: Request):
-    data = await request.json()
-    user_id = data.get("user_id")
-    name = data.get("name", "Student")
-    uni = data.get("university", "University")
-    prefs = data.get("preferences", {})
-    budget = float(prefs.get("max_budget_inr", 15000.0))
-
-    if not user_id:
-        return {"status": "error", "message": "user_id is required"}
-
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT id FROM users WHERE id = ?", (user_id,))
-    row = c.fetchone()
-    if row is None:
-        c.execute("""
-            INSERT INTO users (id, name, email, password_hash, university, max_budget, has_completed_quiz, quiz_preferences_json)
-            VALUES (?, ?, ?, 'demo', ?, ?, 1, ?)
-        """, (user_id, name, f"{user_id}@student.edu", uni, budget, json.dumps(prefs)))
-    else:
-        c.execute("""
-            UPDATE users SET name = ?, university = ?, max_budget = ?, has_completed_quiz = 1, quiz_preferences_json = ?
-            WHERE id = ?
-        """, (name, uni, budget, json.dumps(prefs), user_id))
-    conn.commit()
-    conn.close()
-
-    return {"status": "success", "message": "Quiz preferences synced"}
-
-
-@app.get("/roommates/active_users")
-@app.get("/api/roommates/active_users")
-async def active_users(user_id: Optional[str] = None):
-    conn = get_db()
-    c = conn.cursor()
-    if user_id:
-        c.execute("SELECT * FROM users WHERE has_completed_quiz = 1 AND id != ?", (user_id,))
-    else:
-        c.execute("SELECT * FROM users WHERE has_completed_quiz = 1")
-    rows = c.fetchall()
-
-    users_list = []
-    for r in rows:
-        qp = json.loads(r["quiz_preferences_json"]) if r["quiz_preferences_json"] else None
-        users_list.append({
-            "id": r["id"],
-            "name": r["name"],
-            "email": r["email"],
-            "university": r["university"],
-            "is_verified": bool(r["is_verified"]),
-            "bio": r["bio"] or "",
-            "preferred_lease_term": r["preferred_lease_term"] or "Summer 2025",
-            "max_budget": float(r["max_budget"]),
-            "preferred_location": r["preferred_location"] or "Near Campus",
-            "has_completed_quiz": True,
-            "quiz_preferences": qp
-        })
-    conn.close()
-    return {"status": "success", "data": users_list}
-
-
-@app.post("/roommates/send_request")
-@app.post("/api/roommates/send_request")
-async def send_request(request: Request):
-    data = await request.json()
-    req_id = data.get("request_id") or f"req_{int(time.time() * 1000)}_{int(np.random.randint(100, 999))}"
-    sender_id = data.get("sender_id", "")
-    sender_name = data.get("sender_name", "")
-    sender_uni = data.get("sender_university", "")
-    receiver_id = data.get("receiver_id", "")
-    receiver_name = data.get("receiver_name", "")
-    receiver_uni = data.get("receiver_university", "")
-    score = int(data.get("compatibility_score", 85))
-    intro = data.get("intro_message", "")
-    created_at = int(data.get("timestamp") or int(time.time() * 1000))
-
-    conn = get_db()
-    c = conn.cursor()
-
-    # Prevent duplicate requests between sender and receiver
-    c.execute("""
-        SELECT * FROM roommate_requests 
-        WHERE sender_id = ? AND receiver_id = ? AND status IN ('PENDING', 'ACCEPTED')
-    """, (sender_id, receiver_id))
-    existing = c.fetchone()
-    if existing:
-        conn.close()
-        return {
-            "status": "success",
-            "message": "Existing request retrieved",
-            "data": {
-                "request_id": existing["request_id"],
-                "sender_id": existing["sender_id"],
-                "sender_name": existing["sender_name"],
-                "sender_university": existing["sender_university"],
-                "receiver_id": existing["receiver_id"],
-                "receiver_name": existing["receiver_name"],
-                "receiver_university": existing["receiver_university"] if "receiver_university" in existing.keys() else "",
-                "compatibility_score": int(existing["compatibility_score"]),
-                "intro_message": existing["intro_message"] or "",
-                "status": existing["status"],
-                "timestamp": int(existing["created_at"])
-            }
-        }
-
-    c.execute("""
-        INSERT INTO roommate_requests (request_id, sender_id, sender_name, sender_university, receiver_id, receiver_name, receiver_university, compatibility_score, intro_message, status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?)
-    """, (req_id, sender_id, sender_name, sender_uni, receiver_id, receiver_name, receiver_uni, score, intro, created_at))
-    conn.commit()
-    conn.close()
-
-    return {
-        "status": "success",
-        "data": {
-            "request_id": req_id,
-            "sender_id": sender_id,
-            "sender_name": sender_name,
-            "sender_university": sender_uni,
-            "receiver_id": receiver_id,
-            "receiver_name": receiver_name,
-            "receiver_university": receiver_uni,
-            "compatibility_score": score,
-            "intro_message": intro,
-            "status": "PENDING",
-            "timestamp": created_at
-        }
-    }
-
-
-@app.get("/roommates/get_requests")
-@app.get("/api/roommates/get_requests")
-async def get_requests(user_id: str):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM roommate_requests WHERE receiver_id = ? ORDER BY created_at DESC", (user_id,))
-    in_rows = c.fetchall()
-    c.execute("SELECT * FROM roommate_requests WHERE sender_id = ? ORDER BY created_at DESC", (user_id,))
-    out_rows = c.fetchall()
-
-    def map_row(r):
-        return {
-            "request_id": r["request_id"],
-            "sender_id": r["sender_id"],
-            "sender_name": r["sender_name"],
-            "sender_university": r["sender_university"],
-            "receiver_id": r["receiver_id"],
-            "receiver_name": r["receiver_name"],
-            "receiver_university": r["receiver_university"] if "receiver_university" in r.keys() else "",
-            "compatibility_score": int(r["compatibility_score"]),
-            "intro_message": r["intro_message"] or "",
-            "status": r["status"],
-            "timestamp": int(r["created_at"])
-        }
-
-    incoming = [map_row(r) for r in in_rows]
-    sent = [map_row(r) for r in out_rows]
-    conn.close()
-
-    return {"status": "success", "data": {"incoming": incoming, "sent": sent}}
-
-
-@app.post("/roommates/update_request")
-@app.post("/api/roommates/update_request")
-async def update_request(request: Request):
-    data = await request.json()
-    req_id = data.get("request_id", "")
-    new_status = data.get("status", "ACCEPTED")
-
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("UPDATE roommate_requests SET status = ? WHERE request_id = ?", (new_status, req_id))
-    
-    if new_status == "ACCEPTED":
-        c.execute("SELECT * FROM roommate_requests WHERE request_id = ?", (req_id,))
-        req_row = c.fetchone()
-        if req_row:
-            s_id = req_row["sender_id"]
-            r_id = req_row["receiver_id"]
-            sorted_parts = sorted([s_id, r_id])
-            chat_id = "_".join(sorted_parts)
-            names_map = {
-                s_id: req_row["sender_name"],
-                r_id: req_row["receiver_name"]
-            }
-            c.execute("SELECT chat_id FROM chat_rooms WHERE chat_id = ?", (chat_id,))
-            if not c.fetchone():
-                c.execute("""
-                    INSERT INTO chat_rooms (chat_id, participants_json, participant_names_json, last_message, last_message_timestamp, compatibility_score)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                """, (chat_id, json.dumps(sorted_parts), json.dumps(names_map), "Roommate request accepted! Start chatting.", int(time.time() * 1000), int(req_row["compatibility_score"])))
-    
-    conn.commit()
-    conn.close()
-
-    return {"status": "success", "message": f"Updated to {new_status}"}
-
-
-@app.post("/roommates/cancel_request")
-@app.post("/api/roommates/cancel_request")
-async def cancel_request(request: Request):
-    data = await request.json()
-    req_id = data.get("request_id", "")
-
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("UPDATE roommate_requests SET status = 'DECLINED' WHERE request_id = ?", (req_id,))
-    conn.commit()
-    conn.close()
-
-    return {"status": "success", "message": "Request cancelled"}
-
-
-# ========================================================
-# 1-on-1 Direct Chat & Messaging Endpoints
-# ========================================================
-@app.post("/chats/create")
-@app.post("/api/chats/create")
-async def create_chat_room(request: Request):
-    data = await request.json()
-    chat_id = data.get("chat_id")
-    participants = data.get("participants", [])
-    participant_names = data.get("participant_names", {})
-    last_msg = data.get("last_message", "Roommate request accepted! Start chatting.")
-    ts = int(data.get("last_message_timestamp") or int(time.time() * 1000))
-    score = int(data.get("compatibility_score", 90))
-
-    if not chat_id and len(participants) == 2:
-        chat_id = "_".join(sorted(participants))
-
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM chat_rooms WHERE chat_id = ?", (chat_id,))
-    row = c.fetchone()
-    if row is None:
-        c.execute("""
-            INSERT INTO chat_rooms (chat_id, participants_json, participant_names_json, last_message, last_message_timestamp, compatibility_score)
-            VALUES (?, ?, ?, ?, ?, ?)
-        """, (chat_id, json.dumps(participants), json.dumps(participant_names), last_msg, ts, score))
-        conn.commit()
-    conn.close()
-
-    return {
-        "status": "success",
-        "data": {
-            "chat_id": chat_id,
-            "participants": participants,
-            "participant_names": participant_names,
-            "last_message": last_msg,
-            "last_message_timestamp": ts,
-            "compatibility_score": score
-        }
-    }
-
-
-@app.get("/chats/get_chats")
-@app.get("/api/chats/get_chats")
-async def get_user_chats(user_id: str):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM chat_rooms ORDER BY last_message_timestamp DESC")
-    rows = c.fetchall()
-
-    user_chats = []
-    for r in rows:
-        parts = json.loads(r["participants_json"]) if r["participants_json"] else []
-        if user_id in parts:
-            names = json.loads(r["participant_names_json"]) if r["participant_names_json"] else {}
-            user_chats.append({
-                "chat_id": r["chat_id"],
-                "participants": parts,
-                "participant_names": names,
-                "last_message": r["last_message"] or "",
-                "last_message_timestamp": int(r["last_message_timestamp"]),
-                "compatibility_score": int(r["compatibility_score"])
-            })
-    conn.close()
-    return {"status": "success", "data": user_chats}
-
-
-@app.post("/chats/send_message")
-@app.post("/api/chats/send_message")
-async def send_direct_message(request: Request):
-    data = await request.json()
-    chat_id = data.get("chat_id", "")
-    message_id = data.get("message_id") or f"msg_{int(time.time() * 1000)}_{int(np.random.randint(100, 999))}"
-    sender_id = data.get("sender_id", "")
-    sender_name = data.get("sender_name", "")
-    text = data.get("text", "").strip()
-    ts = int(data.get("timestamp") or int(time.time() * 1000))
-
-    if not chat_id or not sender_id or not text:
-        return {"status": "error", "message": "chat_id, sender_id, and text are required"}
-
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("""
-        INSERT INTO chat_messages (message_id, chat_id, sender_id, sender_name, text, timestamp)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (message_id, chat_id, sender_id, sender_name, text, ts))
-
-    c.execute("""
-        UPDATE chat_rooms SET last_message = ?, last_message_timestamp = ? WHERE chat_id = ?
-    """, (text, ts, chat_id))
-
-    conn.commit()
-    conn.close()
-
-    return {
-        "status": "success",
-        "data": {
-            "message_id": message_id,
-            "chat_id": chat_id,
-            "sender_id": sender_id,
-            "sender_name": sender_name,
-            "text": text,
-            "timestamp": ts
-        }
-    }
-
-
-@app.get("/chats/get_messages")
-@app.get("/api/chats/get_messages")
-async def get_direct_messages(chat_id: str):
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM chat_messages WHERE chat_id = ? ORDER BY timestamp ASC", (chat_id,))
-    rows = c.fetchall()
-
-    messages = []
-    for r in rows:
-        messages.append({
-            "message_id": r["message_id"],
-            "chat_id": r["chat_id"],
-            "sender_id": r["sender_id"],
-            "sender_name": r["sender_name"],
-            "text": r["text"],
-            "timestamp": int(r["timestamp"])
-        })
-    conn.close()
-    return {"status": "success", "data": messages}
 
 
 if __name__ == "__main__":
