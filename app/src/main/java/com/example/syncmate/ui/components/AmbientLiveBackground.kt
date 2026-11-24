@@ -18,23 +18,27 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import kotlin.math.cos
+import kotlin.math.exp
 import kotlin.math.sin
-import kotlin.math.sqrt
 
 /**
- * Ultra-aesthetic, hardware-accelerated ambient live animated background.
+ * Ultra-aesthetic, hardware-accelerated ambient live animated background featuring
+ * luminous pulse stripe lines and an ECG heartbeat waveform sweep.
  *
  * Theme Features:
- * 1. Deep Velvet Pitch Black Backdrop (#000000) in Dark Mode / Crisp Pure White (#FFFFFF) in Light Mode.
- * 2. Ethereal Liquid Silk Aurora: Large, soft-glowing warm sand beige & champagne gold nebulas
- *    drifting smoothly in organic Lissajous curves with gentle breathing radius.
- * 3. Living Constellation Network (SyncMate Matching Motif): Delicate celestial student nodes
- *    floating gently through space; whenever two nodes drift near each other, glowing hairline
- *    constellation connection threads smoothly illuminate and fade between them.
- * 4. Ambient Twinkling Stars & Bokeh Halos: Delicate stardust particles that shimmer and pulse.
- * 5. Occasional Ethereal Shooting Stars: Subtle diagonal light streaks gliding across the upper sky.
+ * 1. Pure Pitch Black Backdrop (#000000) in Dark Mode / Crisp Pure White (#FFFFFF) in Light Mode.
+ * 2. Subtle Geometric Oscilloscope Grid: Faint, elegant metric lines that establish a high-tech instrument aesthetic.
+ * 3. 5 Horizontal Harmonic Stripe Lines spanning the screen with subtle continuous wave undulation.
+ * 4. Traveling ECG Heartbeat Waveform: A sharp, organic cardiac P-Q-R-S-T pulse that sweeps smoothly
+ *    across the focal stripe line, accompanied by a phosphorescent trailing glow.
+ * 5. Luminous Heartbeat Beacon & Radial Shockwaves: Glowing pulse core at the R-wave spike tip
+ *    with soft concentric cardiac shockwaves rippling outwards across adjacent stripes.
+ * 6. Ambient Floating Micro-Sparks: Tiny floating energy motes around the active pulse region.
  */
 @Composable
 fun AmbientLiveBackground(
@@ -42,79 +46,47 @@ fun AmbientLiveBackground(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    val infiniteTransition = rememberInfiniteTransition(label = "AestheticAmbientTransition")
+    val infiniteTransition = rememberInfiniteTransition(label = "HeartbeatStripeTransition")
 
-    // Slow organic aurora orbital drift (20 seconds cycle)
-    val auroraDrift by infiniteTransition.animateFloat(
+    // Continuous heartbeat pulse sweep (2.4 seconds per cardiac cycle)
+    val pulseProgress by infiniteTransition.animateFloat(
         initialValue = 0f,
-        targetValue = 2f * Math.PI.toFloat(),
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 20000, easing = LinearEasing),
+            animation = tween(durationMillis = 2400, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
-        label = "AuroraDrift"
+        label = "HeartbeatPulseProgress"
     )
 
-    // Secondary counter-orbital drift (28 seconds cycle)
-    val secondaryDrift by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 2f * Math.PI.toFloat(),
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 28000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "SecondaryDrift"
-    )
-
-    // Gentle breathing pulse for the luminous nebula core (8 seconds cycle)
-    val breathPhase by infiniteTransition.animateFloat(
+    // Gentle baseline stripe wave undulation (8 seconds cycle)
+    val wavePhase by infiniteTransition.animateFloat(
         initialValue = 0f,
         targetValue = 2f * Math.PI.toFloat(),
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 8000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
-        label = "BreathPhase"
-    )
-
-    // Vertical constellation float (14 seconds cycle)
-    val constellationProgress by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 14000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "ConstellationProgress"
-    )
-
-    // Ethereal shooting star cycle (11 seconds periodic loop)
-    val shootingStarProgress by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 11000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "ShootingStar"
+        label = "WavePhase"
     )
 
     // Base background colors
     val backdropColor = if (darkTheme) Color(0xFF000000) else Color(0xFFFFFFFF)
 
-    // 22 Pre-calculated seed points for the constellation network
-    val nodes = remember {
-        List(22) { index ->
-            ConstellationNodeSeed(
-                xRatio = ((index * 47 + 19) % 100) / 100f,
-                yOffset = ((index * 61 + 31) % 100) / 100f,
-                speedMultiplier = 0.65f + (index % 5) * 0.14f,
-                wobbleSpeed = 0.8f + (index % 4) * 0.35f,
-                wobbleAmplitude = 12f + (index % 3) * 6f,
-                radiusDp = 1.6f + (index % 4) * 0.55f,
-                twinkleSpeed = 1.0f + (index % 3) * 0.5f,
-                isStar = (index % 3 == 0),
-                seed = index * 1.414f
+    // Reusable Path objects to avoid allocations during Canvas draw pass
+    val mainStripePath = remember { Path() }
+    val glowTrailPath = remember { Path() }
+    val harmonicPath = remember { Path() }
+
+    // Seed points for ambient micro-sparks floating near stripe lines
+    val sparks = remember {
+        List(16) { index ->
+            SparkSeed(
+                xRatio = ((index * 43 + 17) % 100) / 100f,
+                yRatio = 0.25f + ((index * 37 + 13) % 55) / 100f,
+                radiusDp = 1.2f + (index % 3) * 0.6f,
+                speedMultiplier = 0.6f + (index % 4) * 0.2f,
+                seed = index * 1.73f
             )
         }
     }
@@ -131,266 +103,268 @@ fun AmbientLiveBackground(
             if (canvasWidth <= 0 || canvasHeight <= 0) return@Canvas
 
             // ========================================================
-            // 1. Ethereal Liquid Silk Aurora (Soft Breathing Nebulas)
+            // 1. Subtle Oscilloscope / Metric Grid Lines
             // ========================================================
-            val breathScale = 1f + 0.12f * sin(breathPhase)
-
-            if (darkTheme) {
-                // --- Dark Mode: Deep Pitch Black with Warm Sand Beige & Champagne Glows ---
-                // Primary Warm Sand Beige Aurora Nebula (Upper-Left Drifting)
-                val aurora1X = canvasWidth * 0.28f + sin(auroraDrift) * (canvasWidth * 0.20f)
-                val aurora1Y = canvasHeight * 0.24f + cos(auroraDrift * 0.8f) * (canvasHeight * 0.14f)
-                val aurora1Radius = canvasWidth * 0.95f * breathScale
-
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFFE5D5C0).copy(alpha = 0.17f), // Warm Sand Beige
-                            Color(0xFFE5D5C0).copy(alpha = 0.08f),
-                            Color(0xFFE5D5C0).copy(alpha = 0.02f),
-                            Color.Transparent
-                        ),
-                        center = Offset(aurora1X, aurora1Y),
-                        radius = aurora1Radius
-                    ),
-                    center = Offset(aurora1X, aurora1Y),
-                    radius = aurora1Radius
-                )
-
-                // Secondary Soft Champagne Aurora Nebula (Lower-Right Drifting)
-                val aurora2X = canvasWidth * 0.76f + cos(secondaryDrift * 0.7f) * (canvasWidth * 0.18f)
-                val aurora2Y = canvasHeight * 0.74f + sin(secondaryDrift * 0.9f) * (canvasHeight * 0.15f)
-                val aurora2Radius = canvasWidth * 1.05f * (2f - breathScale)
-
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFFF2E8DC).copy(alpha = 0.14f), // Soft Champagne
-                            Color(0xFFF2E8DC).copy(alpha = 0.06f),
-                            Color(0xFFF2E8DC).copy(alpha = 0.015f),
-                            Color.Transparent
-                        ),
-                        center = Offset(aurora2X, aurora2Y),
-                        radius = aurora2Radius
-                    ),
-                    center = Offset(aurora2X, aurora2Y),
-                    radius = aurora2Radius
-                )
-
-                // Central Luminous Breathing Core (Mid-Screen Warm Light)
-                val coreAlpha = 0.08f + sin(breathPhase) * 0.035f // 0.045f to 0.115f
-                val aurora3X = canvasWidth * 0.52f + sin(secondaryDrift * 0.6f) * (canvasWidth * 0.14f)
-                val aurora3Y = canvasHeight * 0.50f + cos(auroraDrift * 0.7f) * (canvasHeight * 0.10f)
-                val aurora3Radius = canvasWidth * 0.75f
-
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = coreAlpha),
-                            Color(0xFFE5D5C0).copy(alpha = coreAlpha * 0.45f),
-                            Color.Transparent
-                        ),
-                        center = Offset(aurora3X, aurora3Y),
-                        radius = aurora3Radius
-                    ),
-                    center = Offset(aurora3X, aurora3Y),
-                    radius = aurora3Radius
-                )
+            val gridSpacing = 48f * density
+            val gridColor = if (darkTheme) {
+                Color(0xFFE5D5C0).copy(alpha = 0.025f)
             } else {
-                // --- Light Mode: Crisp White with Warm Taupe & Cream Silk Nebulas ---
-                val aurora1X = canvasWidth * 0.30f + sin(auroraDrift) * (canvasWidth * 0.18f)
-                val aurora1Y = canvasHeight * 0.22f + cos(auroraDrift * 0.8f) * (canvasHeight * 0.12f)
-                val aurora1Radius = canvasWidth * 0.90f * breathScale
+                Color(0xFFA68A68).copy(alpha = 0.035f)
+            }
 
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFFC8B094).copy(alpha = 0.13f), // Warm Taupe
-                            Color(0xFFC8B094).copy(alpha = 0.05f),
-                            Color.Transparent
-                        ),
-                        center = Offset(aurora1X, aurora1Y),
-                        radius = aurora1Radius
-                    ),
-                    center = Offset(aurora1X, aurora1Y),
-                    radius = aurora1Radius
+            var gx = gridSpacing
+            while (gx < canvasWidth) {
+                drawLine(
+                    color = gridColor,
+                    start = Offset(gx, 0f),
+                    end = Offset(gx, canvasHeight),
+                    strokeWidth = 0.8f * density
                 )
+                gx += gridSpacing
+            }
 
-                val aurora2X = canvasWidth * 0.78f + cos(secondaryDrift * 0.7f) * (canvasWidth * 0.16f)
-                val aurora2Y = canvasHeight * 0.76f + sin(secondaryDrift * 0.9f) * (canvasHeight * 0.14f)
-                val aurora2Radius = canvasWidth * 1.0f
-
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFFEDE2D2).copy(alpha = 0.15f), // Soft Cream
-                            Color(0xFFEDE2D2).copy(alpha = 0.06f),
-                            Color.Transparent
-                        ),
-                        center = Offset(aurora2X, aurora2Y),
-                        radius = aurora2Radius
-                    ),
-                    center = Offset(aurora2X, aurora2Y),
-                    radius = aurora2Radius
+            var gy = gridSpacing
+            while (gy < canvasHeight) {
+                drawLine(
+                    color = gridColor,
+                    start = Offset(0f, gy),
+                    end = Offset(canvasWidth, gy),
+                    strokeWidth = 0.8f * density
                 )
+                gy += gridSpacing
             }
 
             // ========================================================
-            // 2. Living Constellation Network & Stardust Nodes
+            // 2. Cardiac Shockwave Ripple (Expanding Radial Rings)
             // ========================================================
-            val nodeCount = nodes.size
-            val posX = FloatArray(nodeCount)
-            val posY = FloatArray(nodeCount)
-            val nodeFades = FloatArray(nodeCount)
+            val heartbeatPulseX = pulseProgress * (canvasWidth + 240f * density) - 120f * density
+            val focalY = canvasHeight * 0.50f
 
-            // Step A: Calculate current positions and edge fades
-            nodes.forEachIndexed { i, node ->
-                val currentYProg = (node.yOffset - (constellationProgress * node.speedMultiplier)) % 1f
-                val normY = if (currentYProg < 0f) currentYProg + 1f else currentYProg
-                val py = normY * canvasHeight
+            // Shockwave when the pulse passes the center region
+            val centerProximity = 1f - kotlin.math.abs(pulseProgress - 0.5f) * 2f
+            if (centerProximity > 0f) {
+                val ringRadius = (1f - centerProximity) * (canvasWidth * 0.45f)
+                val ringAlpha = centerProximity * (if (darkTheme) 0.12f else 0.08f)
+                val ringColor = if (darkTheme) Color(0xFFE5D5C0) else Color(0xFFA68A68)
 
-                val wobble = sin(auroraDrift * node.wobbleSpeed + node.seed) * (node.wobbleAmplitude * density)
-                val px = (node.xRatio * canvasWidth + wobble).coerceIn(0f, canvasWidth)
+                drawCircle(
+                    color = ringColor.copy(alpha = ringAlpha),
+                    radius = ringRadius,
+                    center = Offset(canvasWidth * 0.50f, focalY),
+                    style = Stroke(width = 1.2f * density)
+                )
 
-                posX[i] = px
-                posY[i] = py
-
-                // Smooth edge fade at screen borders
-                val edgeFade = when {
-                    normY < 0.10f -> normY / 0.10f
-                    normY > 0.90f -> (1f - normY) / 0.10f
-                    else -> 1f
-                }
-                nodeFades[i] = edgeFade
-            }
-
-            // Step B: Draw hairline connection threads between nearby nodes
-            val maxConnectionDist = 95f * density
-            val maxConnectionDistSq = maxConnectionDist * maxConnectionDist
-            val connectionBaseColor = if (darkTheme) Color(0xFFE5D5C0) else Color(0xFFA68A68)
-            val maxLineAlpha = if (darkTheme) 0.20f else 0.13f
-
-            for (i in 0 until nodeCount) {
-                for (j in i + 1 until nodeCount) {
-                    val dx = posX[i] - posX[j]
-                    val dy = posY[i] - posY[j]
-                    val distSq = dx * dx + dy * dy
-
-                    if (distSq < maxConnectionDistSq) {
-                        val dist = sqrt(distSq)
-                        val proximity = (1f - dist / maxConnectionDist) * nodeFades[i] * nodeFades[j]
-                        val lineAlpha = proximity * maxLineAlpha
-
-                        drawLine(
-                            color = connectionBaseColor.copy(alpha = lineAlpha),
-                            start = Offset(posX[i], posY[i]),
-                            end = Offset(posX[j], posY[j]),
-                            strokeWidth = 1f * density,
-                            cap = StrokeCap.Round
-                        )
-                    }
-                }
-            }
-
-            // Step C: Draw nodes (twinkling stars and stardust motes)
-            val starBaseColor = if (darkTheme) Color(0xFFFAF7F2) else Color(0xFF5C4F42)
-            val warmAccentColor = if (darkTheme) Color(0xFFE5D5C0) else Color(0xFFA68A68)
-
-            nodes.forEachIndexed { i, node ->
-                val px = posX[i]
-                val py = posY[i]
-                val fade = nodeFades[i]
-
-                val twinkle = (sin(breathPhase * node.twinkleSpeed + node.seed) + 1f) / 2f
-                val baseColor = if (node.isStar) starBaseColor else warmAccentColor
-
-                if (darkTheme) {
-                    val particleAlpha = (0.28f + twinkle * 0.36f) * fade // 0.28 to 0.64
-                    val radiusPx = node.radiusDp * density
-
-                    // Soft glowing aura for prominent stars
-                    if (node.isStar) {
-                        drawCircle(
-                            color = baseColor.copy(alpha = particleAlpha * 0.25f),
-                            radius = radiusPx * 2.8f,
-                            center = Offset(px, py)
-                        )
-                    }
-
-                    // Bright stellar core
+                if (ringRadius > 30f * density) {
                     drawCircle(
-                        color = baseColor.copy(alpha = particleAlpha),
-                        radius = radiusPx,
-                        center = Offset(px, py)
-                    )
-                } else {
-                    val particleAlpha = (0.16f + twinkle * 0.20f) * fade
-                    val radiusPx = node.radiusDp * density
-
-                    drawCircle(
-                        color = baseColor.copy(alpha = particleAlpha),
-                        radius = radiusPx,
-                        center = Offset(px, py)
+                        color = ringColor.copy(alpha = ringAlpha * 0.5f),
+                        radius = ringRadius * 0.65f,
+                        center = Offset(canvasWidth * 0.50f, focalY),
+                        style = Stroke(width = 1.0f * density)
                     )
                 }
             }
 
             // ========================================================
-            // 3. Ethereal Shooting Light Streaks (Periodic Cosmic Glides)
+            // 3. Ambient Harmonic Stripe Lines (4 Parallel Waves)
             // ========================================================
-            // Shooting Streak 1 (Glides from upper-left to mid-right during 0.18f .. 0.32f window)
-            val streak1Window = (shootingStarProgress - 0.18f) / 0.14f
-            if (streak1Window in 0f..1f) {
-                val startX = canvasWidth * 0.08f + streak1Window * (canvasWidth * 0.85f)
-                val startY = canvasHeight * 0.08f + streak1Window * (canvasHeight * 0.22f)
-                val tailX = (startX - canvasWidth * 0.18f).coerceAtLeast(0f)
-                val tailY = (startY - canvasHeight * 0.05f).coerceAtLeast(0f)
+            val stripeRatios = floatArrayOf(0.18f, 0.34f, 0.66f, 0.82f)
+            val baseStripeColor = if (darkTheme) Color(0xFFE5D5C0) else Color(0xFFA68A68)
 
-                val streakFade = sin(streak1Window * Math.PI.toFloat())
-                val streakAlpha = (if (darkTheme) 0.40f else 0.22f) * streakFade
+            stripeRatios.forEachIndexed { idx, ratio ->
+                val baseLineY = canvasHeight * ratio
+                val stripeAlpha = if (darkTheme) 0.08f + (idx % 2) * 0.03f else 0.10f + (idx % 2) * 0.04f
 
-                drawLine(
-                    brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            warmAccentColor.copy(alpha = streakAlpha * 0.5f),
-                            starBaseColor.copy(alpha = streakAlpha)
-                        ),
-                        start = Offset(tailX, tailY),
-                        end = Offset(startX, startY)
-                    ),
-                    start = Offset(tailX, tailY),
-                    end = Offset(startX, startY),
-                    strokeWidth = 1.6f * density,
-                    cap = StrokeCap.Round
+                harmonicPath.rewind()
+                harmonicPath.moveTo(0f, baseLineY)
+
+                val step = 8f * density
+                var hx = 0f
+                while (hx <= canvasWidth) {
+                    val waveOffset = sin((hx / (90f * density)) + wavePhase + idx * 1.5f) * (4.5f * density)
+
+                    // Sympathetic resonance ripple from the heartbeat on the main line
+                    val distToHeartbeat = kotlin.math.abs(hx - heartbeatPulseX) / (120f * density)
+                    val resonance = if (distToHeartbeat < 1.0f) {
+                        val d = distToHeartbeat
+                        val decay = 1f - d * d
+                        sin(distToHeartbeat * 6f) * (12f * density) * decay * (if (idx in 1..2) 0.6f else 0.3f)
+                    } else 0f
+
+                    harmonicPath.lineTo(hx, baseLineY + waveOffset + resonance)
+                    hx += step
+                }
+
+                drawPath(
+                    path = harmonicPath,
+                    color = baseStripeColor.copy(alpha = stripeAlpha),
+                    style = Stroke(width = 1.2f * density, cap = StrokeCap.Round, join = StrokeJoin.Round)
                 )
             }
 
-            // Shooting Streak 2 (Glides from mid-right to lower-left during 0.68f .. 0.82f window)
-            val streak2Window = (shootingStarProgress - 0.68f) / 0.14f
-            if (streak2Window in 0f..1f) {
-                val startX = canvasWidth * 0.92f - streak2Window * (canvasWidth * 0.78f)
-                val startY = canvasHeight * 0.38f + streak2Window * (canvasHeight * 0.18f)
-                val tailX = (startX + canvasWidth * 0.16f).coerceAtMost(canvasWidth)
-                val tailY = (startY - canvasHeight * 0.04f).coerceAtLeast(0f)
+            // ========================================================
+            // 4. Primary Heartbeat Stripe Line (Focal ECG Waveform)
+            // ========================================================
+            val ecgScale = 90f * density // Width of the heartbeat complex
+            val pulseHeadX = heartbeatPulseX
 
-                val streakFade = sin(streak2Window * Math.PI.toFloat())
-                val streakAlpha = (if (darkTheme) 0.35f else 0.18f) * streakFade
+            mainStripePath.rewind()
+            glowTrailPath.rewind()
 
-                drawLine(
-                    brush = Brush.linearGradient(
+            mainStripePath.moveTo(0f, focalY)
+
+            val stepPx = 3f * density
+            var px = 0f
+            var trailStarted = false
+            val trailLength = 200f * density
+            val trailStartX = pulseHeadX - trailLength
+
+            var rWavePeakX = pulseHeadX
+            var rWavePeakY = focalY
+
+            while (px <= canvasWidth) {
+                val dx = (px - pulseHeadX) / ecgScale
+                val ecgOffset = if (dx in -1.2f..1.2f) {
+                    // P wave (gentle upward bump at dx = -0.42)
+                    val pDiff = (dx + 0.42f) / 0.12f
+                    val p = -14f * density * exp(-pDiff * pDiff)
+
+                    // Q wave (sharp downward dip at dx = -0.14)
+                    val qDiff = (dx + 0.14f) / 0.05f
+                    val q = 16f * density * exp(-qDiff * qDiff)
+
+                    // R wave (dramatic tall sharp upward spike at dx = 0.0)
+                    val rDiff = dx / 0.045f
+                    val r = -85f * density * exp(-rDiff * rDiff)
+
+                    // S wave (sharp downward dip at dx = +0.14)
+                    val sDiff = (dx - 0.14f) / 0.06f
+                    val s = 38f * density * exp(-sDiff * sDiff)
+
+                    // T wave (smooth upward recovery wave at dx = +0.42)
+                    val tDiff = (dx - 0.42f) / 0.14f
+                    val t = -22f * density * exp(-tDiff * tDiff)
+
+                    p + q + r + s + t
+                } else 0f
+
+                // Subtle underlying sine wave
+                val baselineWave = sin((px / (110f * density)) + wavePhase * 1.2f) * (3.5f * density)
+                val py = focalY + ecgOffset + baselineWave
+
+                mainStripePath.lineTo(px, py)
+
+                // Track the exact peak of the R-wave
+                if (kotlin.math.abs(px - pulseHeadX) < stepPx) {
+                    rWavePeakX = px
+                    rWavePeakY = py
+                }
+
+                // Collect points for the phosphorescent glow trail
+                if (px in trailStartX..pulseHeadX) {
+                    if (!trailStarted) {
+                        glowTrailPath.moveTo(px, py)
+                        trailStarted = true
+                    } else {
+                        glowTrailPath.lineTo(px, py)
+                    }
+                }
+
+                px += stepPx
+            }
+
+            // Draw baseline of primary stripe
+            val mainLineBaseAlpha = if (darkTheme) 0.15f else 0.18f
+            drawPath(
+                path = mainStripePath,
+                color = baseStripeColor.copy(alpha = mainLineBaseAlpha),
+                style = Stroke(width = 1.4f * density, cap = StrokeCap.Round, join = StrokeJoin.Round)
+            )
+
+            // Draw phosphorescent trailing glow along the pulse path
+            if (trailStarted) {
+                val glowColor = if (darkTheme) Color(0xFFF2E8DC) else Color(0xFFA68A68)
+                val trailAlpha = if (darkTheme) 0.45f else 0.35f
+
+                // Outer soft luminous halo
+                drawPath(
+                    path = glowTrailPath,
+                    brush = Brush.horizontalGradient(
                         colors = listOf(
                             Color.Transparent,
-                            warmAccentColor.copy(alpha = streakAlpha * 0.5f),
-                            starBaseColor.copy(alpha = streakAlpha)
+                            glowColor.copy(alpha = trailAlpha * 0.3f),
+                            glowColor.copy(alpha = trailAlpha)
                         ),
-                        start = Offset(tailX, tailY),
-                        end = Offset(startX, startY)
+                        startX = trailStartX.coerceAtLeast(0f),
+                        endX = pulseHeadX.coerceAtLeast(1f)
                     ),
-                    start = Offset(tailX, tailY),
-                    end = Offset(startX, startY),
-                    strokeWidth = 1.4f * density,
-                    cap = StrokeCap.Round
+                    style = Stroke(width = 5.0f * density, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                )
+
+                // Core sharp bright heartbeat trace
+                drawPath(
+                    path = glowTrailPath,
+                    brush = Brush.horizontalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            (if (darkTheme) Color(0xFFE5D5C0) else Color(0xFFA68A68)).copy(alpha = 0.5f),
+                            (if (darkTheme) Color.White else Color(0xFF5C4F42)).copy(alpha = 0.95f)
+                        ),
+                        startX = trailStartX.coerceAtLeast(0f),
+                        endX = pulseHeadX.coerceAtLeast(1f)
+                    ),
+                    style = Stroke(width = 2.2f * density, cap = StrokeCap.Round, join = StrokeJoin.Round)
+                )
+            }
+
+            // ========================================================
+            // 5. Heartbeat Pulse Beacon (Luminous Cardiac Core)
+            // ========================================================
+            if (pulseHeadX in 0f..canvasWidth) {
+                val beaconRadius = 16f * density
+                val beaconGlowColor = if (darkTheme) Color(0xFFE5D5C0) else Color(0xFFA68A68)
+                val beaconCoreColor = if (darkTheme) Color.White else Color(0xFF5C4F42)
+
+                // Ambient halo aura around the heartbeat tip
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            beaconGlowColor.copy(alpha = if (darkTheme) 0.55f else 0.40f),
+                            beaconGlowColor.copy(alpha = if (darkTheme) 0.18f else 0.12f),
+                            Color.Transparent
+                        ),
+                        center = Offset(rWavePeakX, rWavePeakY),
+                        radius = beaconRadius * 2.2f
+                    ),
+                    center = Offset(rWavePeakX, rWavePeakY),
+                    radius = beaconRadius * 2.2f
+                )
+
+                // Radiant bright center point
+                drawCircle(
+                    color = beaconCoreColor,
+                    radius = 3.5f * density,
+                    center = Offset(rWavePeakX, rWavePeakY)
+                )
+            }
+
+            // ========================================================
+            // 6. Ambient Floating Energy Sparks
+            // ========================================================
+            sparks.forEach { spark ->
+                val currentX = ((spark.xRatio * canvasWidth) + (wavePhase * 20f * spark.speedMultiplier)) % canvasWidth
+                val distFromHeartbeat = kotlin.math.abs(currentX - pulseHeadX)
+                val sparkGlow = if (distFromHeartbeat < 140f * density) {
+                    1f - (distFromHeartbeat / (140f * density))
+                } else 0f
+
+                val sy = canvasHeight * spark.yRatio + sin(wavePhase * 1.5f + spark.seed) * (8f * density)
+                val baseSparkColor = if (darkTheme) Color(0xFFFAF7F2) else Color(0xFFA68A68)
+                val sparkAlpha = (if (darkTheme) 0.20f else 0.15f) + sparkGlow * 0.45f
+
+                drawCircle(
+                    color = baseSparkColor.copy(alpha = sparkAlpha),
+                    radius = (spark.radiusDp + sparkGlow * 1.2f) * density,
+                    center = Offset(currentX, sy)
                 )
             }
         }
@@ -400,14 +374,10 @@ fun AmbientLiveBackground(
     }
 }
 
-private data class ConstellationNodeSeed(
+private data class SparkSeed(
     val xRatio: Float,
-    val yOffset: Float,
-    val speedMultiplier: Float,
-    val wobbleSpeed: Float,
-    val wobbleAmplitude: Float,
+    val yRatio: Float,
     val radiusDp: Float,
-    val twinkleSpeed: Float,
-    val isStar: Boolean,
+    val speedMultiplier: Float,
     val seed: Float
 )
