@@ -18,6 +18,9 @@ interface HousingDao {
     @Query("SELECT * FROM housing_listings WHERE id = :id")
     fun getListingById(id: String): HousingListingEntity?
 
+    @Query("SELECT COUNT(*) FROM housing_listings")
+    fun getListingCount(): Int
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun insertListings(listings: List<HousingListingEntity>)
 
