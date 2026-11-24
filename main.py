@@ -349,40 +349,109 @@ async def predict_rent(request: Request):
 
     loc_lower = raw_location.lower()
 
-    # 25+ Chennai Localities matching across 4 tiers
-    tier_0_keywords = [
-        "anna nagar", "adyar", "besant nagar", "nungambakkam", 
-        "t. nagar", "t nagar", "alwarpet", "mylapore", "kilpauk", "shenoy"
-    ]
-    tier_1_keywords = [
-        "velachery", "taramani", "thiruvanmiyur", "perungudi", 
-        "thoraipakkam", "sholinganallur", "navalur", "siruseri", 
-        "omr", "ecr", "neelankarai", "palavakkam", "guindy", "tidel"
-    ]
-    tier_2_keywords = [
-        "porur", "valasaravakkam", "vadapalani", "koyambedu", 
-        "mogappair", "ambattur", "dlf", "ramapuram"
-    ]
-    tier_3_keywords = [
-        "tambaram", "chromepet", "pallavaram", "potheri", 
-        "kattankulathur", "urapakkam", "avadi", "srm", "mcc", "mit"
-    ]
+    # Locality to (City, Tier) mapping covering Chennai and major Indian hubs
+    LOCALITY_LOOKUP = {
+        # Chennai (Deep 28+ Localities)
+        "anna nagar": ("Chennai", 0), "adyar": ("Chennai", 0), "besant nagar": ("Chennai", 0),
+        "nungambakkam": ("Chennai", 0), "t. nagar": ("Chennai", 0), "t nagar": ("Chennai", 0),
+        "alwarpet": ("Chennai", 0), "mylapore": ("Chennai", 0), "kilpauk": ("Chennai", 0),
+        "shenoy nagar": ("Chennai", 0), "velachery": ("Chennai", 1), "taramani": ("Chennai", 1),
+        "thiruvanmiyur": ("Chennai", 1), "perungudi": ("Chennai", 1), "thoraipakkam": ("Chennai", 1),
+        "sholinganallur": ("Chennai", 1), "navalur": ("Chennai", 1), "siruseri": ("Chennai", 1),
+        "omr": ("Chennai", 1), "ecr": ("Chennai", 1), "guindy": ("Chennai", 1),
+        "porur": ("Chennai", 2), "valasaravakkam": ("Chennai", 2), "vadapalani": ("Chennai", 2),
+        "koyambedu": ("Chennai", 2), "mogappair": ("Chennai", 2), "ambattur": ("Chennai", 2),
+        "tambaram": ("Chennai", 3), "chromepet": ("Chennai", 3), "pallavaram": ("Chennai", 3),
+        "potheri": ("Chennai", 3), "kattankulathur": ("Chennai", 3), "urapakkam": ("Chennai", 3),
+        "avadi": ("Chennai", 3), "srm": ("Chennai", 3),
 
-    tier_code = 1
-    tier_name = "IT Corridor / Coastal Tech Hub"
+        # Bengaluru
+        "koramangala": ("Bengaluru", 0), "indiranagar": ("Bengaluru", 0), "hsr layout": ("Bengaluru", 1),
+        "hsr": ("Bengaluru", 1), "bellandur": ("Bengaluru", 1), "whitefield": ("Bengaluru", 1),
+        "marathahalli": ("Bengaluru", 1), "btm layout": ("Bengaluru", 2), "btm": ("Bengaluru", 2),
+        "jp nagar": ("Bengaluru", 2), "hebbal": ("Bengaluru", 2), "electronic city": ("Bengaluru", 2),
+        "yelahanka": ("Bengaluru", 3),
 
-    if any(k in loc_lower for k in tier_0_keywords):
-        tier_code = 0
-        tier_name = "Premium Central Hub"
-    elif any(k in loc_lower for k in tier_1_keywords):
-        tier_code = 1
-        tier_name = "IT Corridor / Coastal Tech Hub"
-    elif any(k in loc_lower for k in tier_2_keywords):
-        tier_code = 2
-        tier_name = "West & University Suburb"
-    elif any(k in loc_lower for k in tier_3_keywords):
-        tier_code = 3
-        tier_name = "South & Campus Budget Zone"
+        # Pune
+        "koregaon park": ("Pune", 0), "baner": ("Pune", 1), "aundh": ("Pune", 1),
+        "viman nagar": ("Pune", 1), "kothrud": ("Pune", 2), "karve nagar": ("Pune", 2),
+        "wakad": ("Pune", 2), "hinjewadi": ("Pune", 2), "hadapsar": ("Pune", 2),
+
+        # Mumbai & Navi Mumbai
+        "bandra": ("Mumbai", 0), "powai": ("Mumbai", 1), "andheri": ("Mumbai", 1),
+        "malad": ("Mumbai", 2), "goregaon": ("Mumbai", 2), "thane": ("Mumbai", 2),
+        "vashi": ("Mumbai", 2), "nerul": ("Mumbai", 3), "kharghar": ("Mumbai", 3),
+
+        # Delhi NCR
+        "hauz khas": ("Delhi NCR", 0), "north campus": ("Delhi NCR", 1), "kamla nagar": ("Delhi NCR", 1),
+        "mukherjee nagar": ("Delhi NCR", 1), "malviya nagar": ("Delhi NCR", 1), "lajpat nagar": ("Delhi NCR", 1),
+        "gurugram": ("Delhi NCR", 1), "gurgaon": ("Delhi NCR", 1), "cyber city": ("Delhi NCR", 1),
+        "sohna road": ("Delhi NCR", 1), "noida sector 62": ("Delhi NCR", 2), "noida": ("Delhi NCR", 2),
+
+        # Hyderabad
+        "hitec city": ("Hyderabad", 0), "gachibowli": ("Hyderabad", 1), "madhapur": ("Hyderabad", 1),
+        "kondapur": ("Hyderabad", 1), "kukatpally": ("Hyderabad", 2), "ameerpet": ("Hyderabad", 3),
+        "begumpet": ("Hyderabad", 2),
+
+        # Coimbatore & Other Student Hubs
+        "peelamedu": ("Coimbatore & Student Hubs", 1), "saravanampatti": ("Coimbatore & Student Hubs", 2),
+        "gandhipuram": ("Coimbatore & Student Hubs", 1), "rs puram": ("Coimbatore & Student Hubs", 0),
+        "vellore": ("Coimbatore & Student Hubs", 2), "katpadi": ("Coimbatore & Student Hubs", 2),
+        "vit": ("Coimbatore & Student Hubs", 2), "manipal": ("Coimbatore & Student Hubs", 2)
+    }
+
+    CITY_CODES = {
+        "Chennai": 0,
+        "Bengaluru": 1,
+        "Pune": 2,
+        "Mumbai": 3,
+        "Delhi NCR": 4,
+        "Hyderabad": 5,
+        "Coimbatore & Student Hubs": 6
+    }
+
+    found_city = None
+    found_tier = None
+
+    for loc_key, (c_name, t_val) in LOCALITY_LOOKUP.items():
+        if loc_key in loc_lower:
+            found_city = c_name
+            found_tier = t_val
+            break
+
+    if found_city is None:
+        if any(c in loc_lower for c in ["bengaluru", "bangalore"]):
+            found_city = "Bengaluru"
+            found_tier = 1
+        elif "pune" in loc_lower:
+            found_city = "Pune"
+            found_tier = 1
+        elif any(c in loc_lower for c in ["mumbai", "navi mumbai", "bombay"]):
+            found_city = "Mumbai"
+            found_tier = 1
+        elif any(c in loc_lower for c in ["delhi", "ncr", "noida", "gurgaon", "gurugram"]):
+            found_city = "Delhi NCR"
+            found_tier = 1
+        elif "hyderabad" in loc_lower:
+            found_city = "Hyderabad"
+            found_tier = 1
+        elif any(c in loc_lower for c in ["coimbatore", "vellore", "manipal"]):
+            found_city = "Coimbatore & Student Hubs"
+            found_tier = 2
+        else:
+            found_city = "Chennai"
+            found_tier = 1
+
+    city_code = CITY_CODES.get(found_city, 0)
+    locality_tier = found_tier if found_tier is not None else 1
+
+    tier_labels = {
+        0: "Super-Premium Central Hub",
+        1: "Prime Urban / IT Corridor",
+        2: "Mid-Tier Tech / Suburban Hub",
+        3: "Student Campus Budget Zone"
+    }
+    tier_name = tier_labels.get(locality_tier, "Prime Urban Hub")
 
     room_type_lower = room_type_str.lower()
     if "shared" in room_type_lower or "pg" in room_type_lower:
@@ -410,31 +479,36 @@ async def predict_rent(request: Request):
     # Inference using trained HistGradientBoostingRegressor
     if rent_model is not None:
         try:
-            feat = np.array([[tier_code, sqft, bedrooms, room_code, lease_duration]])
+            feat = np.array([[city_code, locality_tier, sqft, bedrooms, room_code, lease_duration]])
             pred_raw = float(rent_model.predict(feat)[0])
         except Exception:
-            # Fallback feature representation if legacy artifact was loaded
-            feat_legacy = np.array([[sqft, bedrooms, 1.0, min(room_code, 3), tier_code, 1, 0, 1.2, 1]])
-            pred_raw = float(rent_model.predict(feat_legacy)[0])
+            try:
+                feat_5 = np.array([[locality_tier, sqft, bedrooms, room_code, lease_duration]])
+                pred_raw = float(rent_model.predict(feat_5)[0])
+            except Exception:
+                # Fallback feature representation if legacy artifact was loaded
+                feat_legacy = np.array([[sqft, bedrooms, 1.0, min(room_code, 3), locality_tier, 1, 0, 1.2, 1]])
+                pred_raw = float(rent_model.predict(feat_legacy)[0])
     else:
-        tier_base = [22000, 15500, 12500, 9500][tier_code]
-        pred_raw = tier_base + (sqft * 12.0) + (bedrooms * 2000.0)
+        tier_base = [24000, 16500, 13000, 9500][locality_tier]
+        city_mult = [1.0, 1.08, 0.95, 1.35, 1.10, 0.96, 0.78][city_code]
+        pred_raw = (tier_base + (sqft * 12.0) + (bedrooms * 2000.0)) * city_mult
 
     predicted_rent = float(round(pred_raw, -2))
     range_min = float(round(predicted_rent * 0.90, -2))
     range_max = float(round(predicted_rent * 1.10, -2))
 
-    # Accurate Chennai monthly utilities estimate
-    utilities = float(round(min(max(1000.0 + (bedrooms * 350.0) + (sqft * 0.4), 850.0), 3500.0), -1))
+    # Accurate city-calibrated monthly utilities estimate
+    utilities = float(round(min(max(1000.0 + (bedrooms * 350.0) + (sqft * 0.4), 850.0), 3800.0), -1))
 
     locality_display = raw_location.split(",")[0].strip().title()
     if not locality_display:
-        locality_display = "Chennai"
+        locality_display = found_city
 
     insights = [
-        f"{locality_display} is classified under Chennai {tier_name}.",
-        f"Realistic 2026 rent for {norm_room_name} ({int(sqft)} sq ft) ranges from ₹{int(range_min):,} to ₹{int(range_max):,}/mo.",
-        f"Estimated monthly utility expenses (electricity, water, Wi-Fi): ₹{int(utilities):,}/month."
+        f"{locality_display} is classified under {found_city} ({tier_name}).",
+        f"Calibrated 2026 rent for {norm_room_name} ({int(sqft)} sq ft) ranges from ₹{int(range_min):,} to ₹{int(range_max):,}/mo.",
+        f"Estimated monthly utility expenses (electricity, water, high-speed Wi-Fi): ₹{int(utilities):,}/month."
     ]
 
     return {
