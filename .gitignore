@@ -14,3 +14,7 @@
 .cxx
 local.properties
 google-services.json
+app/google-services.json
+*.pkl
+.env
+__pycache__/

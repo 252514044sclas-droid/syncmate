@@ -2,9 +2,27 @@ package com.example.syncmate.data.local
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKeys
 
 class AppPreferences(context: Context) {
-    private val prefs: SharedPreferences = context.getSharedPreferences("subletsync_prefs", Context.MODE_PRIVATE)
+    private val prefs: SharedPreferences = try {
+        val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+        EncryptedSharedPreferences.create(
+            "subletsync_secure_prefs",
+            masterKeyAlias,
+            context,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    } catch (e: Exception) {
+        // Fallback to standard private preferences if keystore is unavailable in legacy/test environment
+        context.getSharedPreferences("subletsync_prefs", Context.MODE_PRIVATE)
+    }
+
+    var customServerUrl: String?
+        get() = prefs.getString("custom_server_url", null)
+        set(value) = prefs.edit().putString("custom_server_url", value).apply()
 
     var isRememberDevice: Boolean
         get() = prefs.getBoolean("remember_device", false)

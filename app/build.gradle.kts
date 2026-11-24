@@ -1,9 +1,22 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.gms.services)
     alias(libs.plugins.ksp)
 }
+
+val localProps = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        load(localPropertiesFile.inputStream())
+    }
+}
+
+val devBaseUrl = (project.findProperty("DEV_BASE_URL") as? String)
+    ?: (localProps.getProperty("DEV_BASE_URL") as? String)
+    ?: "http://10.0.2.2:8000/"
 
 android {
     namespace = "com.example.syncmate"
@@ -21,19 +34,50 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    buildTypes {
-        release {
-            optimization {
-                enable = false
+    signingConfigs {
+        create("release") {
+            val keystorePath = project.findProperty("RELEASE_STORE_FILE") as? String
+            if (keystorePath != null && file(keystorePath).exists()) {
+                storeFile = file(keystorePath)
+                storePassword = project.findProperty("RELEASE_STORE_PASSWORD") as? String ?: ""
+                keyAlias = project.findProperty("RELEASE_KEY_ALIAS") as? String ?: ""
+                keyPassword = project.findProperty("RELEASE_KEY_PASSWORD") as? String ?: ""
+            } else {
+                // Fallback to debug keystore for reproducible local packaging
+                val debugKeystore = file("${System.getProperty("user.home")}/.android/debug.keystore")
+                if (debugKeystore.exists()) {
+                    storeFile = debugKeystore
+                    storePassword = "android"
+                    keyAlias = "androiddebugkey"
+                    keyPassword = "android"
+                }
             }
         }
     }
+
+    buildTypes {
+        debug {
+            buildConfigField("String", "BASE_URL", "\"$devBaseUrl\"")
+        }
+        release {
+            buildConfigField("String", "BASE_URL", "\"https://api.syncmate.app/\"")
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -66,6 +110,9 @@ dependencies {
     
     // Coil (Image Loading)
     implementation(libs.coil.compose)
+
+    // Security & Encrypted Preferences
+    implementation(libs.androidx.security.crypto)
 
     // Room Database
     implementation(libs.room.runtime)
