@@ -77,7 +77,7 @@ import java.util.Locale
 fun RoommateRequestsScreen(
     viewModel: RoommateRequestsViewModel,
     onNavigateToProfile: (String) -> Unit,
-    onNavigateToChat: () -> Unit,
+    onOpenDirectChat: (chatId: String, otherUserId: String, otherUserName: String) -> Unit,
     onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -281,7 +281,7 @@ fun RoommateRequestsScreen(
                         viewModel.declineRequest(reqId)
                     },
                     onViewProfile = onNavigateToProfile,
-                    onOpenChat = onNavigateToChat
+                    onOpenChat = onOpenDirectChat
                 )
             } else {
                 SentRequestsTabContent(
@@ -291,7 +291,7 @@ fun RoommateRequestsScreen(
                         viewModel.cancelRequest(reqId)
                     },
                     onViewProfile = onNavigateToProfile,
-                    onOpenChat = onNavigateToChat
+                    onOpenChat = onOpenDirectChat
                 )
             }
         }
@@ -304,7 +304,7 @@ fun IncomingRequestsTabContent(
     onAccept: (String) -> Unit,
     onDecline: (String) -> Unit,
     onViewProfile: (String) -> Unit,
-    onOpenChat: () -> Unit
+    onOpenChat: (chatId: String, otherUserId: String, otherUserName: String) -> Unit
 ) {
     if (requests.isEmpty()) {
         Box(
@@ -497,13 +497,16 @@ fun IncomingRequestsTabContent(
                                 }
                             }
                             "ACCEPTED" -> {
+                                val otherUserId = req.senderId
+                                val otherUserName = req.senderName
+                                val chatId = listOf(req.senderId, req.receiverId).sorted().joinToString("_")
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     PrimaryButton(
                                         text = "Matched • Open Chat",
-                                        onClick = onOpenChat,
+                                        onClick = { onOpenChat(chatId, otherUserId, otherUserName) },
                                         modifier = Modifier.weight(1f)
                                     )
                                     SecondaryButton(
@@ -533,7 +536,7 @@ fun SentRequestsTabContent(
     requests: List<RoommateRequest>,
     onCancelRequest: (String) -> Unit,
     onViewProfile: (String) -> Unit,
-    onOpenChat: () -> Unit
+    onOpenChat: (chatId: String, otherUserId: String, otherUserName: String) -> Unit
 ) {
     if (requests.isEmpty()) {
         Box(
@@ -684,9 +687,12 @@ fun SentRequestsTabContent(
                         ) {
                             when (req.status) {
                                 "ACCEPTED" -> {
+                                    val otherUserId = req.receiverId
+                                    val otherUserName = req.receiverName
+                                    val chatId = listOf(req.senderId, req.receiverId).sorted().joinToString("_")
                                     PrimaryButton(
                                         text = "Matched • Open Chat",
-                                        onClick = onOpenChat,
+                                        onClick = { onOpenChat(chatId, otherUserId, otherUserName) },
                                         modifier = Modifier.weight(1f)
                                     )
                                     SecondaryButton(

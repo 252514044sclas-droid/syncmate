@@ -107,6 +107,26 @@ def init_db():
             created_at BIGINT
         );
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS chat_rooms (
+            chat_id TEXT PRIMARY KEY,
+            participants_json TEXT NOT NULL,
+            participant_names_json TEXT NOT NULL,
+            last_message TEXT,
+            last_message_timestamp BIGINT,
+            compatibility_score INTEGER DEFAULT 0
+        );
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            message_id TEXT PRIMARY KEY,
+            chat_id TEXT NOT NULL,
+            sender_id TEXT NOT NULL,
+            sender_name TEXT NOT NULL,
+            text TEXT NOT NULL,
+            timestamp BIGINT NOT NULL
+        );
+    """)
     try:
         cursor.execute("ALTER TABLE roommate_requests ADD COLUMN receiver_university TEXT DEFAULT ''")
     except Exception:
@@ -633,6 +653,26 @@ async def update_request(request: Request):
     conn = get_db()
     c = conn.cursor()
     c.execute("UPDATE roommate_requests SET status = ? WHERE request_id = ?", (new_status, req_id))
+    
+    if new_status == "ACCEPTED":
+        c.execute("SELECT * FROM roommate_requests WHERE request_id = ?", (req_id,))
+        req_row = c.fetchone()
+        if req_row:
+            s_id = req_row["sender_id"]
+            r_id = req_row["receiver_id"]
+            sorted_parts = sorted([s_id, r_id])
+            chat_id = "_".join(sorted_parts)
+            names_map = {
+                s_id: req_row["sender_name"],
+                r_id: req_row["receiver_name"]
+            }
+            c.execute("SELECT chat_id FROM chat_rooms WHERE chat_id = ?", (chat_id,))
+            if not c.fetchone():
+                c.execute("""
+                    INSERT INTO chat_rooms (chat_id, participants_json, participant_names_json, last_message, last_message_timestamp, compatibility_score)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (chat_id, json.dumps(sorted_parts), json.dumps(names_map), "Roommate request accepted! Start chatting.", int(time.time() * 1000), int(req_row["compatibility_score"])))
+    
     conn.commit()
     conn.close()
 
@@ -652,6 +692,136 @@ async def cancel_request(request: Request):
     conn.close()
 
     return {"status": "success", "message": "Request cancelled"}
+
+
+# ========================================================
+# 1-on-1 Direct Chat & Messaging Endpoints
+# ========================================================
+@app.post("/chats/create")
+@app.post("/api/chats/create")
+async def create_chat_room(request: Request):
+    data = await request.json()
+    chat_id = data.get("chat_id")
+    participants = data.get("participants", [])
+    participant_names = data.get("participant_names", {})
+    last_msg = data.get("last_message", "Roommate request accepted! Start chatting.")
+    ts = int(data.get("last_message_timestamp") or int(time.time() * 1000))
+    score = int(data.get("compatibility_score", 90))
+
+    if not chat_id and len(participants) == 2:
+        chat_id = "_".join(sorted(participants))
+
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM chat_rooms WHERE chat_id = ?", (chat_id,))
+    row = c.fetchone()
+    if row is None:
+        c.execute("""
+            INSERT INTO chat_rooms (chat_id, participants_json, participant_names_json, last_message, last_message_timestamp, compatibility_score)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (chat_id, json.dumps(participants), json.dumps(participant_names), last_msg, ts, score))
+        conn.commit()
+    conn.close()
+
+    return {
+        "status": "success",
+        "data": {
+            "chat_id": chat_id,
+            "participants": participants,
+            "participant_names": participant_names,
+            "last_message": last_msg,
+            "last_message_timestamp": ts,
+            "compatibility_score": score
+        }
+    }
+
+
+@app.get("/chats/get_chats")
+@app.get("/api/chats/get_chats")
+async def get_user_chats(user_id: str):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM chat_rooms ORDER BY last_message_timestamp DESC")
+    rows = c.fetchall()
+
+    user_chats = []
+    for r in rows:
+        parts = json.loads(r["participants_json"]) if r["participants_json"] else []
+        if user_id in parts:
+            names = json.loads(r["participant_names_json"]) if r["participant_names_json"] else {}
+            user_chats.append({
+                "chat_id": r["chat_id"],
+                "participants": parts,
+                "participant_names": names,
+                "last_message": r["last_message"] or "",
+                "last_message_timestamp": int(r["last_message_timestamp"]),
+                "compatibility_score": int(r["compatibility_score"])
+            })
+    conn.close()
+    return {"status": "success", "data": user_chats}
+
+
+@app.post("/chats/send_message")
+@app.post("/api/chats/send_message")
+async def send_direct_message(request: Request):
+    data = await request.json()
+    chat_id = data.get("chat_id", "")
+    message_id = data.get("message_id") or f"msg_{int(time.time() * 1000)}_{int(np.random.randint(100, 999))}"
+    sender_id = data.get("sender_id", "")
+    sender_name = data.get("sender_name", "")
+    text = data.get("text", "").strip()
+    ts = int(data.get("timestamp") or int(time.time() * 1000))
+
+    if not chat_id or not sender_id or not text:
+        return {"status": "error", "message": "chat_id, sender_id, and text are required"}
+
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO chat_messages (message_id, chat_id, sender_id, sender_name, text, timestamp)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (message_id, chat_id, sender_id, sender_name, text, ts))
+
+    c.execute("""
+        UPDATE chat_rooms SET last_message = ?, last_message_timestamp = ? WHERE chat_id = ?
+    """, (text, ts, chat_id))
+
+    conn.commit()
+    conn.close()
+
+    return {
+        "status": "success",
+        "data": {
+            "message_id": message_id,
+            "chat_id": chat_id,
+            "sender_id": sender_id,
+            "sender_name": sender_name,
+            "text": text,
+            "timestamp": ts
+        }
+    }
+
+
+@app.get("/chats/get_messages")
+@app.get("/api/chats/get_messages")
+async def get_direct_messages(chat_id: str):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM chat_messages WHERE chat_id = ? ORDER BY timestamp ASC", (chat_id,))
+    rows = c.fetchall()
+
+    messages = []
+    for r in rows:
+        messages.append({
+            "message_id": r["message_id"],
+            "chat_id": r["chat_id"],
+            "sender_id": r["sender_id"],
+            "sender_name": r["sender_name"],
+            "text": r["text"],
+            "timestamp": int(r["timestamp"])
+        })
+    conn.close()
+    return {"status": "success", "data": messages}
 
 
 if __name__ == "__main__":

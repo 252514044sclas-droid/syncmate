@@ -34,6 +34,12 @@ sealed class Screen(val route: String) {
     object ContractSummary : Screen("contract_summary")
     object SavedListings : Screen("saved_listings")
     object Chat : Screen("chat")
+    object DirectChat : Screen("direct_chat/{chatId}/{otherUserId}/{otherUserName}") {
+        fun createRoute(chatId: String, otherUserId: String, otherUserName: String): String {
+            val encodedName = java.net.URLEncoder.encode(otherUserName, "UTF-8")
+            return "direct_chat/$chatId/$otherUserId/$encodedName"
+        }
+    }
     object Notifications : Screen("notifications")
     object Profile : Screen("profile")
     object EditProfile : Screen("edit_profile")

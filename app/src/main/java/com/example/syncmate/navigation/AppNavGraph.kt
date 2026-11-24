@@ -22,7 +22,9 @@ import com.example.syncmate.data.repository.MockFakeListingRepositoryImpl
 import com.example.syncmate.data.repository.MockHousingRepositoryImpl
 import com.example.syncmate.data.repository.MockPredictionRepositoryImpl
 import com.example.syncmate.data.repository.NetworkChatRepositoryImpl
+import com.example.syncmate.ui.screens.chat.ChatListScreen
 import com.example.syncmate.ui.screens.chat.ChatScreen
+import com.example.syncmate.ui.screens.chat.DirectChatScreen
 import com.example.syncmate.ui.screens.comparelistings.CompareListingsScreen
 import com.example.syncmate.ui.screens.contractguard.ContractGuardScreen
 import com.example.syncmate.ui.screens.contractsummary.ContractSummaryScreen
@@ -61,9 +63,11 @@ import com.example.syncmate.ui.screens.verifyemail.VerifyEmailScreen
 import com.example.syncmate.ui.screens.welcome.WelcomeScreen
 import com.example.syncmate.ui.theme.SyncmateTheme
 import com.example.syncmate.viewmodel.AuthViewModel
+import com.example.syncmate.viewmodel.ChatListViewModel
 import com.example.syncmate.viewmodel.ChatViewModel
 import com.example.syncmate.viewmodel.ContractViewModel
 import com.example.syncmate.viewmodel.DashboardViewModel
+import com.example.syncmate.viewmodel.DirectChatViewModel
 import com.example.syncmate.viewmodel.FakeListingViewModel
 import com.example.syncmate.viewmodel.HomeViewModel
 import com.example.syncmate.viewmodel.HousingViewModel
@@ -73,6 +77,7 @@ import com.example.syncmate.viewmodel.PredictionViewModel
 import com.example.syncmate.viewmodel.RoommateMatchViewModel
 import com.example.syncmate.viewmodel.RoommateRequestsViewModel
 import com.example.syncmate.viewmodel.SettingsViewModel
+import java.net.URLDecoder
 
 @Composable
 fun AppNavGraph(
@@ -108,6 +113,7 @@ fun AppNavGraph(
     val roommateMatchViewModel: RoommateMatchViewModel = viewModel(factory = SimpleViewModelFactory { RoommateMatchViewModel(authRepository, apiService, appPreferences) })
     val incomingRequestsViewModel: IncomingRequestsViewModel = viewModel(factory = SimpleViewModelFactory { IncomingRequestsViewModel(authRepository) })
     val roommateRequestsViewModel: RoommateRequestsViewModel = viewModel(factory = SimpleViewModelFactory { RoommateRequestsViewModel(authRepository) })
+    val chatListViewModel: ChatListViewModel = viewModel(factory = SimpleViewModelFactory { ChatListViewModel(authRepository) })
 
     val settingsUiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
     val authUiState by authViewModel.uiState.collectAsStateWithLifecycle()
@@ -209,7 +215,9 @@ fun AppNavGraph(
                     viewModel = roommateMatchViewModel,
                     onNavigateToProfile = { userId -> navController.navigate(Screen.RoommateProfile.createRoute(userId)) },
                     onNavigateToRequests = { navController.navigate(Screen.RoommateRequests.route) },
-                    onNavigateToChat = { navController.navigate(Screen.Chat.route) },
+                    onNavigateToChat = { chatId, otherUserId, otherUserName ->
+                        navController.navigate(Screen.DirectChat.createRoute(chatId, otherUserId, otherUserName))
+                    },
                     onNavigateToQuiz = { navController.navigate(Screen.OnboardingQuiz.route) },
                     onNavigateBack = { navController.popBackStack() }
                 )
@@ -220,7 +228,9 @@ fun AppNavGraph(
                 IncomingRequestsScreen(
                     viewModel = incomingRequestsViewModel,
                     onNavigateToProfile = { userId -> navController.navigate(Screen.RoommateProfile.createRoute(userId)) },
-                    onNavigateToChat = { navController.navigate(Screen.Chat.route) },
+                    onNavigateToChat = { chatId, otherUserId, otherUserName ->
+                        navController.navigate(Screen.DirectChat.createRoute(chatId, otherUserId, otherUserName))
+                    },
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
@@ -234,7 +244,9 @@ fun AppNavGraph(
                 RoommateProfileScreen(
                     userId = userId,
                     viewModel = roommateMatchViewModel,
-                    onNavigateToChat = { navController.navigate(Screen.Chat.route) },
+                    onNavigateToChat = { chatId, otherUserId, otherUserName ->
+                        navController.navigate(Screen.DirectChat.createRoute(chatId, otherUserId, otherUserName))
+                    },
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
@@ -244,7 +256,9 @@ fun AppNavGraph(
                 RoommateRequestsScreen(
                     viewModel = roommateRequestsViewModel,
                     onNavigateToProfile = { userId -> navController.navigate(Screen.RoommateProfile.createRoute(userId)) },
-                    onNavigateToChat = { navController.navigate(Screen.Chat.route) },
+                    onOpenDirectChat = { chatId, otherUserId, otherUserName ->
+                        navController.navigate(Screen.DirectChat.createRoute(chatId, otherUserId, otherUserName))
+                    },
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
@@ -421,10 +435,56 @@ fun AppNavGraph(
                 )
             }
 
-            // 22. Chat Screen
+            // 22. Connected Chats Inbox Screen
             composable(Screen.Chat.route) {
+                ChatListScreen(
+                    viewModel = chatListViewModel,
+                    onOpenDirectChat = { chatId, otherUserId, otherUserName ->
+                        navController.navigate(Screen.DirectChat.createRoute(chatId, otherUserId, otherUserName))
+                    },
+                    onOpenAiAssistant = { navController.navigate("ai_chat") },
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // AI Assistant Chat Screen
+            composable("ai_chat") {
                 ChatScreen(
                     chatViewModel = chatViewModel,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+
+            // Real-Time 1-on-1 Direct Chat Screen
+            composable(
+                route = Screen.DirectChat.route,
+                arguments = listOf(
+                    navArgument("chatId") { type = NavType.StringType },
+                    navArgument("otherUserId") { type = NavType.StringType },
+                    navArgument("otherUserName") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
+                val otherUserId = backStackEntry.arguments?.getString("otherUserId") ?: ""
+                val rawName = backStackEntry.arguments?.getString("otherUserName") ?: "Roommate"
+                val otherUserName = try {
+                    URLDecoder.decode(rawName, "UTF-8")
+                } catch (e: Exception) {
+                    rawName
+                }
+
+                val directChatViewModel: DirectChatViewModel = viewModel(
+                    key = chatId,
+                    factory = SimpleViewModelFactory {
+                        DirectChatViewModel(chatId, otherUserId, otherUserName, authRepository)
+                    }
+                )
+
+                DirectChatScreen(
+                    viewModel = directChatViewModel,
+                    onNavigateToProfile = { uid ->
+                        navController.navigate(Screen.RoommateProfile.createRoute(uid))
+                    },
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

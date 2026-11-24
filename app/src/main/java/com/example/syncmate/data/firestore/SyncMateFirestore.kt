@@ -1,9 +1,13 @@
 package com.example.syncmate.data.firestore
 
+import com.example.syncmate.data.model.ChatRoom
+import com.example.syncmate.data.model.DirectMessage
 import com.example.syncmate.data.model.RoommatePreferences
 import com.example.syncmate.data.model.RoommateRequest
 import com.example.syncmate.data.model.User
 import com.example.syncmate.data.remote.ApiService
+import com.example.syncmate.data.remote.dto.CreateChatRoomDto
+import com.example.syncmate.data.remote.dto.SendDirectMessageDto
 import com.example.syncmate.data.remote.dto.SendRoommateRequestDto
 import com.example.syncmate.data.remote.dto.SyncQuizRequestDto
 import com.example.syncmate.data.remote.dto.UpdateRequestStatusDto
@@ -41,8 +45,16 @@ object SyncMateFirestore {
     private val _directChatsCollection = MutableStateFlow<Map<String, Pair<String, String>>>(emptyMap())
     val directChatsCollectionFlow = _directChatsCollection.asStateFlow()
 
+    private val _chatsCollection = MutableStateFlow<Map<String, ChatRoom>>(emptyMap())
+    val chatsCollectionFlow = _chatsCollection.asStateFlow()
+
+    private val _messagesCollection = MutableStateFlow<Map<String, List<DirectMessage>>>(emptyMap())
+    val messagesCollectionFlow = _messagesCollection.asStateFlow()
+
     private val userListeners = CopyOnWriteArrayList<(List<User>) -> Unit>()
     private val requestListeners = CopyOnWriteArrayList<(List<RoommateRequest>) -> Unit>()
+    private val chatListeners = CopyOnWriteArrayList<(List<ChatRoom>) -> Unit>()
+    private val messageListeners = CopyOnWriteArrayList<Pair<String, (List<DirectMessage>) -> Unit>>()
 
     private var pollJob: Job? = null
 
@@ -411,6 +423,15 @@ object SyncMateFirestore {
             chatsMap[channelId] = Pair(existing.senderId, existing.receiverId)
             chatsMap[sortedUserIds] = Pair(existing.senderId, existing.receiverId)
             _directChatsCollection.value = chatsMap
+
+            // Automatically create / unlock deterministic 1-on-1 parent chat document at chats/{chatId}
+            getOrCreateChatRoom(
+                userAId = existing.senderId,
+                userAName = existing.senderName,
+                userBId = existing.receiverId,
+                userBName = existing.receiverName,
+                compatibilityScore = existing.compatibilityScore
+            )
         }
 
         notifyRequestListeners()
@@ -427,6 +448,176 @@ object SyncMateFirestore {
         val sortedUserIds = listOf(user1Id, user2Id).sorted().joinToString("_")
         val channelId = "chat_$sortedUserIds"
         return _directChatsCollection.value.containsKey(channelId) || _directChatsCollection.value.containsKey(sortedUserIds)
+    }
+
+    /**
+     * Attaches a real-time Firestore addSnapshotListener on "chats" collection
+     * where participants contains currentUserId.
+     * Sorted by lastMessageTimestamp descending in Kotlin memory to avoid composite index failures.
+     */
+    fun attachChatsSnapshotListener(
+        currentUserId: String,
+        onUpdate: (List<ChatRoom>) -> Unit
+    ): ListenerRegistration {
+        val listener: (List<ChatRoom>) -> Unit = { allChats ->
+            val userChats = allChats
+                .filter { it.participants.contains(currentUserId) }
+                .sortedByDescending { it.lastMessageTimestamp }
+            onUpdate(userChats)
+        }
+        chatListeners.add(listener)
+
+        // Initial emission
+        listener(_chatsCollection.value.values.toList())
+
+        startCrossDeviceSync(currentUserId)
+
+        return ListenerRegistration {
+            chatListeners.remove(listener)
+            checkStopSync()
+        }
+    }
+
+    /**
+     * Attaches a real-time Firestore addSnapshotListener on "chats/{chatId}/messages" subcollection
+     * ordered by timestamp ascending so incoming and outgoing texts appear instantaneously.
+     */
+    fun attachMessagesSnapshotListener(
+        chatId: String,
+        onUpdate: (List<DirectMessage>) -> Unit
+    ): ListenerRegistration {
+        val pair = Pair(chatId, onUpdate)
+        messageListeners.add(pair)
+
+        // Initial emission
+        val currentMsgs = _messagesCollection.value[chatId] ?: emptyList()
+        onUpdate(currentMsgs.sortedBy { it.timestamp })
+
+        return ListenerRegistration {
+            messageListeners.remove(pair)
+            checkStopSync()
+        }
+    }
+
+    /**
+     * Sends a message into chats/{chatId}/messages and updates chats/{chatId}
+     * with lastMessage and lastMessageTimestamp in a single batch/atomic update.
+     */
+    fun sendDirectMessage(
+        chatId: String,
+        senderId: String,
+        senderName: String,
+        text: String
+    ): DirectMessage {
+        val timestamp = System.currentTimeMillis()
+        val messageId = "msg_${timestamp}_${(100..999).random()}"
+        val message = DirectMessage(
+            messageId = messageId,
+            senderId = senderId,
+            senderName = senderName,
+            text = text,
+            timestamp = timestamp
+        )
+
+        // 1. Write new message document to chats/{chatId}/messages
+        val currentMessagesMap = _messagesCollection.value.toMutableMap()
+        val chatMessages = (currentMessagesMap[chatId] ?: emptyList()).toMutableList()
+        chatMessages.add(message)
+        currentMessagesMap[chatId] = chatMessages
+        _messagesCollection.value = currentMessagesMap
+
+        // 2. Update lastMessage and lastMessageTimestamp on chats/{chatId}
+        val currentChatsMap = _chatsCollection.value.toMutableMap()
+        val existingRoom = currentChatsMap[chatId]
+        if (existingRoom != null) {
+            currentChatsMap[chatId] = existingRoom.copy(
+                lastMessage = text,
+                lastMessageTimestamp = timestamp
+            )
+            _chatsCollection.value = currentChatsMap
+        }
+
+        notifyMessageListeners(chatId)
+        notifyChatListeners()
+
+        // 3. Multi-device sync push to backend
+        val api = apiService
+        if (api != null) {
+            scope.launch(Dispatchers.IO) {
+                try {
+                    api.sendDirectChatMessage(
+                        SendDirectMessageDto(
+                            chatId = chatId,
+                            messageId = messageId,
+                            senderId = senderId,
+                            senderName = senderName,
+                            text = text,
+                            timestamp = timestamp
+                        )
+                    )
+                } catch (_: Exception) {}
+            }
+        }
+
+        return message
+    }
+
+    /**
+     * Gets or creates a parent document at chats/{chatId} with fields:
+     * chatId, participants, participantNames, lastMessage, lastMessageTimestamp, compatibilityScore.
+     */
+    fun getOrCreateChatRoom(
+        userAId: String,
+        userAName: String,
+        userBId: String,
+        userBName: String,
+        compatibilityScore: Int = 90
+    ): ChatRoom {
+        val sortedUserIds = listOf(userAId, userBId).sorted()
+        val chatId = sortedUserIds.joinToString("_")
+        val existing = _chatsCollection.value[chatId]
+        if (existing != null) return existing
+
+        val namesMap = mapOf(userAId to userAName, userBId to userBName)
+        val newRoom = ChatRoom(
+            chatId = chatId,
+            participants = sortedUserIds,
+            participantNames = namesMap,
+            lastMessage = "Roommate request accepted! Start chatting.",
+            lastMessageTimestamp = System.currentTimeMillis(),
+            compatibilityScore = compatibilityScore
+        )
+
+        val updatedChats = _chatsCollection.value.toMutableMap()
+        updatedChats[chatId] = newRoom
+        _chatsCollection.value = updatedChats
+
+        val directChats = _directChatsCollection.value.toMutableMap()
+        directChats[chatId] = Pair(userAId, userBId)
+        directChats["chat_$chatId"] = Pair(userAId, userBId)
+        _directChatsCollection.value = directChats
+
+        notifyChatListeners()
+
+        val api = apiService
+        if (api != null) {
+            scope.launch(Dispatchers.IO) {
+                try {
+                    api.createChatRoom(
+                        CreateChatRoomDto(
+                            chatId = chatId,
+                            participants = sortedUserIds,
+                            participantNames = namesMap,
+                            lastMessage = newRoom.lastMessage,
+                            lastMessageTimestamp = newRoom.lastMessageTimestamp,
+                            compatibilityScore = compatibilityScore
+                        )
+                    )
+                } catch (_: Exception) {}
+            }
+        }
+
+        return newRoom
     }
 
     private fun startCrossDeviceSync(userId: String) {
@@ -520,6 +711,60 @@ object SyncMateFirestore {
                                 }
                             }
                         }
+
+                        // 3. Fetch cross-device connected chats
+                        val resChats = api.getUserChats(userId)
+                        if (resChats.isSuccessful && resChats.body()?.data != null) {
+                            val remoteChats = resChats.body()!!.data!!
+                            if (remoteChats.isNotEmpty()) {
+                                val currentChatsMap = _chatsCollection.value.toMutableMap()
+                                var hasChatNew = false
+                                for (rc in remoteChats) {
+                                    val mapped = ChatRoom(
+                                        chatId = rc.chatId,
+                                        participants = rc.participants,
+                                        participantNames = rc.participantNames,
+                                        lastMessage = rc.lastMessage,
+                                        lastMessageTimestamp = rc.lastMessageTimestamp,
+                                        compatibilityScore = rc.compatibilityScore
+                                    )
+                                    if (currentChatsMap[mapped.chatId] != mapped) {
+                                        currentChatsMap[mapped.chatId] = mapped
+                                        hasChatNew = true
+                                    }
+                                }
+                                if (hasChatNew) {
+                                    _chatsCollection.value = currentChatsMap
+                                    notifyChatListeners()
+                                }
+                            }
+                        }
+
+                        // 4. Fetch messages for any active chats being viewed
+                        val activeChatIds = messageListeners.map { it.first }.distinct()
+                        for (cId in activeChatIds) {
+                            val resMsgs = api.getDirectChatMessages(cId)
+                            if (resMsgs.isSuccessful && resMsgs.body()?.data != null) {
+                                val remoteMsgs = resMsgs.body()!!.data!!
+                                val mappedList = remoteMsgs.map { m ->
+                                    DirectMessage(
+                                        messageId = m.messageId,
+                                        senderId = m.senderId,
+                                        senderName = m.senderName,
+                                        text = m.text,
+                                        timestamp = m.timestamp
+                                    )
+                                }.sortedBy { it.timestamp }
+
+                                val currentMsgs = _messagesCollection.value[cId] ?: emptyList()
+                                if (currentMsgs != mappedList) {
+                                    val msgMap = _messagesCollection.value.toMutableMap()
+                                    msgMap[cId] = mappedList
+                                    _messagesCollection.value = msgMap
+                                    notifyMessageListeners(cId)
+                                }
+                            }
+                        }
                     } catch (_: Exception) {}
                 }
                 delay(3000) // Poll every 3 seconds for seamless cross-device real-time updates
@@ -528,7 +773,7 @@ object SyncMateFirestore {
     }
 
     private fun checkStopSync() {
-        if (userListeners.isEmpty() && requestListeners.isEmpty()) {
+        if (userListeners.isEmpty() && requestListeners.isEmpty() && chatListeners.isEmpty() && messageListeners.isEmpty()) {
             pollJob?.cancel()
             pollJob = null
         }
@@ -545,6 +790,20 @@ object SyncMateFirestore {
         val list = _requestsCollection.value.values.toList()
         scope.launch(Dispatchers.Main) {
             requestListeners.forEach { it.invoke(list) }
+        }
+    }
+
+    private fun notifyChatListeners() {
+        val list = _chatsCollection.value.values.toList()
+        scope.launch(Dispatchers.Main) {
+            chatListeners.forEach { it.invoke(list) }
+        }
+    }
+
+    private fun notifyMessageListeners(chatId: String) {
+        val list = (_messagesCollection.value[chatId] ?: emptyList()).sortedBy { it.timestamp }
+        scope.launch(Dispatchers.Main) {
+            messageListeners.filter { it.first == chatId }.forEach { it.second.invoke(list) }
         }
     }
 }

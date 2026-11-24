@@ -76,7 +76,7 @@ fun RoommatesScreen(
     viewModel: RoommateMatchViewModel,
     onNavigateToProfile: (String) -> Unit,
     onNavigateToRequests: () -> Unit,
-    onNavigateToChat: () -> Unit,
+    onNavigateToChat: (chatId: String, otherUserId: String, otherUserName: String) -> Unit,
     onNavigateToQuiz: () -> Unit,
     onNavigateBack: () -> Unit
 ) {
@@ -396,11 +396,15 @@ fun RoommatesScreen(
                                         onNavigateToRequests()
                                     }
                                     "ACCEPTED" -> {
-                                        onNavigateToChat()
+                                        val chatId = viewModel.getChatIdForCandidate(roommate.user.id)
+                                        onNavigateToChat(chatId, roommate.user.id, roommate.user.name)
                                     }
                                 }
                             },
-                            onChatClick = onNavigateToChat
+                            onChatClick = {
+                                val chatId = viewModel.getChatIdForCandidate(roommate.user.id)
+                                onNavigateToChat(chatId, roommate.user.id, roommate.user.name)
+                            }
                         )
                     }
                 }

@@ -29,6 +29,8 @@ data class RoommateMatchUiState(
     val pendingIncomingCount: Int = 0,
     val selectedFilter: String = "All Matches",
     val isLoading: Boolean = false,
+    val currentUserId: String = "",
+    val currentUserName: String = "",
     val actionMessage: String? = null,
     val errorMessage: String? = null
 )
@@ -80,6 +82,11 @@ class RoommateMatchViewModel(
 
             // Register current user into Firestore if not already present
             SyncMateFirestore.saveUser(currentUser)
+
+            _uiState.value = _uiState.value.copy(
+                currentUserId = currentUser.id,
+                currentUserName = currentUser.name
+            )
 
             // 1. Real-time Firestore addSnapshotListener for "users" collection
             usersListener = SyncMateFirestore.attachUsersSnapshotListener(currentUser.id) { users ->
@@ -314,6 +321,11 @@ class RoommateMatchViewModel(
 
     fun clearErrorMessage() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
+
+    fun getChatIdForCandidate(candidateId: String): String {
+        val myId = _uiState.value.currentUserId
+        return listOf(myId, candidateId).sorted().joinToString("_")
     }
 
     fun setFilter(filter: String) {

@@ -11,7 +11,7 @@ fun RoommateMatchScreen(
     viewModel: RoommateMatchViewModel,
     onNavigateToProfile: (String) -> Unit,
     onNavigateToRequests: () -> Unit,
-    onNavigateToChat: () -> Unit,
+    onNavigateToChat: (chatId: String, otherUserId: String, otherUserName: String) -> Unit,
     onNavigateToQuiz: () -> Unit,
     onNavigateBack: () -> Unit
 ) {

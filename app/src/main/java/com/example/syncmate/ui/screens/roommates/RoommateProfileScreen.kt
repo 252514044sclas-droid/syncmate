@@ -71,7 +71,7 @@ import com.example.syncmate.viewmodel.RoommateMatchViewModel
 fun RoommateProfileScreen(
     userId: String,
     viewModel: RoommateMatchViewModel,
-    onNavigateToChat: () -> Unit,
+    onNavigateToChat: (chatId: String, otherUserId: String, otherUserName: String) -> Unit,
     onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -476,9 +476,10 @@ fun RoommateProfileScreen(
         ) {
             when (roommateProfile.requestStatus) {
                 "ACCEPTED" -> {
+                    val chatId = viewModel.getChatIdForCandidate(user.id)
                     PrimaryButton(
                         text = "Connected — Open Chat",
-                        onClick = onNavigateToChat,
+                        onClick = { onNavigateToChat(chatId, user.id, user.name) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }

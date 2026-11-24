@@ -68,7 +68,7 @@ import java.util.Locale
 fun IncomingRequestsScreen(
     viewModel: IncomingRequestsViewModel,
     onNavigateToProfile: (String) -> Unit,
-    onNavigateToChat: () -> Unit,
+    onNavigateToChat: (chatId: String, otherUserId: String, otherUserName: String) -> Unit,
     onNavigateBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -315,7 +315,12 @@ fun IncomingRequestsScreen(
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             viewModel.declineRequest(item.request.requestId)
                         },
-                        onOpenChat = onNavigateToChat
+                        onOpenChat = {
+                            val otherId = if (uiState.selectedTab == "Sent") item.request.receiverId else item.request.senderId
+                            val otherName = if (uiState.selectedTab == "Sent") item.request.receiverName else item.request.senderName
+                            val chatId = listOf(item.request.senderId, item.request.receiverId).sorted().joinToString("_")
+                            onNavigateToChat(chatId, otherId, otherName)
+                        }
                     )
                 }
             }

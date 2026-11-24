@@ -111,6 +111,19 @@ interface ApiService {
     @POST("roommates/update_request")
     suspend fun updateRequestStatus(@Body request: com.example.syncmate.data.remote.dto.UpdateRequestStatusDto): Response<ApiResponse<Unit>>
 
+    // 1-on-1 Direct Chat & Messaging Endpoints
+    @POST("chats/create")
+    suspend fun createChatRoom(@Body request: com.example.syncmate.data.remote.dto.CreateChatRoomDto): Response<ApiResponse<com.example.syncmate.data.remote.dto.ChatRoomDto>>
+
+    @GET("chats/get_chats")
+    suspend fun getUserChats(@Query("user_id") userId: String): Response<ApiResponse<List<com.example.syncmate.data.remote.dto.ChatRoomDto>>>
+
+    @POST("chats/send_message")
+    suspend fun sendDirectChatMessage(@Body request: com.example.syncmate.data.remote.dto.SendDirectMessageDto): Response<ApiResponse<com.example.syncmate.data.remote.dto.DirectMessageDto>>
+
+    @GET("chats/get_messages")
+    suspend fun getDirectChatMessages(@Query("chat_id") chatId: String): Response<ApiResponse<List<com.example.syncmate.data.remote.dto.DirectMessageDto>>>
+
     // AI Chatbot Assistant: Dynamic Conversational AI Integration
     @POST("ai/chat.php")
     suspend fun sendChatMessage(@Body request: ChatRequestDto): Response<ApiResponse<ChatResponseDto>>
