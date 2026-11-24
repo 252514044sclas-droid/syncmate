@@ -20,5 +20,6 @@ data class RentPredictionResult(
     val priceAssessment: String, // e.g., "Fair Market Value", "Overpriced by 12%", "Great Deal"
     val isModelConnected: Boolean = false,
     val confidenceScore: Double = 0.92,
-    val marketInsights: List<String> = emptyList()
+    val marketInsights: List<String> = emptyList(),
+    val localityTier: String? = null
 )

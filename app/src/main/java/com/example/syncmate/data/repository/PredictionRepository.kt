@@ -50,7 +50,8 @@ class NetworkPredictionRepositoryImpl(
                         priceAssessment = data.priceAssessment,
                         isModelConnected = data.isModelConnected,
                         confidenceScore = data.confidenceScore,
-                        marketInsights = data.marketInsights
+                        marketInsights = data.marketInsights,
+                        localityTier = data.localityTier
                     )
                 )
             } else {

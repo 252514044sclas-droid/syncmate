@@ -64,3 +64,5 @@ class PredictionViewModel(
         _uiState.value = PredictionUiState()
     }
 }
+
+typealias FairPriceViewModel = PredictionViewModel
