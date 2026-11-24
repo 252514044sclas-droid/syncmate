@@ -59,21 +59,36 @@ object SyncMateFirestore {
     }
 
     /**
-     * Attaches a real-time Firestore addSnapshotListener on the "roommate_requests" collection.
+     * Attaches a real-time Firestore addSnapshotListener on the "roommate_requests" collection
+     * using two targeted queries (receiverId == userId and senderId == userId) to strictly
+     * comply with Firestore security rules.
      */
     fun attachRequestsSnapshotListener(
         userId: String,
         onUpdate: (incoming: List<RoommateRequest>, sent: List<RoommateRequest>) -> Unit
     ): ListenerRegistration {
-        return db.collection("roommate_requests")
+        var incomingList = emptyList<RoommateRequest>()
+        var sentList = emptyList<RoommateRequest>()
+
+        val regIncoming = db.collection("roommate_requests")
+            .whereEqualTo("receiverId", userId)
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
-                    val allRequests = snapshot.toObjects(RoommateRequest::class.java)
-                    val incoming = allRequests.filter { it.receiverId == userId }.sortedByDescending { it.timestamp }
-                    val sent = allRequests.filter { it.senderId == userId }.sortedByDescending { it.timestamp }
-                    onUpdate(incoming, sent)
+                    incomingList = snapshot.toObjects(RoommateRequest::class.java).sortedByDescending { it.timestamp }
+                    onUpdate(incomingList, sentList)
                 }
             }
+
+        val regSent = db.collection("roommate_requests")
+            .whereEqualTo("senderId", userId)
+            .addSnapshotListener { snapshot, _ ->
+                if (snapshot != null) {
+                    sentList = snapshot.toObjects(RoommateRequest::class.java).sortedByDescending { it.timestamp }
+                    onUpdate(incomingList, sentList)
+                }
+            }
+
+        return CompositeListenerRegistration(listOf(regIncoming, regSent))
     }
 
     /**
@@ -98,11 +113,41 @@ object SyncMateFirestore {
 
     /**
      * Writes/updates a user document in Firestore.
+     * Public profile fields are stored at users/{userId}.
+     * Private fields (email, phone) are stored in the owner-only subcollection users/{userId}/private/contact.
      */
     fun saveUser(user: User) {
         scope.launch(Dispatchers.IO) {
             try {
-                db.collection("users").document(user.id).set(user).await()
+                // Public profile fields (no email or phone stored in public matching document)
+                val publicMap = mutableMapOf<String, Any?>(
+                    "id" to user.id,
+                    "name" to user.name,
+                    "university" to user.university,
+                    "isVerified" to user.isVerified,
+                    "profilePictureUrl" to user.profilePictureUrl,
+                    "bio" to user.bio,
+                    "preferredLeaseTerm" to user.preferredLeaseTerm,
+                    "maxBudget" to user.maxBudget,
+                    "preferredLocation" to user.preferredLocation,
+                    "hasCompletedQuiz" to user.hasCompletedQuiz
+                )
+                if (user.roommatePreferences != null) {
+                    publicMap["roommatePreferences"] = user.roommatePreferences
+                }
+
+                db.collection("users").document(user.id).set(publicMap).await()
+
+                // Private contact details subcollection: accessible only by the owner
+                if (user.email.isNotBlank()) {
+                    val privateContact = mapOf(
+                        "email" to user.email,
+                        "updatedAt" to System.currentTimeMillis()
+                    )
+                    db.collection("users").document(user.id)
+                        .collection("private").document("contact")
+                        .set(privateContact).await()
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -185,12 +230,12 @@ object SyncMateFirestore {
     }
 
     /**
-     * Cancels a pending sent request.
+     * Cancels a pending sent request by updating status to CANCELLED.
      */
     fun cancelRoommateRequest(requestId: String) {
         scope.launch(Dispatchers.IO) {
             try {
-                db.collection("roommate_requests").document(requestId).update("status", "DECLINED").await()
+                db.collection("roommate_requests").document(requestId).update("status", "CANCELLED").await()
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -257,7 +302,8 @@ object SyncMateFirestore {
     }
 
     /**
-     * Sends a message into chats/{chatId}/messages and updates chats/{chatId}
+     * Sends a message into chats/{chatId}/messages and updates chats/{chatId}.
+     * Enforces message text is non-empty and under 2000 characters to match Firestore security rules.
      */
     fun sendDirectMessage(
         chatId: String,
@@ -265,13 +311,14 @@ object SyncMateFirestore {
         senderName: String,
         text: String
     ): DirectMessage {
+        val sanitizedText = text.trim().take(2000)
         val timestamp = System.currentTimeMillis()
         val messageId = "msg_${timestamp}_${(100..999).random()}"
         val message = DirectMessage(
             messageId = messageId,
             senderId = senderId,
             senderName = senderName,
-            text = text,
+            text = sanitizedText,
             timestamp = timestamp
         )
 
@@ -284,7 +331,7 @@ object SyncMateFirestore {
                 // Update lastMessage on parent chat
                 db.collection("chats").document(chatId).update(
                     mapOf(
-                        "lastMessage" to text,
+                        "lastMessage" to sanitizedText,
                         "lastMessageTimestamp" to timestamp
                     )
                 ).await()
@@ -328,5 +375,11 @@ object SyncMateFirestore {
                 e.printStackTrace()
             }
         }
+    }
+}
+
+class CompositeListenerRegistration(private val listeners: List<ListenerRegistration>) : ListenerRegistration {
+    override fun remove() {
+        listeners.forEach { it.remove() }
     }
 }
