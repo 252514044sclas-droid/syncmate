@@ -39,8 +39,10 @@ object UniversityDomains {
     )
 
     fun isAllowedUniversityDomain(email: String): Boolean {
-        val domain = email.substringAfter("@", "").trim().lowercase()
-        if (domain.isBlank()) return false
+        if (!email.contains("@")) return false
+        val localPart = email.substringBefore("@").trim()
+        val domain = email.substringAfter("@").trim().lowercase()
+        if (localPart.isBlank() || domain.isBlank()) return false
         if (ALLOWED_DOMAINS.contains(domain)) return true
         return ALLOWED_DOMAINS.any { allowed ->
             domain == allowed || domain.endsWith(".$allowed")

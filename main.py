@@ -927,6 +927,11 @@ async def analyze_contract(
                     print(f"[!] Base64 decode error: {ex}")
 
             if not contract_text and raw_text:
+                if len(raw_text.encode("utf-8")) > MAX_UPLOAD_SIZE_BYTES:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"Uploaded contract payload exceeds maximum allowed limit of {MAX_UPLOAD_SIZE_MB} MB"
+                    )
                 contract_text = raw_text
         except HTTPException:
             raise

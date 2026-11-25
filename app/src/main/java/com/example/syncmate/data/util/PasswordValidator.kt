@@ -7,6 +7,7 @@ object PasswordValidator {
      * - At least one uppercase letter (A-Z)
      * - At least one lowercase letter (a-z)
      * - At least one digit (0-9)
+     * - At least one special character
      */
     fun validate(password: String): Result<Unit> {
         if (password.length < 8) {
@@ -20,6 +21,9 @@ object PasswordValidator {
         }
         if (!password.any { it.isDigit() }) {
             return Result.failure(IllegalArgumentException("Password must contain at least one number (0-9)."))
+        }
+        if (password.all { it.isLetterOrDigit() }) {
+            return Result.failure(IllegalArgumentException("Password must contain at least one special character."))
         }
         return Result.success(Unit)
     }

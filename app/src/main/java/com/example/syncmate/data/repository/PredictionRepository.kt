@@ -46,11 +46,11 @@ class NetworkPredictionRepositoryImpl(
                         rentRangeLow = data.rentRangeLow,
                         rentRangeHigh = data.rentRangeHigh,
                         estimatedUtilitiesMonthly = data.estimatedUtilitiesMonthly,
-                        utilityBreakdown = data.utilityBreakdown,
-                        priceAssessment = data.priceAssessment,
+                        utilityBreakdown = data.utilityBreakdown ?: emptyMap(),
+                        priceAssessment = data.priceAssessment ?: "Fair Market Value",
                         isModelConnected = data.isModelConnected,
                         confidenceScore = data.confidenceScore,
-                        marketInsights = data.marketInsights,
+                        marketInsights = data.marketInsights ?: emptyList(),
                         localityTier = data.localityTier
                     )
                 )

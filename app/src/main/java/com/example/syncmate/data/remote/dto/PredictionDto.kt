@@ -29,10 +29,10 @@ data class PredictionResponseDto(
     val estimatedUtilitiesMonthly: Double,
     
     @SerializedName("utility_breakdown") 
-    val utilityBreakdown: Map<String, Double> = emptyMap(),
+    val utilityBreakdown: Map<String, Double>? = emptyMap(),
     
     @SerializedName("price_assessment") 
-    val priceAssessment: String = "Fair Market Value (Based on Live ML Model)",
+    val priceAssessment: String? = "Fair Market Value (Based on Live ML Model)",
     
     @SerializedName("is_model_connected") 
     val isModelConnected: Boolean = true,
@@ -41,7 +41,7 @@ data class PredictionResponseDto(
     val confidenceScore: Double = 0.95,
     
     @SerializedName("market_insights") 
-    val marketInsights: List<String> = emptyList(),
+    val marketInsights: List<String>? = emptyList(),
 
     @SerializedName("locality_tier")
     val localityTier: String? = null
