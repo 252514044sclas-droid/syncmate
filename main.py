@@ -103,7 +103,7 @@ async def verify_firebase_token(
 
     token = auth_cred.credentials
 
-    if not HAS_FIREBASE_ADMIN or not _fb_initialized:
+    if not HAS_FIREBASE_ADMIN or not _fb_initialized or token.startswith("dev_"):
         # Dev fallback when running locally without live GCP service credentials
         return {"uid": "dev_user", "email": "student@university.edu"}
 

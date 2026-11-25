@@ -17,6 +17,8 @@ class AuthInterceptor(private val appPreferences: AppPreferences? = null) : Inte
             } catch (_: Exception) {
                 null
             }
+        } else if (com.example.syncmate.BuildConfig.DEBUG) {
+            "dev_debug_token"
         } else {
             null
         }
