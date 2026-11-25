@@ -34,6 +34,7 @@ object SyncMateFirestore {
     private val blockedUserIds = mutableSetOf<String>()
 
     fun blockUser(currentUserId: String, targetUserId: String) {
+        if (currentUserId.isBlank() || targetUserId.isBlank()) return
         blockedUserIds.add(targetUserId)
         scope.launch(Dispatchers.IO) {
             try {
@@ -47,6 +48,7 @@ object SyncMateFirestore {
     }
 
     fun reportUser(reporterId: String, reportedId: String, reason: String, details: String = "") {
+        if (reporterId.isBlank() || reportedId.isBlank()) return
         scope.launch(Dispatchers.IO) {
             try {
                 val reportData = mapOf(
@@ -71,37 +73,57 @@ object SyncMateFirestore {
         currentUserId: String,
         onUpdate: (List<User>) -> Unit
     ): ListenerRegistration {
-        // Real-time listener for blocked users
-        val blockReg = db.collection("users").document(currentUserId)
-            .collection("blocked")
-            .addSnapshotListener { snap, _ ->
-                if (snap != null) {
-                    blockedUserIds.clear()
-                    blockedUserIds.addAll(snap.documents.map { it.id })
-                }
-            }
+        val registrations = mutableListOf<ListenerRegistration>()
 
-        val usersReg = db.collection("users")
-            .whereEqualTo("hasCompletedQuiz", true)
-            .addSnapshotListener { snapshot, _ ->
-                if (snapshot != null) {
-                    val allUsers = snapshot.toObjects(User::class.java)
-                    
-                    // Update local synchronous cache
-                    allUsers.forEach { localUserCache[it.id] = it }
-                    
-                    val currentUserName = allUsers.firstOrNull { it.id == currentUserId }?.name ?: ""
-                    
-                    val filtered = allUsers.filter { user ->
-                        user.id != currentUserId &&
-                        !blockedUserIds.contains(user.id) &&
-                        (currentUserName.isBlank() || !user.name.equals(currentUserName, ignoreCase = true))
+        // Real-time listener for blocked users only if currentUserId is not blank
+        if (currentUserId.isNotBlank()) {
+            try {
+                val blockReg = db.collection("users").document(currentUserId)
+                    .collection("blocked")
+                    .addSnapshotListener { snap, _ ->
+                        if (snap != null) {
+                            blockedUserIds.clear()
+                            blockedUserIds.addAll(snap.documents.map { it.id })
+                        }
                     }
-                    onUpdate(filtered)
-                }
+                registrations.add(blockReg)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
+        }
 
-        return CompositeListenerRegistration(listOf(blockReg, usersReg))
+        try {
+            val usersReg = db.collection("users")
+                .whereEqualTo("hasCompletedQuiz", true)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        error.printStackTrace()
+                        return@addSnapshotListener
+                    }
+                    if (snapshot != null) {
+                        val allUsers = snapshot.toObjects(User::class.java)
+                        
+                        // Update local synchronous cache
+                        allUsers.forEach { localUserCache[it.id] = it }
+                        
+                        val currentUserName = if (currentUserId.isNotBlank()) {
+                            allUsers.firstOrNull { it.id == currentUserId }?.name ?: ""
+                        } else ""
+                        
+                        val filtered = allUsers.filter { user ->
+                            (currentUserId.isBlank() || user.id != currentUserId) &&
+                            !blockedUserIds.contains(user.id) &&
+                            (currentUserName.isBlank() || !user.name.equals(currentUserName, ignoreCase = true))
+                        }
+                        onUpdate(filtered)
+                    }
+                }
+            registrations.add(usersReg)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        return CompositeListenerRegistration(registrations)
     }
 
     /**
@@ -113,6 +135,10 @@ object SyncMateFirestore {
         userId: String,
         onUpdate: (incoming: List<RoommateRequest>, sent: List<RoommateRequest>) -> Unit
     ): ListenerRegistration {
+        if (userId.isBlank()) {
+            onUpdate(emptyList(), emptyList())
+            return ListenerRegistration { }
+        }
         var incomingList = emptyList<RoommateRequest>()
         var sentList = emptyList<RoommateRequest>()
 
@@ -145,6 +171,10 @@ object SyncMateFirestore {
         receiverId: String,
         onUpdate: (List<RoommateRequest>) -> Unit
     ): ListenerRegistration {
+        if (receiverId.isBlank()) {
+            onUpdate(emptyList())
+            return ListenerRegistration { }
+        }
         return db.collection("roommate_requests")
             .whereEqualTo("receiverId", receiverId)
             .whereEqualTo("status", "PENDING")
@@ -204,6 +234,7 @@ object SyncMateFirestore {
      * Gets a user synchronously from local cache, or fetches from Firestore if missing.
      */
     fun getUser(userId: String): User? {
+        if (userId.isBlank()) return null
         val cached = localUserCache[userId]
         if (cached != null) return cached
         
@@ -226,6 +257,7 @@ object SyncMateFirestore {
      * Asynchronously fetches a user from local cache or Firestore.
      */
     suspend fun getUserAsync(userId: String): User? = kotlinx.coroutines.withContext(Dispatchers.IO) {
+        if (userId.isBlank()) return@withContext null
         val cached = localUserCache[userId]
         if (cached != null) return@withContext cached
         try {
@@ -319,6 +351,10 @@ object SyncMateFirestore {
         currentUserId: String,
         onUpdate: (List<ChatRoom>) -> Unit
     ): ListenerRegistration {
+        if (currentUserId.isBlank()) {
+            onUpdate(emptyList())
+            return ListenerRegistration { }
+        }
         return db.collection("chats")
             .whereArrayContains("participants", currentUserId)
             .addSnapshotListener { snapshot, _ ->
@@ -341,6 +377,10 @@ object SyncMateFirestore {
         chatId: String,
         onUpdate: (List<DirectMessage>) -> Unit
     ): ListenerRegistration {
+        if (chatId.isBlank()) {
+            onUpdate(emptyList())
+            return ListenerRegistration { }
+        }
         return db.collection("chats").document(chatId).collection("messages")
             .orderBy("timestamp", Query.Direction.ASCENDING)
             .addSnapshotListener { snapshot, _ ->

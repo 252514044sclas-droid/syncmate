@@ -35,42 +35,47 @@ class DashboardViewModel(
         loadDashboardData()
     }
 
+    private var usersListener: com.google.firebase.firestore.ListenerRegistration? = null
+
+    override fun onCleared() {
+        super.onCleared()
+        usersListener?.remove()
+    }
+
     private fun loadDashboardData() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
-            // Reactively stream real-time roommate matches from Firestore
-            viewModelScope.launch {
-                val currentUserId = authRepository.currentUserFlow.firstOrNull()?.id ?: ""
-                com.example.syncmate.data.firestore.SyncMateFirestore.attachUsersSnapshotListener(currentUserId) { users ->
-                    val liveRoommates = users.map { u ->
-                        val rhythm = listOfNotNull(
-                            u.roommatePreferences?.sleepSchedule,
-                            if (u.roommatePreferences?.smokingOption == false) "Non-Smoker" else null,
-                            u.roommatePreferences?.noiseTolerance
-                        ).joinToString(" • ")
-
-                        RoommateProfile(
-                            id = u.id,
-                            name = u.name,
-                            university = u.university,
-                            compatibilityPercentage = 92,
-                            matchReason = "Matches your ${u.roommatePreferences?.sleepSchedule ?: "lifestyle"} & budget preferences",
-                            lifestyleRhythm = rhythm.ifEmpty { "Verified Student • Clean & Quiet" },
-                            maxBudgetMonthly = u.roommatePreferences?.maxBudgetINR ?: u.maxBudget,
-                            preferredLocation = u.preferredLocation,
-                            bio = u.bio
-                        )
-                    }
-                    _uiState.value = _uiState.value.copy(roommateMatches = liveRoommates)
-                }
-            }
-
-            // Reactively collect current user updates (such as name changes)
+            // Reactively stream real-time roommate matches from Firestore based on current user session
             viewModelScope.launch {
                 authRepository.currentUserFlow.collect { user ->
                     val firstName = user?.name?.substringBefore(" ") ?: "Student"
                     _uiState.value = _uiState.value.copy(userName = firstName)
+
+                    usersListener?.remove()
+                    val currentUserId = user?.id ?: ""
+                    usersListener = com.example.syncmate.data.firestore.SyncMateFirestore.attachUsersSnapshotListener(currentUserId) { users ->
+                        val liveRoommates = users.map { u ->
+                            val rhythm = listOfNotNull(
+                                u.roommatePreferences?.sleepSchedule,
+                                if (u.roommatePreferences?.smokingOption == false) "Non-Smoker" else null,
+                                u.roommatePreferences?.noiseTolerance
+                            ).joinToString(" • ")
+
+                            RoommateProfile(
+                                id = u.id,
+                                name = u.name,
+                                university = u.university,
+                                compatibilityPercentage = 92,
+                                matchReason = "Matches your ${u.roommatePreferences?.sleepSchedule ?: "lifestyle"} & budget preferences",
+                                lifestyleRhythm = rhythm.ifEmpty { "Verified Student • Clean & Quiet" },
+                                maxBudgetMonthly = u.roommatePreferences?.maxBudgetINR ?: u.maxBudget,
+                                preferredLocation = u.preferredLocation,
+                                bio = u.bio
+                            )
+                        }
+                        _uiState.value = _uiState.value.copy(roommateMatches = liveRoommates)
+                    }
                 }
             }
 
