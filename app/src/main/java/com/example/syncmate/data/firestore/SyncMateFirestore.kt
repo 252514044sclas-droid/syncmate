@@ -115,6 +115,10 @@ object SyncMateFirestore {
                             !blockedUserIds.contains(user.id) &&
                             (currentUserName.isBlank() || !user.name.equals(currentUserName, ignoreCase = true))
                         }
+                        .distinctBy { it.id }
+                        .distinctBy { it.email.trim().lowercase().ifBlank { it.id } }
+                        .distinctBy { "${it.name.trim().lowercase()}_${it.university.trim().lowercase()}" }
+
                         onUpdate(filtered)
                     }
                 }
@@ -130,6 +134,7 @@ object SyncMateFirestore {
      * Attaches a real-time Firestore addSnapshotListener on the "roommate_requests" collection
      * using two targeted queries (receiverId == userId and senderId == userId) to strictly
      * comply with Firestore security rules.
+     * Deduplicates incoming requests by sender and sent requests by receiver.
      */
     fun attachRequestsSnapshotListener(
         userId: String,
@@ -146,7 +151,10 @@ object SyncMateFirestore {
             .whereEqualTo("receiverId", userId)
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
-                    incomingList = snapshot.toObjects(RoommateRequest::class.java).sortedByDescending { it.timestamp }
+                    incomingList = snapshot.toObjects(RoommateRequest::class.java)
+                        .sortedByDescending { it.timestamp }
+                        .distinctBy { it.senderId }
+                        .distinctBy { "${it.senderName.trim().lowercase()}_${it.senderUniversity.trim().lowercase()}" }
                     onUpdate(incomingList, sentList)
                 }
             }
@@ -155,7 +163,10 @@ object SyncMateFirestore {
             .whereEqualTo("senderId", userId)
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
-                    sentList = snapshot.toObjects(RoommateRequest::class.java).sortedByDescending { it.timestamp }
+                    sentList = snapshot.toObjects(RoommateRequest::class.java)
+                        .sortedByDescending { it.timestamp }
+                        .distinctBy { it.receiverId }
+                        .distinctBy { "${it.receiverName.trim().lowercase()}_${it.receiverUniversity.trim().lowercase()}" }
                     onUpdate(incomingList, sentList)
                 }
             }
@@ -166,6 +177,7 @@ object SyncMateFirestore {
     /**
      * Attaches a real-time Firestore addSnapshotListener on "roommate_requests"
      * strictly filtered by receiverId == currentUserId and status == "PENDING".
+     * Deduplicates by sender.
      */
     fun attachIncomingPendingRequestsListener(
         receiverId: String,
@@ -182,6 +194,8 @@ object SyncMateFirestore {
                 if (snapshot != null) {
                     val pendingIncoming = snapshot.toObjects(RoommateRequest::class.java)
                         .sortedByDescending { it.timestamp }
+                        .distinctBy { it.senderId }
+                        .distinctBy { "${it.senderName.trim().lowercase()}_${it.senderUniversity.trim().lowercase()}" }
                     onUpdate(pendingIncoming)
                 }
             }
@@ -274,6 +288,8 @@ object SyncMateFirestore {
 
     /**
      * Creates and sends a connection request into Firestore.
+     * Uses a deterministic requestId based on sender and receiver IDs to guarantee
+     * that duplicate requests cannot be created between the same two users.
      */
     fun sendRoommateRequest(
         sender: User,
@@ -281,15 +297,15 @@ object SyncMateFirestore {
         compatibilityScore: Int,
         introMessage: String
     ): RoommateRequest {
-        val requestId = "req_" + System.currentTimeMillis() + "_" + (100..999).random()
+        val requestId = "req_${sender.id.trim()}_${receiver.id.trim()}"
         val request = RoommateRequest(
             requestId = requestId,
-            senderId = sender.id,
-            senderName = sender.name,
-            senderUniversity = sender.university,
-            receiverId = receiver.id,
-            receiverName = receiver.name,
-            receiverUniversity = receiver.university,
+            senderId = sender.id.trim(),
+            senderName = sender.name.trim(),
+            senderUniversity = sender.university.trim(),
+            receiverId = receiver.id.trim(),
+            receiverName = receiver.name.trim(),
+            receiverUniversity = receiver.university.trim(),
             compatibilityScore = compatibilityScore,
             introMessage = introMessage,
             status = "PENDING",
@@ -338,9 +354,22 @@ object SyncMateFirestore {
                 val reqRef = db.collection("roommate_requests").document(requestId)
                 reqRef.update("status", newStatus).await()
                 
-                if (newStatus == "ACCEPTED") {
-                    val req = existing ?: reqRef.get().await().toObject(RoommateRequest::class.java)
-                    if (req != null) {
+                val req = existing ?: reqRef.get().await().toObject(RoommateRequest::class.java)
+                if (req != null) {
+                    // Also reconcile any remaining duplicate requests between the same users
+                    try {
+                        val duplicates = db.collection("roommate_requests")
+                            .whereEqualTo("senderId", req.senderId)
+                            .whereEqualTo("receiverId", req.receiverId)
+                            .get().await()
+                        for (doc in duplicates.documents) {
+                            if (doc.id != requestId && doc.getString("status") == "PENDING") {
+                                doc.reference.update("status", newStatus).await()
+                            }
+                        }
+                    } catch (_: Exception) {}
+
+                    if (newStatus == "ACCEPTED") {
                         getOrCreateChatRoom(
                             userAId = req.senderId,
                             userAName = req.senderName,
@@ -377,6 +406,9 @@ object SyncMateFirestore {
                             otherParticipant == null || !blockedUserIds.contains(otherParticipant)
                         }
                         .sortedByDescending { it.lastMessageTimestamp }
+                        .distinctBy { room ->
+                            room.participants.firstOrNull { it != currentUserId } ?: room.chatId
+                        }
                     onUpdate(userChats)
                 }
             }

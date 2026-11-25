@@ -87,4 +87,94 @@ class RoommateChatFlowTest {
         assertTrue(chatRoom.lastMessage.isNotBlank())
         assertTrue(chatRoom.lastMessageTimestamp > 0)
     }
+
+    @Test
+    fun `duplicate requests from the same user are collapsed to a single unique item`() {
+        val requests = listOf(
+            RoommateRequest(
+                requestId = "req_1",
+                senderId = "uid_harsh_1",
+                senderName = "harsh",
+                senderUniversity = "srm University",
+                receiverId = "uid_hadi",
+                receiverName = "hadi",
+                status = "PENDING",
+                timestamp = 1000L
+            ),
+            RoommateRequest(
+                requestId = "req_2",
+                senderId = "uid_harsh_1",
+                senderName = "harsh",
+                senderUniversity = "srm University",
+                receiverId = "uid_hadi",
+                receiverName = "hadi",
+                status = "PENDING",
+                timestamp = 2000L
+            ),
+            RoommateRequest(
+                requestId = "req_3",
+                senderId = "uid_harsh_legacy",
+                senderName = "harsh",
+                senderUniversity = "srm University",
+                receiverId = "uid_hadi",
+                receiverName = "hadi",
+                status = "PENDING",
+                timestamp = 3000L
+            ),
+            RoommateRequest(
+                requestId = "req_4",
+                senderId = "uid_priya",
+                senderName = "Priya Sharma",
+                senderUniversity = "Anna University",
+                receiverId = "uid_hadi",
+                receiverName = "hadi",
+                status = "PENDING",
+                timestamp = 2500L
+            )
+        )
+
+        // Deduplication rule applied in ViewModels and Firestore listeners:
+        val deduplicated = requests
+            .sortedByDescending { it.timestamp }
+            .distinctBy { it.senderId }
+            .distinctBy { "${it.senderName.trim().lowercase()}_${it.senderUniversity.trim().lowercase()}" }
+
+        // Expected: exactly 2 distinct requests (one from harsh, one from Priya)
+        assertEquals(2, deduplicated.size)
+        assertEquals("req_3", deduplicated[0].requestId) // most recent timestamp for harsh
+        assertEquals("Priya Sharma", deduplicated[1].senderName)
+    }
+
+    @Test
+    fun `duplicate user profiles with different IDs or emails are deduplicated`() {
+        val users = listOf(
+            com.example.syncmate.data.model.User(
+                id = "dev_123",
+                name = "Harsh Patel",
+                email = "harsh@srm.edu",
+                university = "SRM University"
+            ),
+            com.example.syncmate.data.model.User(
+                id = "firebase_456",
+                name = "Harsh Patel",
+                email = "harsh@srm.edu",
+                university = "SRM University"
+            ),
+            com.example.syncmate.data.model.User(
+                id = "uid_priya",
+                name = "Priya",
+                email = "priya@anna.edu",
+                university = "Anna University"
+            )
+        )
+
+        val deduplicatedUsers = users
+            .distinctBy { it.id }
+            .distinctBy { it.email.trim().lowercase().ifBlank { it.id } }
+            .distinctBy { "${it.name.trim().lowercase()}_${it.university.trim().lowercase()}" }
+
+        assertEquals(2, deduplicatedUsers.size)
+        assertEquals("Harsh Patel", deduplicatedUsers[0].name)
+        assertEquals("Priya", deduplicatedUsers[1].name)
+    }
 }

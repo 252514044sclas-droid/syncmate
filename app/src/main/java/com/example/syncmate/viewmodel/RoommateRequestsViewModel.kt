@@ -48,13 +48,21 @@ class RoommateRequestsViewModel(
                 // to completely avoid Firestore unbuilt composite index failures.
                 requestsListener?.remove()
                 requestsListener = SyncMateFirestore.attachRequestsSnapshotListener(currentUserId) { incoming, sent ->
-                    val sortedIncoming = incoming.sortedByDescending { it.timestamp }
-                    val sortedSent = sent.sortedByDescending { it.timestamp }
-                    val pendingCount = sortedIncoming.count { it.status == "PENDING" }
+                    val distinctIncoming = incoming
+                        .sortedByDescending { it.timestamp }
+                        .distinctBy { it.senderId }
+                        .distinctBy { "${it.senderName.trim().lowercase()}_${it.senderUniversity.trim().lowercase()}" }
+
+                    val distinctSent = sent
+                        .sortedByDescending { it.timestamp }
+                        .distinctBy { it.receiverId }
+                        .distinctBy { "${it.receiverName.trim().lowercase()}_${it.receiverUniversity.trim().lowercase()}" }
+
+                    val pendingCount = distinctIncoming.count { it.status == "PENDING" }
 
                     _uiState.value = _uiState.value.copy(
-                        incomingRequests = sortedIncoming,
-                        sentRequests = sortedSent,
+                        incomingRequests = distinctIncoming,
+                        sentRequests = distinctSent,
                         pendingIncomingCount = pendingCount,
                         isLoading = false
                     )

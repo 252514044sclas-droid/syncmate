@@ -54,31 +54,39 @@ class IncomingRequestsViewModel(
 
                 listenerRegistration?.remove()
                 listenerRegistration = SyncMateFirestore.attachRequestsSnapshotListener(currentUserId) { incoming, sent ->
-                    val incomingModels = incoming.map { req ->
-                        val sender = SyncMateFirestore.getUser(req.senderId)
-                        val prefs = sender?.roommatePreferences
-                        IncomingRequestUiModel(
-                            request = req,
-                            senderUser = sender,
-                            sleepSchedule = prefs?.sleepSchedule ?: "Early Bird",
-                            cleanlinessRating = prefs?.cleanlinessRating ?: 4,
-                            budgetINR = prefs?.maxBudgetINR ?: (sender?.maxBudget ?: 15000.0),
-                            isVerified = sender?.isVerified ?: true
-                        )
-                    }
+                    val incomingModels = incoming
+                        .sortedByDescending { it.timestamp }
+                        .distinctBy { it.senderId }
+                        .distinctBy { "${it.senderName.trim().lowercase()}_${it.senderUniversity.trim().lowercase()}" }
+                        .map { req ->
+                            val sender = SyncMateFirestore.getUser(req.senderId)
+                            val prefs = sender?.roommatePreferences
+                            IncomingRequestUiModel(
+                                request = req,
+                                senderUser = sender,
+                                sleepSchedule = prefs?.sleepSchedule ?: "Early Bird",
+                                cleanlinessRating = prefs?.cleanlinessRating ?: 4,
+                                budgetINR = prefs?.maxBudgetINR ?: (sender?.maxBudget ?: 15000.0),
+                                isVerified = sender?.isVerified ?: true
+                            )
+                        }
 
-                    val sentModels = sent.map { req ->
-                        val receiver = SyncMateFirestore.getUser(req.receiverId)
-                        val prefs = receiver?.roommatePreferences
-                        IncomingRequestUiModel(
-                            request = req,
-                            senderUser = receiver,
-                            sleepSchedule = prefs?.sleepSchedule ?: "Early Bird",
-                            cleanlinessRating = prefs?.cleanlinessRating ?: 4,
-                            budgetINR = prefs?.maxBudgetINR ?: (receiver?.maxBudget ?: 15000.0),
-                            isVerified = receiver?.isVerified ?: true
-                        )
-                    }
+                    val sentModels = sent
+                        .sortedByDescending { it.timestamp }
+                        .distinctBy { it.receiverId }
+                        .distinctBy { "${it.receiverName.trim().lowercase()}_${it.receiverUniversity.trim().lowercase()}" }
+                        .map { req ->
+                            val receiver = SyncMateFirestore.getUser(req.receiverId)
+                            val prefs = receiver?.roommatePreferences
+                            IncomingRequestUiModel(
+                                request = req,
+                                senderUser = receiver,
+                                sleepSchedule = prefs?.sleepSchedule ?: "Early Bird",
+                                cleanlinessRating = prefs?.cleanlinessRating ?: 4,
+                                budgetINR = prefs?.maxBudgetINR ?: (receiver?.maxBudget ?: 15000.0),
+                                isVerified = receiver?.isVerified ?: true
+                            )
+                        }
 
                     val activeTab = _uiState.value.selectedTab
                     val activeList = if (activeTab == "Sent") sentModels else incomingModels

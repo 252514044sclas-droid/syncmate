@@ -78,13 +78,23 @@ class RoommateMatchViewModel(
                 // 2. Real-time Firestore addSnapshotListener for "roommate_requests" collection
                 requestsListener?.remove()
                 requestsListener = SyncMateFirestore.attachRequestsSnapshotListener(currentUser.id) { incoming, sent ->
-                    cachedIncoming = incoming
-                    cachedSent = sent
-                    val pendingCount = incoming.count { it.status == "PENDING" }
+                    val distinctIncoming = incoming
+                        .sortedByDescending { it.timestamp }
+                        .distinctBy { it.senderId }
+                        .distinctBy { "${it.senderName.trim().lowercase()}_${it.senderUniversity.trim().lowercase()}" }
+
+                    val distinctSent = sent
+                        .sortedByDescending { it.timestamp }
+                        .distinctBy { it.receiverId }
+                        .distinctBy { "${it.receiverName.trim().lowercase()}_${it.receiverUniversity.trim().lowercase()}" }
+
+                    cachedIncoming = distinctIncoming
+                    cachedSent = distinctSent
+                    val pendingCount = distinctIncoming.count { it.status == "PENDING" }
 
                     _uiState.value = _uiState.value.copy(
-                        incomingRequests = incoming,
-                        sentRequests = sent,
+                        incomingRequests = distinctIncoming,
+                        sentRequests = distinctSent,
                         pendingIncomingCount = pendingCount
                     )
 
@@ -99,7 +109,12 @@ class RoommateMatchViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
-            val evaluatedList = candidateUsers.map { candidate ->
+            val distinctCandidates = candidateUsers
+                .distinctBy { it.id }
+                .distinctBy { it.email.trim().lowercase().ifBlank { it.id } }
+                .distinctBy { "${it.name.trim().lowercase()}_${it.university.trim().lowercase()}" }
+
+            val evaluatedList = distinctCandidates.map { candidate ->
                 computeLiveNeuralCompatibility(currentUser, candidate)
             }.sortedByDescending { it.compatibilityPercentage }
 

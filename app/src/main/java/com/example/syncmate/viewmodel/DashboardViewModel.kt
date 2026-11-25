@@ -55,7 +55,10 @@ class DashboardViewModel(
                     usersListener?.remove()
                     val currentUserId = user?.id ?: ""
                     usersListener = com.example.syncmate.data.firestore.SyncMateFirestore.attachUsersSnapshotListener(currentUserId) { users ->
-                        val liveRoommates = users.map { u ->
+                        val liveRoommates = users
+                            .distinctBy { it.id }
+                            .distinctBy { "${it.name.trim().lowercase()}_${it.university.trim().lowercase()}" }
+                            .map { u ->
                             val rhythm = listOfNotNull(
                                 u.roommatePreferences?.sleepSchedule,
                                 if (u.roommatePreferences?.smokingOption == false) "Non-Smoker" else null,
