@@ -10,7 +10,8 @@ import com.example.syncmate.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
 data class IncomingRequestUiModel(
@@ -48,46 +49,48 @@ class IncomingRequestsViewModel(
 
     private fun startListening() {
         viewModelScope.launch {
-            val currentUser = authRepository.currentUserFlow.firstOrNull()
-            val currentUserId = currentUser?.id ?: "usr_dev_101"
+            authRepository.currentUserFlow.filterNotNull().collectLatest { currentUser ->
+                val currentUserId = currentUser.id
 
-            listenerRegistration = SyncMateFirestore.attachRequestsSnapshotListener(currentUserId) { incoming, sent ->
-                val incomingModels = incoming.map { req ->
-                    val sender = SyncMateFirestore.getUser(req.senderId)
-                    val prefs = sender?.roommatePreferences
-                    IncomingRequestUiModel(
-                        request = req,
-                        senderUser = sender,
-                        sleepSchedule = prefs?.sleepSchedule ?: "Early Bird",
-                        cleanlinessRating = prefs?.cleanlinessRating ?: 4,
-                        budgetINR = prefs?.maxBudgetINR ?: (sender?.maxBudget ?: 15000.0),
-                        isVerified = sender?.isVerified ?: true
+                listenerRegistration?.remove()
+                listenerRegistration = SyncMateFirestore.attachRequestsSnapshotListener(currentUserId) { incoming, sent ->
+                    val incomingModels = incoming.map { req ->
+                        val sender = SyncMateFirestore.getUser(req.senderId)
+                        val prefs = sender?.roommatePreferences
+                        IncomingRequestUiModel(
+                            request = req,
+                            senderUser = sender,
+                            sleepSchedule = prefs?.sleepSchedule ?: "Early Bird",
+                            cleanlinessRating = prefs?.cleanlinessRating ?: 4,
+                            budgetINR = prefs?.maxBudgetINR ?: (sender?.maxBudget ?: 15000.0),
+                            isVerified = sender?.isVerified ?: true
+                        )
+                    }
+
+                    val sentModels = sent.map { req ->
+                        val receiver = SyncMateFirestore.getUser(req.receiverId)
+                        val prefs = receiver?.roommatePreferences
+                        IncomingRequestUiModel(
+                            request = req,
+                            senderUser = receiver,
+                            sleepSchedule = prefs?.sleepSchedule ?: "Early Bird",
+                            cleanlinessRating = prefs?.cleanlinessRating ?: 4,
+                            budgetINR = prefs?.maxBudgetINR ?: (receiver?.maxBudget ?: 15000.0),
+                            isVerified = receiver?.isVerified ?: true
+                        )
+                    }
+
+                    val activeTab = _uiState.value.selectedTab
+                    val activeList = if (activeTab == "Sent") sentModels else incomingModels
+
+                    _uiState.value = _uiState.value.copy(
+                        incomingRequests = incomingModels,
+                        sentRequests = sentModels,
+                        requests = activeList,
+                        pendingCount = incomingModels.count { it.request.status == "PENDING" },
+                        isLoading = false
                     )
                 }
-
-                val sentModels = sent.map { req ->
-                    val receiver = SyncMateFirestore.getUser(req.receiverId)
-                    val prefs = receiver?.roommatePreferences
-                    IncomingRequestUiModel(
-                        request = req,
-                        senderUser = receiver,
-                        sleepSchedule = prefs?.sleepSchedule ?: "Early Bird",
-                        cleanlinessRating = prefs?.cleanlinessRating ?: 4,
-                        budgetINR = prefs?.maxBudgetINR ?: (receiver?.maxBudget ?: 15000.0),
-                        isVerified = receiver?.isVerified ?: true
-                    )
-                }
-
-                val activeTab = _uiState.value.selectedTab
-                val activeList = if (activeTab == "Sent") sentModels else incomingModels
-
-                _uiState.value = _uiState.value.copy(
-                    incomingRequests = incomingModels,
-                    sentRequests = sentModels,
-                    requests = activeList,
-                    pendingCount = incomingModels.count { it.request.status == "PENDING" },
-                    isLoading = false
-                )
             }
         }
     }
@@ -102,7 +105,8 @@ class IncomingRequestsViewModel(
 
     fun acceptRequest(requestId: String) {
         viewModelScope.launch {
-            SyncMateFirestore.updateRequestStatus(requestId, "ACCEPTED")
+            val existing = _uiState.value.incomingRequests.firstOrNull { it.request.requestId == requestId }?.request
+            SyncMateFirestore.updateRequestStatus(requestId, "ACCEPTED", existing)
             _uiState.value = _uiState.value.copy(
                 actionMessage = "Request Accepted! Direct 1-on-1 chat unlocked."
             )

@@ -321,22 +321,34 @@ object SyncMateFirestore {
     }
 
     /**
+     * Builds a deterministic chat ID between two users, guaranteed identical on both devices.
+     */
+    fun buildDeterministicChatId(userAId: String, userBId: String): String {
+        return listOf(userAId.trim(), userBId.trim()).sorted().joinToString("_")
+    }
+
+    /**
      * Updates request status to "ACCEPTED" or "DECLINED".
      * If "ACCEPTED", automatically unlocks and creates a deterministic 1-on-1 direct chat channel in Firestore.
+     * Fetches the request document if existing is null to ensure idempotency.
      */
     fun updateRequestStatus(requestId: String, newStatus: String, existing: RoommateRequest? = null) {
         scope.launch(Dispatchers.IO) {
             try {
-                db.collection("roommate_requests").document(requestId).update("status", newStatus).await()
+                val reqRef = db.collection("roommate_requests").document(requestId)
+                reqRef.update("status", newStatus).await()
                 
-                if (newStatus == "ACCEPTED" && existing != null) {
-                    getOrCreateChatRoom(
-                        userAId = existing.senderId,
-                        userAName = existing.senderName,
-                        userBId = existing.receiverId,
-                        userBName = existing.receiverName,
-                        compatibilityScore = existing.compatibilityScore
-                    )
+                if (newStatus == "ACCEPTED") {
+                    val req = existing ?: reqRef.get().await().toObject(RoommateRequest::class.java)
+                    if (req != null) {
+                        getOrCreateChatRoom(
+                            userAId = req.senderId,
+                            userAName = req.senderName,
+                            userBId = req.receiverId,
+                            userBName = req.receiverName,
+                            compatibilityScore = req.compatibilityScore
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -434,7 +446,7 @@ object SyncMateFirestore {
     }
 
     /**
-     * Gets or creates a parent document at chats/{chatId}
+     * Gets or creates a parent document at chats/{chatId} idempotently.
      */
     fun getOrCreateChatRoom(
         userAId: String,
@@ -443,14 +455,16 @@ object SyncMateFirestore {
         userBName: String,
         compatibilityScore: Int = 90
     ) {
-        val sortedUserIds = listOf(userAId, userBId).sorted()
-        val chatId = sortedUserIds.joinToString("_")
+        if (userAId.isBlank() || userBId.isBlank()) return
+        val sortedUserIds = listOf(userAId.trim(), userBId.trim()).sorted()
+        val chatId = buildDeterministicChatId(userAId, userBId)
         
         scope.launch(Dispatchers.IO) {
             try {
-                val doc = db.collection("chats").document(chatId).get().await()
+                val docRef = db.collection("chats").document(chatId)
+                val doc = docRef.get().await()
                 if (!doc.exists()) {
-                    val namesMap = mapOf(userAId to userAName, userBId to userBName)
+                    val namesMap = mapOf(userAId.trim() to userAName, userBId.trim() to userBName)
                     val newRoom = ChatRoom(
                         chatId = chatId,
                         participants = sortedUserIds,
@@ -459,7 +473,7 @@ object SyncMateFirestore {
                         lastMessageTimestamp = System.currentTimeMillis(),
                         compatibilityScore = compatibilityScore
                     )
-                    db.collection("chats").document(chatId).set(newRoom).await()
+                    docRef.set(newRoom, com.google.firebase.firestore.SetOptions.merge()).await()
                 }
             } catch (e: Exception) {
                 e.printStackTrace()

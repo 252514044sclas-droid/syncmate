@@ -10,7 +10,8 @@ import com.example.syncmate.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
 data class RoommateRequestsUiState(
@@ -39,23 +40,25 @@ class RoommateRequestsViewModel(
 
     private fun startRealtimeListener() {
         viewModelScope.launch {
-            val user = authRepository.currentUserFlow.firstOrNull()
-            currentUserId = user?.id ?: "usr_dev_101"
+            authRepository.currentUserFlow.filterNotNull().collectLatest { user ->
+                currentUserId = user.id
 
-            // Attach real-time snapshot listener on the "roommate_requests" collection
-            // Simple queries only - list is sorted in Kotlin memory by timestamp descending
-            // to completely avoid Firestore unbuilt composite index failures.
-            requestsListener = SyncMateFirestore.attachRequestsSnapshotListener(currentUserId) { incoming, sent ->
-                val sortedIncoming = incoming.sortedByDescending { it.timestamp }
-                val sortedSent = sent.sortedByDescending { it.timestamp }
-                val pendingCount = sortedIncoming.count { it.status == "PENDING" }
+                // Attach real-time snapshot listener on the "roommate_requests" collection
+                // Simple queries only - list is sorted in Kotlin memory by timestamp descending
+                // to completely avoid Firestore unbuilt composite index failures.
+                requestsListener?.remove()
+                requestsListener = SyncMateFirestore.attachRequestsSnapshotListener(currentUserId) { incoming, sent ->
+                    val sortedIncoming = incoming.sortedByDescending { it.timestamp }
+                    val sortedSent = sent.sortedByDescending { it.timestamp }
+                    val pendingCount = sortedIncoming.count { it.status == "PENDING" }
 
-                _uiState.value = _uiState.value.copy(
-                    incomingRequests = sortedIncoming,
-                    sentRequests = sortedSent,
-                    pendingIncomingCount = pendingCount,
-                    isLoading = false
-                )
+                    _uiState.value = _uiState.value.copy(
+                        incomingRequests = sortedIncoming,
+                        sentRequests = sortedSent,
+                        pendingIncomingCount = pendingCount,
+                        isLoading = false
+                    )
+                }
             }
         }
     }
@@ -67,7 +70,8 @@ class RoommateRequestsViewModel(
     fun acceptRequest(requestId: String) {
         viewModelScope.launch {
             try {
-                SyncMateFirestore.updateRequestStatus(requestId, "ACCEPTED")
+                val existing = _uiState.value.incomingRequests.firstOrNull { it.requestId == requestId }
+                SyncMateFirestore.updateRequestStatus(requestId, "ACCEPTED", existing)
                 _uiState.value = _uiState.value.copy(
                     actionMessage = "Request accepted! Direct 1-on-1 chat unlocked.",
                     errorMessage = null

@@ -44,6 +44,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.syncmate.data.firestore.SyncMateFirestore
 import com.example.syncmate.ui.components.GlassCard
 import com.example.syncmate.ui.components.PrimaryButton
 import com.example.syncmate.ui.components.SecondaryButton
@@ -318,7 +319,7 @@ fun IncomingRequestsScreen(
                         onOpenChat = {
                             val otherId = if (uiState.selectedTab == "Sent") item.request.receiverId else item.request.senderId
                             val otherName = if (uiState.selectedTab == "Sent") item.request.receiverName else item.request.senderName
-                            val chatId = listOf(item.request.senderId, item.request.receiverId).sorted().joinToString("_")
+                            val chatId = SyncMateFirestore.buildDeterministicChatId(item.request.senderId, item.request.receiverId)
                             onNavigateToChat(chatId, otherId, otherName)
                         }
                     )

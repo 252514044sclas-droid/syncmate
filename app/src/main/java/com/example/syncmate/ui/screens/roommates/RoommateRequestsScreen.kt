@@ -499,7 +499,7 @@ fun IncomingRequestsTabContent(
                             "ACCEPTED" -> {
                                 val otherUserId = req.senderId
                                 val otherUserName = req.senderName
-                                val chatId = listOf(req.senderId, req.receiverId).sorted().joinToString("_")
+                                val chatId = SyncMateFirestore.buildDeterministicChatId(req.senderId, req.receiverId)
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -689,7 +689,7 @@ fun SentRequestsTabContent(
                                 "ACCEPTED" -> {
                                     val otherUserId = req.receiverId
                                     val otherUserName = req.receiverName
-                                    val chatId = listOf(req.senderId, req.receiverId).sorted().joinToString("_")
+                                    val chatId = SyncMateFirestore.buildDeterministicChatId(req.senderId, req.receiverId)
                                     PrimaryButton(
                                         text = "Matched • Open Chat",
                                         onClick = { onOpenChat(chatId, otherUserId, otherUserName) },

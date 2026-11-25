@@ -17,6 +17,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -57,57 +59,38 @@ class RoommateMatchViewModel(
 
     private fun startRealtimeListeners() {
         viewModelScope.launch {
-            val resolvedId = appPreferences.savedUserId ?: if (!appPreferences.userEmail.isNullOrBlank()) "usr_" + kotlin.math.abs(appPreferences.userEmail.hashCode()) else "usr_dev_101"
-            val currentUser = authRepository.currentUserFlow.firstOrNull() ?: User(
-                id = resolvedId,
-                name = appPreferences.savedName ?: "Alex Morgan",
-                university = appPreferences.savedUniversity ?: "Anna University '26",
-                email = appPreferences.userEmail ?: "student@university.edu",
-                isVerified = true,
-                maxBudget = appPreferences.savedMaxBudget,
-                hasCompletedQuiz = true,
-                roommatePreferences = RoommatePreferences(
-                    sleepSchedule = "Early Bird",
-                    cleanlinessRating = 4,
-                    guestPolicy = "Weekends Only",
-                    noiseTolerance = "Quiet Study",
-                    studyHabits = "In Room",
-                    dietaryPreference = "Vegetarian",
-                    smokingOption = false,
-                    petPreference = "No Pets",
-                    sharingStyle = "Open to Sharing Essentials",
-                    maxBudgetINR = appPreferences.savedMaxBudget
-                )
-            )
-
-            // Register current user into Firestore if not already present
-            SyncMateFirestore.saveUser(currentUser)
-
-            _uiState.value = _uiState.value.copy(
-                currentUserId = currentUser.id,
-                currentUserName = currentUser.name
-            )
-
-            // 1. Real-time Firestore addSnapshotListener for "users" collection
-            usersListener = SyncMateFirestore.attachUsersSnapshotListener(currentUser.id) { users ->
-                cachedUsers = users
-                evaluateSynergyScores(currentUser, users)
-            }
-
-            // 2. Real-time Firestore addSnapshotListener for "roommate_requests" collection
-            requestsListener = SyncMateFirestore.attachRequestsSnapshotListener(currentUser.id) { incoming, sent ->
-                cachedIncoming = incoming
-                cachedSent = sent
-                val pendingCount = incoming.count { it.status == "PENDING" }
+            authRepository.currentUserFlow.filterNotNull().collectLatest { currentUser ->
+                // Register current user into Firestore if not already present
+                SyncMateFirestore.saveUser(currentUser)
 
                 _uiState.value = _uiState.value.copy(
-                    incomingRequests = incoming,
-                    sentRequests = sent,
-                    pendingIncomingCount = pendingCount
+                    currentUserId = currentUser.id,
+                    currentUserName = currentUser.name
                 )
 
-                // Refresh roommate status pills with latest requests
-                updateRoommateRequestStatuses()
+                // 1. Real-time Firestore addSnapshotListener for "users" collection
+                usersListener?.remove()
+                usersListener = SyncMateFirestore.attachUsersSnapshotListener(currentUser.id) { users ->
+                    cachedUsers = users
+                    evaluateSynergyScores(currentUser, users)
+                }
+
+                // 2. Real-time Firestore addSnapshotListener for "roommate_requests" collection
+                requestsListener?.remove()
+                requestsListener = SyncMateFirestore.attachRequestsSnapshotListener(currentUser.id) { incoming, sent ->
+                    cachedIncoming = incoming
+                    cachedSent = sent
+                    val pendingCount = incoming.count { it.status == "PENDING" }
+
+                    _uiState.value = _uiState.value.copy(
+                        incomingRequests = incoming,
+                        sentRequests = sent,
+                        pendingIncomingCount = pendingCount
+                    )
+
+                    // Refresh roommate status pills with latest requests
+                    updateRoommateRequestStatuses()
+                }
             }
         }
     }
@@ -231,11 +214,10 @@ class RoommateMatchViewModel(
     fun sendRoommateRequest(candidate: User, introMessage: String) {
         viewModelScope.launch {
             try {
-                val resolvedId = appPreferences.savedUserId ?: if (!appPreferences.userEmail.isNullOrBlank()) "usr_" + kotlin.math.abs(appPreferences.userEmail.hashCode()) else "usr_dev_101"
                 val currentUser = authRepository.currentUserFlow.firstOrNull() ?: User(
-                    id = resolvedId,
-                    name = appPreferences.savedName ?: "Alex Morgan",
-                    university = appPreferences.savedUniversity ?: "Anna University '26",
+                    id = _uiState.value.currentUserId,
+                    name = _uiState.value.currentUserName,
+                    university = appPreferences.savedUniversity ?: "University",
                     email = appPreferences.userEmail ?: "student@university.edu",
                     isVerified = true,
                     maxBudget = appPreferences.savedMaxBudget
@@ -286,7 +268,8 @@ class RoommateMatchViewModel(
     fun acceptRequest(requestId: String) {
         viewModelScope.launch {
             try {
-                SyncMateFirestore.updateRequestStatus(requestId, "ACCEPTED")
+                val existing = cachedIncoming.firstOrNull { it.requestId == requestId }
+                SyncMateFirestore.updateRequestStatus(requestId, "ACCEPTED", existing)
                 _uiState.value = _uiState.value.copy(
                     actionMessage = "Request accepted! Direct chat unlocked.",
                     errorMessage = null
@@ -324,8 +307,7 @@ class RoommateMatchViewModel(
     }
 
     fun getChatIdForCandidate(candidateId: String): String {
-        val myId = _uiState.value.currentUserId
-        return listOf(myId, candidateId).sorted().joinToString("_")
+        return SyncMateFirestore.buildDeterministicChatId(_uiState.value.currentUserId, candidateId)
     }
 
     fun setFilter(filter: String) {

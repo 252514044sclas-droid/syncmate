@@ -9,7 +9,8 @@ import com.example.syncmate.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -46,39 +47,38 @@ class ChatListViewModel(
 
     private fun startListening() {
         viewModelScope.launch {
-            val currentUser = authRepository.currentUserFlow.firstOrNull()
-            val currentUserId = currentUser?.id ?: "usr_dev_101"
+            authRepository.currentUserFlow.filterNotNull().collectLatest { currentUser ->
+                val currentUserId = currentUser.id
+                _uiState.value = _uiState.value.copy(currentUserId = currentUserId)
 
-            _uiState.value = _uiState.value.copy(currentUserId = currentUserId)
+                chatsListener?.remove()
+                chatsListener = SyncMateFirestore.attachChatsSnapshotListener(currentUserId) { chatRooms ->
+                    val sortedRooms = chatRooms.sortedByDescending { it.lastMessageTimestamp }
 
-            // Listen in real time to chats where participants arrayContains currentUserId.
-            // Sorted in Kotlin memory by lastMessageTimestamp descending to avoid composite index failures.
-            chatsListener = SyncMateFirestore.attachChatsSnapshotListener(currentUserId) { chatRooms ->
-                val sortedRooms = chatRooms.sortedByDescending { it.lastMessageTimestamp }
+                    val mappedList = sortedRooms.map { room ->
+                        val otherUserId = room.participants.firstOrNull { it != currentUserId } ?: ""
+                        val cachedUser = SyncMateFirestore.getUser(otherUserId)
+                        val otherUserName = room.participantNames[otherUserId]
+                            ?: cachedUser?.name
+                            ?: "Roommate Peer"
 
-                val mappedList = sortedRooms.map { room ->
-                    val otherUserId = room.participants.firstOrNull { it != currentUserId } ?: ""
-                    val cachedUser = SyncMateFirestore.getUser(otherUserId)
-                    val otherUserName = room.participantNames[otherUserId]
-                        ?: cachedUser?.name
-                        ?: "Roommate Peer"
+                        val otherUserUniversity = cachedUser?.university ?: "Verified Student"
 
-                    val otherUserUniversity = cachedUser?.university ?: "Verified Student"
+                        ChatListItemUiModel(
+                            chatRoom = room,
+                            otherUserId = otherUserId,
+                            otherUserName = otherUserName,
+                            otherUserUniversity = otherUserUniversity,
+                            isVerified = cachedUser?.isVerified ?: true,
+                            relativeTime = formatRelativeTime(room.lastMessageTimestamp)
+                        )
+                    }
 
-                    ChatListItemUiModel(
-                        chatRoom = room,
-                        otherUserId = otherUserId,
-                        otherUserName = otherUserName,
-                        otherUserUniversity = otherUserUniversity,
-                        isVerified = cachedUser?.isVerified ?: true,
-                        relativeTime = formatRelativeTime(room.lastMessageTimestamp)
+                    _uiState.value = _uiState.value.copy(
+                        chats = mappedList,
+                        isLoading = false
                     )
                 }
-
-                _uiState.value = _uiState.value.copy(
-                    chats = mappedList,
-                    isLoading = false
-                )
             }
         }
     }

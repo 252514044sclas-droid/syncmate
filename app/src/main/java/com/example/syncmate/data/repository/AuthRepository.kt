@@ -77,21 +77,24 @@ class FirebaseAuthRepositoryImpl(
                     trySend(null)
                 }
             } else {
+                val email = firebaseUser.email ?: ""
+                val isVerified = firebaseUser.isEmailVerified && UniversityDomains.isAllowedUniversityDomain(email)
+                val immediateUser = User(
+                    id = firebaseUser.uid,
+                    name = firebaseUser.displayName ?: email.substringBefore("@").replace(".", " ").replaceFirstChar { it.uppercase() },
+                    email = email,
+                    university = "University",
+                    isVerified = isVerified,
+                    bio = "Student looking for verified housing and roommates.",
+                    hasCompletedQuiz = false
+                )
+                trySend(immediateUser)
+
                 launch(Dispatchers.IO) {
                     val firestoreUser = com.example.syncmate.data.firestore.SyncMateFirestore.getUserAsync(firebaseUser.uid)
-                    val email = firebaseUser.email ?: ""
-                    val isVerified = firebaseUser.isEmailVerified && UniversityDomains.isAllowedUniversityDomain(email)
-                    val user = (firestoreUser ?: User(
-                        id = firebaseUser.uid,
-                        name = firebaseUser.displayName ?: email.substringBefore("@").replace(".", " ").replaceFirstChar { it.uppercase() },
-                        email = email,
-                        university = "University",
-                        isVerified = isVerified,
-                        bio = "Student looking for verified housing and roommates.",
-                        hasCompletedQuiz = false
-                    )).copy(isVerified = isVerified)
-
-                    trySend(user)
+                    if (firestoreUser != null) {
+                        trySend(firestoreUser.copy(isVerified = isVerified))
+                    }
                 }
             }
         }
@@ -143,6 +146,10 @@ class FirebaseAuthRepositoryImpl(
                 hasCompletedQuiz = false
             )).copy(isVerified = isVerified)
 
+            appPreferences?.savedUserId = user.id
+            appPreferences?.userEmail = user.email
+            appPreferences?.savedName = user.name
+            appPreferences?.savedUniversity = user.university
             com.example.syncmate.data.firestore.SyncMateFirestore.saveUser(user)
             Result.success(user)
         } catch (e: Exception) {
@@ -231,6 +238,10 @@ class FirebaseAuthRepositoryImpl(
                 hasCompletedQuiz = false
             )
 
+            appPreferences?.savedUserId = newUser.id
+            appPreferences?.userEmail = newUser.email
+            appPreferences?.savedName = newUser.name
+            appPreferences?.savedUniversity = newUser.university
             com.example.syncmate.data.firestore.SyncMateFirestore.saveUser(newUser)
             Result.success(newUser)
         } catch (e: Exception) {

@@ -9,7 +9,8 @@ import com.example.syncmate.data.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
 data class DirectChatUiState(
@@ -49,36 +50,41 @@ class DirectChatViewModel(
 
     private fun initializeChat() {
         viewModelScope.launch {
-            val currentUser = authRepository.currentUserFlow.firstOrNull()
-            val currentUserId = currentUser?.id ?: "usr_dev_101"
-            val currentUserName = currentUser?.name ?: "Student"
+            authRepository.currentUserFlow.filterNotNull().collectLatest { currentUser ->
+                val currentUserId = currentUser.id
+                val currentUserName = currentUser.name
 
-            val cachedOtherUser = SyncMateFirestore.getUser(otherUserId)
-            val otherUniversity = cachedOtherUser?.university ?: "Verified Student"
-            val isVerified = cachedOtherUser?.isVerified ?: true
+                val resolvedChatId = if (chatId.isNotBlank()) chatId else SyncMateFirestore.buildDeterministicChatId(currentUserId, otherUserId)
 
-            // Ensure parent chat document exists at chats/{chatId}
-            SyncMateFirestore.getOrCreateChatRoom(
-                userAId = currentUserId,
-                userAName = currentUserName,
-                userBId = otherUserId,
-                userBName = otherUserName
-            )
+                val cachedOtherUser = SyncMateFirestore.getUser(otherUserId)
+                val otherUniversity = cachedOtherUser?.university ?: "Verified Student"
+                val isVerified = cachedOtherUser?.isVerified ?: true
 
-            _uiState.value = _uiState.value.copy(
-                currentUserId = currentUserId,
-                currentUserName = currentUserName,
-                otherUserUniversity = otherUniversity,
-                isVerified = isVerified
-            )
-
-            // Attach real-time snapshot listener on chats/{chatId}/messages ordered by timestamp ascending
-            messagesListener = SyncMateFirestore.attachMessagesSnapshotListener(chatId) { messages ->
-                val sorted = messages.sortedBy { it.timestamp }
-                _uiState.value = _uiState.value.copy(
-                    messages = sorted,
-                    isLoading = false
+                // Ensure parent chat document exists at chats/{chatId} idempotently
+                SyncMateFirestore.getOrCreateChatRoom(
+                    userAId = currentUserId,
+                    userAName = currentUserName,
+                    userBId = otherUserId,
+                    userBName = otherUserName
                 )
+
+                _uiState.value = _uiState.value.copy(
+                    chatId = resolvedChatId,
+                    currentUserId = currentUserId,
+                    currentUserName = currentUserName,
+                    otherUserUniversity = otherUniversity,
+                    isVerified = isVerified
+                )
+
+                // Attach real-time snapshot listener on chats/{chatId}/messages ordered by timestamp ascending
+                messagesListener?.remove()
+                messagesListener = SyncMateFirestore.attachMessagesSnapshotListener(resolvedChatId) { messages ->
+                    val sorted = messages.sortedBy { it.timestamp }
+                    _uiState.value = _uiState.value.copy(
+                        messages = sorted,
+                        isLoading = false
+                    )
+                }
             }
         }
     }
