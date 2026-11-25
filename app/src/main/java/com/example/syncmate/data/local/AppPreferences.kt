@@ -84,6 +84,10 @@ class AppPreferences(context: Context) {
         get() = prefs.getBoolean("chat_alerts", true)
         set(value) = prefs.edit().putBoolean("chat_alerts", value).apply()
 
+    var hasAcceptedAiConsent: Boolean
+        get() = prefs.getBoolean("has_accepted_ai_consent", false)
+        set(value) = prefs.edit().putBoolean("has_accepted_ai_consent", value).apply()
+
     fun clear() {
         prefs.edit().clear().apply()
     }

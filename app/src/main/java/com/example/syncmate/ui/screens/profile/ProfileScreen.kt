@@ -30,6 +30,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import com.example.syncmate.ui.components.AppHeader
 import com.example.syncmate.ui.components.PrimaryButton
 import com.example.syncmate.ui.components.SecondaryButton
@@ -90,7 +92,18 @@ fun ProfileScreen(
                     .background(IndigoPrimary.copy(alpha = 0.2f)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = IndigoPrimary, modifier = Modifier.size(48.dp))
+                // If user has a profileImageUrl, show it using Coil's AsyncImage
+                if (!user?.profilePictureUrl.isNullOrEmpty()) {
+                    AsyncImage(
+                        model = user?.profilePictureUrl,
+                        contentDescription = "Profile Picture",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    // Fallback to icon if no profile image exists
+                    Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = IndigoPrimary, modifier = Modifier.size(48.dp))
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))

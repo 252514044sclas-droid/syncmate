@@ -42,6 +42,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import com.example.syncmate.ui.components.AiConsentDialog
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -531,28 +533,51 @@ fun FairRentScreen(
             // ==========================================
             Spacer(modifier = Modifier.height(24.dp))
 
+            val context = LocalContext.current
+            val appPreferences = remember { com.example.syncmate.data.local.AppPreferences(context) }
+            var showAiConsentDialog by remember { mutableStateOf(false) }
+
+            fun triggerPrediction() {
+                val effectiveLoc = location.trim().ifEmpty { "Anna Nagar, Chennai" }
+                val effectiveRoom = roomType.trim().ifEmpty { "1BHK" }
+                val effectiveSqFt = sqFt.trim().ifEmpty { "600" }
+                val effectiveBed = bedrooms.trim().ifEmpty { "1" }
+                val effectiveLease = leaseDuration.trim().ifEmpty { "3" }
+
+                predictionViewModel.predictFairRent(
+                    location = effectiveLoc,
+                    sqFtStr = effectiveSqFt,
+                    bedroomsStr = effectiveBed,
+                    bathroomsStr = "1.0",
+                    roomType = effectiveRoom,
+                    leaseDurationStr = effectiveLease,
+                    season = "Summer",
+                    facilities = listOf("WiFi", "AC", "Power Backup")
+                )
+            }
+
             PrimaryButton(
                 text = "Calculate Fair Rent (INR)",
                 isLoading = uiState.isLoading,
                 onClick = {
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    val effectiveLoc = location.trim().ifEmpty { "Anna Nagar, Chennai" }
-                    val effectiveRoom = roomType.trim().ifEmpty { "1BHK" }
-                    val effectiveSqFt = sqFt.trim().ifEmpty { "600" }
-                    val effectiveBed = bedrooms.trim().ifEmpty { "1" }
-                    val effectiveLease = leaseDuration.trim().ifEmpty { "3" }
-
-                    predictionViewModel.predictFairRent(
-                        location = effectiveLoc,
-                        sqFtStr = effectiveSqFt,
-                        bedroomsStr = effectiveBed,
-                        bathroomsStr = "1.0",
-                        roomType = effectiveRoom,
-                        leaseDurationStr = effectiveLease,
-                        season = "Summer",
-                        facilities = listOf("WiFi", "AC", "Power Backup")
-                    )
+                    if (!appPreferences.hasAcceptedAiConsent) {
+                        showAiConsentDialog = true
+                    } else {
+                        triggerPrediction()
+                    }
                 }
+            )
+
+            AiConsentDialog(
+                isOpen = showAiConsentDialog,
+                featureName = "Property Details & Rental Rates",
+                onAccept = {
+                    appPreferences.hasAcceptedAiConsent = true
+                    showAiConsentDialog = false
+                    triggerPrediction()
+                },
+                onDismiss = { showAiConsentDialog = false }
             )
 
             // ==========================================

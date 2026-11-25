@@ -31,6 +31,39 @@ object SyncMateFirestore {
         // Kept for backward compatibility with AppNavGraph, but networking is now handled natively by Firebase.
     }
 
+    private val blockedUserIds = mutableSetOf<String>()
+
+    fun blockUser(currentUserId: String, targetUserId: String) {
+        blockedUserIds.add(targetUserId)
+        scope.launch(Dispatchers.IO) {
+            try {
+                db.collection("users").document(currentUserId)
+                    .collection("blocked").document(targetUserId)
+                    .set(mapOf("blockedAt" to System.currentTimeMillis())).await()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun reportUser(reporterId: String, reportedId: String, reason: String, details: String = "") {
+        scope.launch(Dispatchers.IO) {
+            try {
+                val reportData = mapOf(
+                    "reporterId" to reporterId,
+                    "reportedId" to reportedId,
+                    "reason" to reason,
+                    "details" to details,
+                    "timestamp" to System.currentTimeMillis(),
+                    "status" to "PENDING_REVIEW"
+                )
+                db.collection("reports").document("rep_${System.currentTimeMillis()}").set(reportData).await()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     /**
      * Attaches a real-time Firestore addSnapshotListener to the "users" collection
      */
@@ -38,7 +71,17 @@ object SyncMateFirestore {
         currentUserId: String,
         onUpdate: (List<User>) -> Unit
     ): ListenerRegistration {
-        return db.collection("users")
+        // Real-time listener for blocked users
+        val blockReg = db.collection("users").document(currentUserId)
+            .collection("blocked")
+            .addSnapshotListener { snap, _ ->
+                if (snap != null) {
+                    blockedUserIds.clear()
+                    blockedUserIds.addAll(snap.documents.map { it.id })
+                }
+            }
+
+        val usersReg = db.collection("users")
             .whereEqualTo("hasCompletedQuiz", true)
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
@@ -51,11 +94,14 @@ object SyncMateFirestore {
                     
                     val filtered = allUsers.filter { user ->
                         user.id != currentUserId &&
+                        !blockedUserIds.contains(user.id) &&
                         (currentUserName.isBlank() || !user.name.equals(currentUserName, ignoreCase = true))
                     }
                     onUpdate(filtered)
                 }
             }
+
+        return CompositeListenerRegistration(listOf(blockReg, usersReg))
     }
 
     /**
@@ -278,6 +324,10 @@ object SyncMateFirestore {
             .addSnapshotListener { snapshot, _ ->
                 if (snapshot != null) {
                     val userChats = snapshot.toObjects(ChatRoom::class.java)
+                        .filter { room ->
+                            val otherParticipant = room.participants.firstOrNull { it != currentUserId }
+                            otherParticipant == null || !blockedUserIds.contains(otherParticipant)
+                        }
                         .sortedByDescending { it.lastMessageTimestamp }
                     onUpdate(userChats)
                 }

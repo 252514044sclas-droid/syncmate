@@ -102,7 +102,8 @@ class HousingViewModel(
         roomType: String,
         description: String,
         ownerName: String,
-        ownerEmail: String
+        ownerEmail: String,
+        imageUrls: List<String> = emptyList()
     ) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
@@ -114,8 +115,9 @@ class HousingViewModel(
                 bedrooms = bedrooms,
                 bathrooms = bathrooms,
                 roomType = roomType,
-                duration = "Summer 2025",
+                duration = "Summer 2026",
                 description = description,
+                imageUrls = imageUrls,
                 ownerName = ownerName,
                 ownerEmail = ownerEmail,
                 distanceToCampus = "0.5 km",

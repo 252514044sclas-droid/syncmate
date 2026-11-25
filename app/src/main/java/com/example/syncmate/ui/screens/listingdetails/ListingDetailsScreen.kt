@@ -38,6 +38,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import com.example.syncmate.ui.components.AppHeader
 import com.example.syncmate.ui.components.LoadingIndicator
 import com.example.syncmate.ui.components.PrimaryButton
@@ -152,6 +154,24 @@ fun ListingDetailsScreen(
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
+
+                // Image Gallery
+                if (listing.imageUrls.isNotEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(240.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                    ) {
+                        AsyncImage(
+                            model = listing.imageUrls.first(),
+                            contentDescription = "Listing Image",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
 
                 // Host Card
                 Box(

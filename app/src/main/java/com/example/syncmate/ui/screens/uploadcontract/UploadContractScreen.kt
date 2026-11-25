@@ -48,6 +48,8 @@ import com.example.syncmate.ui.components.ErrorMessage
 import com.example.syncmate.ui.components.PrimaryButton
 import com.example.syncmate.ui.components.SecondaryButton
 import com.example.syncmate.ui.components.StatBadge
+import com.example.syncmate.ui.components.AiConsentDialog
+import com.example.syncmate.data.local.AppPreferences
 import com.example.syncmate.ui.theme.EmeraldSuccess
 import com.example.syncmate.ui.theme.IndigoPrimary
 import com.example.syncmate.ui.theme.SlateBackground
@@ -91,9 +93,27 @@ fun UploadContractScreen(
     onNavigateBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val appPreferences = remember { AppPreferences(context) }
     val uiState by contractViewModel.uiState.collectAsStateWithLifecycle()
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
     var selectedFileName by remember { mutableStateOf("") }
+    var showConsentDialog by remember { mutableStateOf(false) }
+
+    fun triggerAnalysis() {
+        val fileBytes = try {
+            selectedFileUri?.let { uri ->
+                context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            }
+        } catch (_: Exception) { null }
+
+        val effectiveName = if (selectedFileName.isNotBlank()) selectedFileName else "sublease_agreement.pdf"
+
+        contractViewModel.analyzeContract(
+            fileName = effectiveName,
+            fileBytes = fileBytes,
+            onSuccess = { onContractAnalyzed() }
+        )
+    }
 
     val documentPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -233,20 +253,23 @@ fun UploadContractScreen(
                 text = "Analyze Contract with AI Guard",
                 isLoading = uiState.isLoading,
                 onClick = {
-                    val fileBytes = try {
-                        selectedFileUri?.let { uri ->
-                            context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                        }
-                    } catch (_: Exception) { null }
-
-                    val effectiveName = if (selectedFileName.isNotBlank()) selectedFileName else "sublease_agreement.pdf"
-
-                    contractViewModel.analyzeContract(
-                        fileName = effectiveName,
-                        fileBytes = fileBytes,
-                        onSuccess = { onContractAnalyzed() }
-                    )
+                    if (!appPreferences.hasAcceptedAiConsent) {
+                        showConsentDialog = true
+                    } else {
+                        triggerAnalysis()
+                    }
                 }
+            )
+
+            AiConsentDialog(
+                isOpen = showConsentDialog,
+                featureName = "Sublease Agreement",
+                onAccept = {
+                    appPreferences.hasAcceptedAiConsent = true
+                    showConsentDialog = false
+                    triggerAnalysis()
+                },
+                onDismiss = { showConsentDialog = false }
             )
 
             if (com.example.syncmate.BuildConfig.DEBUG) {

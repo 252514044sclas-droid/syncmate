@@ -86,5 +86,4 @@ class NetworkContractRepositoryImpl(
     }
 }
 
-// Backward-compatible alias
-typealias MockContractRepositoryImpl = NetworkContractRepositoryImpl
+

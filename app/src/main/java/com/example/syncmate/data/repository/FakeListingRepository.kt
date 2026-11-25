@@ -66,5 +66,4 @@ class NetworkFakeListingRepositoryImpl(
     }
 }
 
-// Backward-compatible alias
-typealias MockFakeListingRepositoryImpl = NetworkFakeListingRepositoryImpl
+

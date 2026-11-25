@@ -21,6 +21,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.DeleteSweep
+import androidx.compose.material.icons.filled.DeleteForever
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.material.icons.filled.HelpCenter
 import androidx.compose.material.icons.filled.LockReset
 import androidx.compose.material.icons.filled.NotificationsActive
@@ -65,10 +72,12 @@ fun SettingsScreen(
     onNavigateToPrivacy: (() -> Unit)? = null,
     onNavigateToFeedback: (() -> Unit)? = null,
     onNavigateToForgotPassword: (() -> Unit)? = null,
+    onDeleteAccount: (() -> Unit)? = null,
     onNavigateBack: () -> Unit
 ) {
     val uiState by settingsViewModel.uiState.collectAsStateWithLifecycle()
     val haptic = LocalHapticFeedback.current
+    var showDeleteAccountDialog by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -282,7 +291,59 @@ fun SettingsScreen(
                             onClick = onNavigateToForgotPassword
                         )
                     }
+
+                    if (onDeleteAccount != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        SettingsActionRow(
+                            title = "Delete Account Permanently",
+                            icon = Icons.Default.DeleteForever,
+                            onClick = { showDeleteAccountDialog = true }
+                        )
+                    }
                 }
+            }
+
+            if (showDeleteAccountDialog) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteAccountDialog = false },
+                    containerColor = SlateCard,
+                    icon = {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Warning",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    title = {
+                        Text(
+                            text = "Permanently Delete Account?",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = TextPrimary
+                        )
+                    },
+                    text = {
+                        Text(
+                            text = "This will permanently delete your student profile, roommate requests, and all local device data. This action cannot be reversed.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextSecondary
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                showDeleteAccountDialog = false
+                                onDeleteAccount?.invoke()
+                            }
+                        ) {
+                            Text("Delete Account", color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteAccountDialog = false }) {
+                            Text("Cancel", color = TextSecondary)
+                        }
+                    }
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))

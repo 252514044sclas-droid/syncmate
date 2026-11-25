@@ -66,5 +66,4 @@ class NetworkPredictionRepositoryImpl(
     }
 }
 
-// Backward-compatible alias for existing instantiations
-typealias MockPredictionRepositoryImpl = NetworkPredictionRepositoryImpl
+

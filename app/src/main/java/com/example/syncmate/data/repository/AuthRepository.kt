@@ -39,6 +39,7 @@ interface AuthRepository {
         maxBudget: Double? = null,
         preferredLocation: String? = null
     ): Result<User>
+    suspend fun deleteAccount(): Result<Unit>
     suspend fun signOut()
     fun isUserLoggedIn(): Boolean
 }
@@ -258,6 +259,28 @@ class FirebaseAuthRepositoryImpl(
 
         com.example.syncmate.data.firestore.SyncMateFirestore.saveUser(updatedUser)
         Result.success(updatedUser)
+    }
+
+    override suspend fun deleteAccount(): Result<Unit> = withContext(Dispatchers.IO) {
+        val user = firebaseAuth.currentUser ?: return@withContext Result.failure(Exception("No authenticated user"))
+        val uid = user.uid
+        try {
+            try {
+                val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                db.collection("users").document(uid).collection("private").document("contact").delete().await()
+                db.collection("users").document(uid).delete().await()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+            appPreferences?.clear()
+            user.delete().await()
+            Result.success(Unit)
+        } catch (e: FirebaseAuthRecentLoginRequiredException) {
+            Result.failure(Exception("Deleting your account is sensitive and requires recent authentication. Please sign out and sign in again before deleting."))
+        } catch (e: Exception) {
+            Result.failure(Exception(e.localizedMessage ?: "Failed to delete account"))
+        }
     }
 
     override suspend fun signOut(): Unit = withContext(Dispatchers.IO) {

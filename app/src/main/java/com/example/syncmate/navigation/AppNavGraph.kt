@@ -566,6 +566,16 @@ fun AppNavGraph(
                     onNavigateToPrivacy = { navController.navigate(Screen.Privacy.route) },
                     onNavigateToFeedback = { navController.navigate(Screen.Feedback.route) },
                     onNavigateToForgotPassword = { navController.navigate(Screen.ForgotPassword.route) },
+                    onDeleteAccount = {
+                        authViewModel.deleteAccount(
+                            onSuccess = {
+                                navController.navigate(Screen.Welcome.route) {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            },
+                            onError = {}
+                        )
+                    },
                     onNavigateBack = { navController.popBackStack() }
                 )
             }

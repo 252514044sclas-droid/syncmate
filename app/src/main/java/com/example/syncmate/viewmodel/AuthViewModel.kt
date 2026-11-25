@@ -129,6 +129,22 @@ class AuthViewModel(
         _uiState.value = _uiState.value.copy(profileSaveSuccess = false, profileSaveError = null)
     }
 
+    fun deleteAccount(onSuccess: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            val result = authRepository.deleteAccount()
+            _uiState.value = _uiState.value.copy(isLoading = false)
+            result.onSuccess {
+                _uiState.value = AuthUiState()
+                onSuccess()
+            }.onFailure { ex ->
+                val msg = ex.message ?: "Failed to delete account"
+                _uiState.value = _uiState.value.copy(error = msg)
+                onError(msg)
+            }
+        }
+    }
+
     fun toggleRememberDevice(remember: Boolean) {
         _uiState.value = _uiState.value.copy(rememberDevice = remember)
     }

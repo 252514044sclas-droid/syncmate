@@ -36,6 +36,13 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Report
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import com.example.syncmate.ui.components.BlockUserDialog
+import com.example.syncmate.ui.components.ReportUserDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -263,6 +270,72 @@ fun DirectChatScreen(
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.width(4.dp))
+
+                var showChatMenu by remember { mutableStateOf(false) }
+                var showBlockDialog by remember { mutableStateOf(false) }
+                var showReportDialog by remember { mutableStateOf(false) }
+
+                Box {
+                    IconButton(
+                        onClick = { showChatMenu = true },
+                        modifier = Modifier.size(36.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Options",
+                            tint = TextSecondary
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showChatMenu,
+                        onDismissRequest = { showChatMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Report User") },
+                            onClick = {
+                                showChatMenu = false
+                                showReportDialog = true
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Report, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Block User") },
+                            onClick = {
+                                showChatMenu = false
+                                showBlockDialog = true
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Block, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            }
+                        )
+                    }
+                }
+
+                BlockUserDialog(
+                    isOpen = showBlockDialog,
+                    targetUserName = uiState.otherUserName,
+                    onDismiss = { showBlockDialog = false },
+                    onConfirmBlock = {
+                        showBlockDialog = false
+                        com.example.syncmate.data.firestore.SyncMateFirestore.blockUser(uiState.currentUserId, uiState.otherUserId)
+                        onNavigateBack()
+                    }
+                )
+
+                ReportUserDialog(
+                    isOpen = showReportDialog,
+                    targetUserName = uiState.otherUserName,
+                    onDismiss = { showReportDialog = false },
+                    onSubmitReport = { reason, details ->
+                        showReportDialog = false
+                        com.example.syncmate.data.firestore.SyncMateFirestore.reportUser(uiState.currentUserId, uiState.otherUserId, reason, details)
+                    }
+                )
             }
         }
         Box(

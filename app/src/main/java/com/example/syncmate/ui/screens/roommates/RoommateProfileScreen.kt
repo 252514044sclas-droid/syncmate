@@ -26,6 +26,13 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Report
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import com.example.syncmate.ui.components.BlockUserDialog
+import com.example.syncmate.ui.components.ReportUserDialog
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -139,6 +146,10 @@ fun RoommateProfileScreen(
             .background(SlateBackground)
             .safeDrawingPadding()
     ) {
+        var showOptionsMenu by remember { mutableStateOf(false) }
+        var showBlockDialog by remember { mutableStateOf(false) }
+        var showReportDialog by remember { mutableStateOf(false) }
+
         // Top Bar
         Row(
             modifier = Modifier
@@ -160,7 +171,64 @@ fun RoommateProfileScreen(
                 fontWeight = FontWeight.Bold,
                 color = TextPrimary
             )
+            Spacer(modifier = Modifier.weight(1f))
+            Box {
+                IconButton(onClick = { showOptionsMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "Options",
+                        tint = TextSecondary
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = showOptionsMenu,
+                    onDismissRequest = { showOptionsMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Report Student") },
+                        onClick = {
+                            showOptionsMenu = false
+                            showReportDialog = true
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Report, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Block Student") },
+                        onClick = {
+                            showOptionsMenu = false
+                            showBlockDialog = true
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Block, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                        }
+                    )
+                }
+            }
         }
+
+        BlockUserDialog(
+            isOpen = showBlockDialog,
+            targetUserName = user.name,
+            onDismiss = { showBlockDialog = false },
+            onConfirmBlock = {
+                showBlockDialog = false
+                SyncMateFirestore.blockUser(uiState.currentUserId, user.id)
+                onNavigateBack()
+            }
+        )
+
+        ReportUserDialog(
+            isOpen = showReportDialog,
+            targetUserName = user.name,
+            onDismiss = { showReportDialog = false },
+            onSubmitReport = { reason, details ->
+                showReportDialog = false
+                SyncMateFirestore.reportUser(uiState.currentUserId, user.id, reason, details)
+            }
+        )
 
         // Action Message Toast Banner
         if (uiState.actionMessage != null) {
