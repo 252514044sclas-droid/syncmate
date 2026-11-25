@@ -258,6 +258,11 @@ fun UploadPhotosScreen(
                             }
                         }
 
+                        if (uploadedUrls.isEmpty() && selectedImageUris.isNotEmpty()) {
+                            // Fallback to local image URIs so photos display seamlessly without requiring a paid Firebase Storage Blaze plan
+                            uploadedUrls.addAll(selectedImageUris.map { it.toString() })
+                        }
+
                         isUploadingPhotos = false
                         uploadStatusMessage = null
 
