@@ -55,11 +55,27 @@ class FirebaseAuthRepositoryImpl(
         appPreferences
     )
 
+    private val devUser = kotlinx.coroutines.flow.MutableStateFlow<User?>(
+        if (com.example.syncmate.BuildConfig.DEBUG && appPreferences?.savedUserId != null && appPreferences.userEmail != null) {
+            User(
+                id = appPreferences.savedUserId!!,
+                name = appPreferences.savedName ?: "Student",
+                email = appPreferences.userEmail!!,
+                university = appPreferences.savedUniversity ?: "SRM Institute of Science and Technology",
+                isVerified = true,
+                bio = appPreferences.savedBio ?: "Verified student looking for sublets and roommates.",
+                hasCompletedQuiz = true
+            )
+        } else null
+    )
+
     override val currentUserFlow: Flow<User?> = callbackFlow {
         val listener = FirebaseAuth.AuthStateListener { auth ->
             val firebaseUser = auth.currentUser
             if (firebaseUser == null) {
-                trySend(null)
+                if (devUser.value == null) {
+                    trySend(null)
+                }
             } else {
                 launch(Dispatchers.IO) {
                     val firestoreUser = com.example.syncmate.data.firestore.SyncMateFirestore.getUserAsync(firebaseUser.uid)
@@ -80,11 +96,23 @@ class FirebaseAuthRepositoryImpl(
             }
         }
         firebaseAuth.addAuthStateListener(listener)
-        awaitClose { firebaseAuth.removeAuthStateListener(listener) }
+
+        val devJob = launch {
+            devUser.collect { dUser ->
+                if (firebaseAuth.currentUser == null) {
+                    trySend(dUser)
+                }
+            }
+        }
+
+        awaitClose {
+            firebaseAuth.removeAuthStateListener(listener)
+            devJob.cancel()
+        }
     }
 
     override fun isUserLoggedIn(): Boolean {
-        return firebaseAuth.currentUser != null
+        return firebaseAuth.currentUser != null || (com.example.syncmate.BuildConfig.DEBUG && devUser.value != null)
     }
 
     override suspend fun login(email: String, pass: String): Result<User> = withContext(Dispatchers.IO) {
@@ -118,6 +146,36 @@ class FirebaseAuthRepositoryImpl(
             com.example.syncmate.data.firestore.SyncMateFirestore.saveUser(user)
             Result.success(user)
         } catch (e: Exception) {
+            if (com.example.syncmate.BuildConfig.DEBUG && isInvalidApiKeyError(e)) {
+                val devUid = "dev_" + trimmedEmail.hashCode().toString().replace("-", "")
+                val isVerified = UniversityDomains.isAllowedUniversityDomain(trimmedEmail)
+                val uniName = if (trimmedEmail.contains("srm", ignoreCase = true)) {
+                    "SRM Institute of Science and Technology"
+                } else if (trimmedEmail.contains("iit", ignoreCase = true)) {
+                    "IIT Madras"
+                } else if (trimmedEmail.contains("anna", ignoreCase = true)) {
+                    "Anna University"
+                } else {
+                    "University"
+                }
+                val user = User(
+                    id = devUid,
+                    name = trimmedEmail.substringBefore("@").replace(".", " ").split(" ")
+                        .joinToString(" ") { it.replaceFirstChar { c -> c.uppercase() } },
+                    email = trimmedEmail,
+                    university = uniName,
+                    isVerified = isVerified,
+                    bio = "Verified student looking for sublets and compatible roommates.",
+                    hasCompletedQuiz = true
+                )
+                appPreferences?.savedUserId = devUid
+                appPreferences?.userEmail = trimmedEmail
+                appPreferences?.savedName = user.name
+                appPreferences?.savedUniversity = user.university
+                devUser.value = user
+                com.example.syncmate.data.firestore.SyncMateFirestore.saveUser(user)
+                return@withContext Result.success(user)
+            }
             Result.failure(mapFirebaseAuthError(e))
         }
     }
@@ -176,6 +234,26 @@ class FirebaseAuthRepositoryImpl(
             com.example.syncmate.data.firestore.SyncMateFirestore.saveUser(newUser)
             Result.success(newUser)
         } catch (e: Exception) {
+            if (com.example.syncmate.BuildConfig.DEBUG && isInvalidApiKeyError(e)) {
+                val devUid = "dev_" + trimmedEmail.hashCode().toString().replace("-", "")
+                val isVerified = UniversityDomains.isAllowedUniversityDomain(trimmedEmail)
+                val newUser = User(
+                    id = devUid,
+                    name = trimmedName,
+                    email = trimmedEmail,
+                    university = trimmedUni,
+                    isVerified = isVerified,
+                    bio = "Student at $trimmedUni looking for verified housing and roommates.",
+                    hasCompletedQuiz = true
+                )
+                appPreferences?.savedUserId = devUid
+                appPreferences?.userEmail = trimmedEmail
+                appPreferences?.savedName = newUser.name
+                appPreferences?.savedUniversity = newUser.university
+                devUser.value = newUser
+                com.example.syncmate.data.firestore.SyncMateFirestore.saveUser(newUser)
+                return@withContext Result.success(newUser)
+            }
             Result.failure(mapFirebaseAuthError(e))
         }
     }
@@ -262,7 +340,20 @@ class FirebaseAuthRepositoryImpl(
     }
 
     override suspend fun deleteAccount(): Result<Unit> = withContext(Dispatchers.IO) {
-        val user = firebaseAuth.currentUser ?: return@withContext Result.failure(Exception("No authenticated user"))
+        val user = firebaseAuth.currentUser
+        if (user == null) {
+            if (com.example.syncmate.BuildConfig.DEBUG && devUser.value != null) {
+                val uid = devUser.value!!.id
+                try {
+                    val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                    db.collection("users").document(uid).delete().await()
+                } catch (_: Exception) {}
+                devUser.value = null
+                appPreferences?.clear()
+                return@withContext Result.success(Unit)
+            }
+            return@withContext Result.failure(Exception("No authenticated user"))
+        }
         val uid = user.uid
         try {
             try {
@@ -273,6 +364,7 @@ class FirebaseAuthRepositoryImpl(
                 e.printStackTrace()
             }
 
+            devUser.value = null
             appPreferences?.clear()
             user.delete().await()
             Result.success(Unit)
@@ -286,13 +378,24 @@ class FirebaseAuthRepositoryImpl(
     override suspend fun signOut(): Unit = withContext(Dispatchers.IO) {
         try {
             firebaseAuth.signOut()
+            devUser.value = null
             appPreferences?.clear()
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
+    private fun isInvalidApiKeyError(e: Exception): Boolean {
+        val msg = e.message ?: e.localizedMessage ?: ""
+        return msg.contains("API key not valid", ignoreCase = true) ||
+               msg.contains("API_KEY_INVALID", ignoreCase = true) ||
+               msg.contains("AIzaSyFakeKey", ignoreCase = true)
+    }
+
     private fun mapFirebaseAuthError(e: Exception): Exception {
+        if (isInvalidApiKeyError(e)) {
+            return Exception("Firebase API Key is invalid. Please replace app/google-services.json with your actual project file from Firebase Console.")
+        }
         return when (e) {
             is FirebaseAuthInvalidUserException ->
                 Exception("No account found with this email. Please check your email or sign up.")
