@@ -75,10 +75,10 @@ interface ApiService {
     suspend fun reportListing(@Body request: ReportListingRequestDto): Response<ApiResponse<Boolean>>
 
     // AI Module 1: Fair-Price & Utility Regressor (Live ML Model)
-    @POST("predict_price")
+    @POST("predict_rent")
     suspend fun predictPrice(@Body request: PredictionRequestDto): Response<ApiResponse<PredictionResponseDto>>
 
-    @POST("ai/predict_rent.php")
+    @POST("predict_rent")
     suspend fun predictRent(@Body request: PredictionRequestDto): Response<ApiResponse<PredictionResponseDto>>
 
     // AI Module 2: Fake-Listing Scam Shield (Live ML Scanner)
@@ -86,7 +86,7 @@ interface ApiService {
     suspend fun scanListing(@Body request: ScanListingRequestDto): Response<ApiResponse<FakeListingAnalysisDto>>
 
     // AI Module 3: Contract Guard (Live ML Document Analyzer)
-    @POST("ai/analyze_contract.php")
+    @POST("analyze_contract")
     suspend fun analyzeContract(@Body request: AnalyzeContractRequestDto): Response<ApiResponse<ContractSummaryDto>>
 
     // AI Module 4: Roommate Compatibility Matcher
@@ -125,7 +125,7 @@ interface ApiService {
     suspend fun getDirectChatMessages(@Query("chat_id") chatId: String): Response<ApiResponse<List<com.example.syncmate.data.remote.dto.DirectMessageDto>>>
 
     // AI Chatbot Assistant: Dynamic Conversational AI Integration
-    @POST("ai/chat.php")
+    @POST("chat")
     suspend fun sendChatMessage(@Body request: ChatRequestDto): Response<ApiResponse<ChatResponseDto>>
 
     @GET("dashboard/summary.php")

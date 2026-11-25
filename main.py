@@ -394,6 +394,8 @@ async def predict_compatibility(
 @app.post("/predict_price")
 @app.post("/api/predict_rent")
 @app.post("/api/predict_price")
+@app.post("/ai/predict_rent.php")
+@app.post("/ai/predict_price.php")
 @limiter.limit("60/minute")
 async def predict_rent(
     request: Request,
@@ -866,6 +868,7 @@ CONTRACT_CATEGORIES = {
 
 @app.post("/analyze_contract")
 @app.post("/api/analyze_contract")
+@app.post("/ai/analyze_contract.php")
 @limiter.limit("30/minute")
 async def analyze_contract(
     request: Request,
@@ -1066,6 +1069,7 @@ async def analyze_contract(
 # ========================================================
 @app.post("/chat")
 @app.post("/api/chat")
+@app.post("/ai/chat.php")
 @limiter.limit("60/minute")
 async def chat_endpoint(
     request: Request,
