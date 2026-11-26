@@ -17,6 +17,11 @@ object RetrofitClient {
         if (!custom.isNullOrBlank()) {
             return if (custom.endsWith("/")) custom else "$custom/"
         }
+        if (com.example.syncmate.BuildConfig.DEBUG) {
+            // 127.0.0.1 connects instantly via adb reverse tcp:8000 tcp:8000
+            // and avoids Windows Firewall dropping packets on 10.0.2.2
+            return "http://127.0.0.1:8000/"
+        }
         return BuildConfig.BASE_URL
     }
 
@@ -31,7 +36,7 @@ object RetrofitClient {
 
         val resolvedBaseUrl = getBaseUrl(appPreferences)
 
-        // Interceptor that seamlessly falls back between local hosts (e.g. 10.0.2.2 emulator and 127.0.0.1 ADB reverse) in debug mode
+        // Interceptor that seamlessly falls back between local hosts (e.g. 127.0.0.1 ADB reverse and 10.0.2.2 emulator router) in debug mode
         val hostFallbackInterceptor = Interceptor { chain ->
             val originalRequest = chain.request()
             try {
@@ -41,7 +46,7 @@ object RetrofitClient {
                     throw e
                 }
                 val currentHost = originalRequest.url.host
-                val candidateHosts = listOf("10.0.2.2", "127.0.0.1")
+                val candidateHosts = listOf("127.0.0.1", "10.0.2.2")
                 val remainingHosts = candidateHosts.filter { it != currentHost }
 
                 var lastException: IOException = e
@@ -62,9 +67,9 @@ object RetrofitClient {
             .addInterceptor(hostFallbackInterceptor)
             .addInterceptor(AuthInterceptor(appPreferences))
             .addInterceptor(logging)
-            .connectTimeout(8, TimeUnit.SECONDS)
-            .readTimeout(20, TimeUnit.SECONDS)
-            .writeTimeout(20, TimeUnit.SECONDS)
+            .connectTimeout(2500, TimeUnit.MILLISECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .writeTimeout(15, TimeUnit.SECONDS)
             .build()
 
         return Retrofit.Builder()
